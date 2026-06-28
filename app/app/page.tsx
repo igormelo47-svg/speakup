@@ -1,7 +1,70 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
+import {
+  type LucideIcon,
+  Briefcase, BriefcaseBusiness, Plane, Coffee, BarChart3, Hotel, Stethoscope,
+  Banknote, Handshake, Phone, GraduationCap, ShoppingBag, Utensils, UtensilsCrossed,
+  Car, CarTaxiFront, Building2, Laptop, Stamp, Calendar, Users, Hand, Hash, Palette,
+  PersonStanding, Languages, Zap, PawPrint, UserRound, CloudSun, Smile, Bus, Clock,
+  Shuffle, RefreshCw, Repeat, Hourglass, MapPin, HelpCircle, Link as LinkIcon, Wrench,
+  Glasses, Target, TriangleAlert, PenLine, Tornado, Annoyed, Hammer, Globe, Drama,
+  Scale, Speech, Sprout, Leaf, Trophy, Mic, Wind, Circle, Rewind, Music, Waves, Worm,
+  VolumeX, Scissors, Star, Flame, BookOpen, Library, Bot, Smartphone, NotebookPen,
+  Lightbulb, Sparkles, TrendingUp, BicepsFlexed, PartyPopper, LockOpen, Lock, Search,
+  Flag, X, Heart, Rocket, Folder, Home, Apple, Shirt, Goal, ChefHat, Cat, Map as MapIcon,
+  Image as ImageIcon, ArrowRight, ArrowLeft, Check, CircleCheck, BookText, Pause, Square,
+  Volume2, MessageCircle, Settings, HelpingHand,
+} from 'lucide-react'
+
+// Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
+const EMOJI_ICONS: Record<string, LucideIcon> = {
+  // Cenários do simulador
+  '👔': Briefcase, '💼': BriefcaseBusiness, '✈️': Plane, '☕': Coffee, '📊': BarChart3,
+  '🏨': Hotel, '🏥': Stethoscope, '💰': Banknote, '🤝': Handshake, '📞': Phone,
+  '👩‍🏫': GraduationCap, '👨‍🏫': GraduationCap, '🎓': GraduationCap, '🛍️': ShoppingBag,
+  '🍽️': Utensils, '🍴': UtensilsCrossed, '🚕': CarTaxiFront, '🚗': Car, '🏢': Building2,
+  '💻': Laptop, '🛂': Stamp, '📅': Calendar, '👨‍👩‍👧': Users, '👋': Hand, '🔢': Hash,
+  '🎨': Palette, '🧍': PersonStanding, '🔤': Languages, '⚡': Zap, '🐾': PawPrint,
+  '👩‍⚕️': UserRound, '🌤️': CloudSun, '😊': Smile, '🚌': Bus,
+  // Lições de gramática / vocabulário
+  '⏰': Clock, '🔀': Shuffle, '🔄': RefreshCw, '🔁': Repeat, '💬': MessageCircle,
+  '⚙️': Settings, '⏳': Hourglass, '📍': MapPin, '❓': HelpCircle, '🔗': LinkIcon,
+  '🛠️': Wrench, '😎': Glasses, '🎯': Target, '🪤': TriangleAlert, '✍️': PenLine,
+  '🌀': Tornado, '🎭': Drama, '😏': Annoyed, '🔧': Hammer, '🌍': Globe, '⚖️': Scale,
+  '🗣️': Speech,
+  // Categorias de pronúncia
+  '🦷': Mic, '💨': Wind, '🔴': Circle, '⏪': Rewind, '🎵': Music, '🌊': Waves,
+  '🐍': Worm, '🤫': VolumeX, '✂️': Scissors,
+  // Dicionário ilustrado
+  '🏠': Home, '🍎': Apple, '👕': Shirt, '⚽': Goal, '🏙️': Building2, '👨‍🍳': ChefHat,
+  '🦁': Cat, '🗺️': MapIcon, '📚': Library, '🌿': Leaf, '🖼️': ImageIcon, '📘': BookText,
+  // UI: home, navegação, botões, resultados
+  '⭐': Star, '🌟': Star, '🔥': Flame, '📖': BookOpen, '🤖': Bot, '📲': Smartphone,
+  '📝': NotebookPen, '🎤': Mic, '⏹️': Square, '⏸️': Pause, '🔊': Volume2, '💡': Lightbulb,
+  '✨': Sparkles, '📈': TrendingUp, '💪': BicepsFlexed, '🎉': PartyPopper, '🔓': LockOpen,
+  '🔒': Lock, '🔍': Search, '🏁': Flag, '💜': Heart, '🚀': Rocket, '🗂️': Folder,
+  '🏆': Trophy, '🌱': Sprout,
+  // Símbolos de interface
+  '→': ArrowRight, '←': ArrowLeft, '✓': Check, '✗': X, '✅': CircleCheck, '✕': X,
+  '🎙️': Mic, '🤲': HelpingHand,
+}
+
+// Renderiza um ícone do lucide a partir do emoji equivalente, mantendo tamanho/cor.
+function Ic({ e, s = '1em', c, style }: { e?: string; s?: number | string; c?: string; style?: CSSProperties }) {
+  const Cmp = (e && EMOJI_ICONS[e]) || HelpCircle
+  return <Cmp size={s} color={c} style={{ verticalAlign: '-0.125em', flexShrink: 0, display: 'inline-block', ...style }} />
+}
+
+// Para rótulos que começam com um emoji seguido de texto (ex: "🏠 Casa").
+function IcLabel({ label }: { label: string }) {
+  const sp = label.indexOf(' ')
+  if (sp < 0) return <Ic e={label} />
+  return <>
+    <Ic e={label.slice(0, sp)} /> {label.slice(sp + 1)}
+  </>
+}
 
 interface Question { q: string; ctx: string; opts: string[]; ans: number; exp: string }
 interface Lesson { title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[] }
@@ -197,13 +260,13 @@ function DictCard({word}:{word:{en:string;pt:string;pron:string}}) {
   return(
     <div onClick={speak} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderRadius:14,overflow:'hidden',cursor:'pointer'}}>
       <div style={{width:'100%',height:90,background:'#EEEDFE',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
-        {loading?<div style={{fontSize:28}}>⏳</div>:img?<img src={img} alt={word.en} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{fontSize:32}}>🖼️</div>}
+        {loading?<div style={{fontSize:28}}><Ic e="⏳" /></div>:img?<img src={img} alt={word.en} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{fontSize:32}}><Ic e="🖼️" /></div>}
       </div>
       <div style={{padding:'10px 10px 12px'}}>
         <div style={{fontSize:15,fontWeight:500,color:'var(--color-text-primary)'}}>{word.en}</div>
         <div style={{fontSize:12,color:'#534AB7',fontWeight:500,marginTop:2}}>{word.pt}</div>
         <div style={{fontSize:11,color:'var(--color-text-secondary)',fontStyle:'italic',marginTop:2}}>{word.pron}</div>
-        <button onClick={e=>{e.stopPropagation();speak()}} style={{marginTop:6,background:'#EEEDFE',border:'none',borderRadius:20,padding:'3px 10px',fontSize:11,color:'#534AB7',cursor:'pointer',fontFamily:'inherit'}}>🔊 Ouvir</button>
+        <button onClick={e=>{e.stopPropagation();speak()}} style={{marginTop:6,background:'#EEEDFE',border:'none',borderRadius:20,padding:'3px 10px',fontSize:11,color:'#534AB7',cursor:'pointer',fontFamily:'inherit'}}><Ic e="🔊" /> Ouvir</button>
       </div>
     </div>
   )
@@ -226,7 +289,7 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
       <div style={{padding:16}}>
         <div style={{display:'flex',gap:6,marginBottom:16,overflowX:'auto',paddingBottom:4}}>
           {dictCatList.map(c=>(
-            <button key={c.id} onClick={()=>setDictCat(c.id)} style={{padding:'7px 14px',border:dictCat===c.id?'none':'0.5px solid var(--color-border-tertiary)',borderRadius:20,background:dictCat===c.id?'#534AB7':'var(--color-background-primary)',color:dictCat===c.id?'#fff':'var(--color-text-secondary)',fontSize:13,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}>{c.label}</button>
+            <button key={c.id} onClick={()=>setDictCat(c.id)} style={{padding:'7px 14px',border:dictCat===c.id?'none':'0.5px solid var(--color-border-tertiary)',borderRadius:20,background:dictCat===c.id?'#534AB7':'var(--color-background-primary)',color:dictCat===c.id?'#fff':'var(--color-text-secondary)',fontSize:13,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}><IcLabel label={c.label} /></button>
           ))}
         </div>
         {loading?<div style={{textAlign:'center',padding:40,color:'var(--color-text-secondary)'}}>Carregando...</div>:(
@@ -940,38 +1003,38 @@ export default function AppPage() {
         <div>
           <div style={{ background: `linear-gradient(160deg, #2074C0, ${blueDark})`, padding: '20px 16px 32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO ⭐</span>}</div></div>
+              <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div></div>
               <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 12px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
             </div>
             {isNovo ? (
               <div style={{ background: blueDark, borderRadius: 14, padding: 20, textAlign: 'center' }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Bem-vindo ao SpeakUp! 🎉</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Bem-vindo ao SpeakUp! <Ic e="🎉" /></div>
                 <div style={{ fontSize: 13, color: '#B5D4F4', lineHeight: 1.5, marginBottom: 16 }}>Comece sua primeira lição e ganhe seus primeiros 10 XP. Sua jornada até o inglês fluente começa agora.</div>
-                <button onClick={() => setTab('lessons')} style={{ background: '#EF9F27', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Começar agora →</button>
+                <button onClick={() => setTab('lessons')} style={{ background: '#EF9F27', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Começar agora <Ic e="→" /></button>
               </div>
             ) : (
             <div style={{ background: blueDark, borderRadius: 14, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, background: 'rgba(239,159,39,0.15)', borderRadius: 12, padding: '10px 14px' }}>
-                <div style={{ fontSize: 30 }}>🔥</div>
+                <div style={{ fontSize: 30 }}><Ic e="🔥" c="#EF9F27" /></div>
                 <div style={{ flex: 1 }}><div style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{streak} {streak === 1 ? 'dia' : 'dias'} de sequência</div><div style={{ fontSize: 12, color: '#EF9F27', fontWeight: 600, marginTop: 3 }}>{streak === 0 ? 'Comece hoje a sua sequência!' : 'Continue assim, não quebre a corrente!'}</div></div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 14 }}>
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>⭐ {xp}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>XP total</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}><Ic e="⭐" /> {xp}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>XP total</div></div>
                 <div style={{ width: 1, background: blue }} />
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>📚 {doneLessons}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>Lições feitas</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}><Ic e="📚" /> {doneLessons}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>Lições feitas</div></div>
                 <div style={{ width: 1, background: blue }} />
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>🎯 {level}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>Seu nível</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}><Ic e="🎯" /> {level}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>Seu nível</div></div>
               </div>
               <div style={{ marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>📚 Curso concluído: {doneLessons}/{totalLessons} lições</div>
+                  <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="📚" /> Curso concluído: {doneLessons}/{totalLessons} lições</div>
                   <div style={{ fontSize: 11, color: '#85B7EB', fontWeight: 600 }}>{totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0}%</div>
                 </div>
                 <div style={{ background: blue, borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: '#4ADE80', height: '100%', width: `${totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>🎯 Meta de hoje: {xpHoje}/50 XP</div>
-                <div style={{ fontSize: 11, color: xpHoje >= 50 ? '#4ADE80' : '#85B7EB', fontWeight: 600 }}>{xpHoje >= 50 ? 'Concluída! ✓' : `Faltam ${50 - xpHoje}`}</div>
+                <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje: {xpHoje}/50 XP</div>
+                <div style={{ fontSize: 11, color: xpHoje >= 50 ? '#4ADE80' : '#85B7EB', fontWeight: 600 }}>{xpHoje >= 50 ? <>Concluída! <Ic e="✓" /></> : `Faltam ${50 - xpHoje}`}</div>
               </div>
               <div style={{ background: blue, borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= 50 ? '#4ADE80' : '#EF9F27', height: '100%', width: `${Math.min(100, Math.round(xpHoje / 50 * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
             </div>)}
@@ -979,23 +1042,23 @@ export default function AppPage() {
           <div style={{ padding: '16px', marginTop: 8 }}>
             {!isPremium && (
               <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 28 }}>⭐</div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Seja Premium ✨</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$19,90/mês →</div>
+                <div style={{ fontSize: 28 }}><Ic e="⭐" /></div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Seja Premium <Ic e="✨" /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$19,90/mês <Ic e="→" /></div>
               </div>
             )}
             <div onClick={() => { if (!desafioFeito) { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }} style={{ background: desafioFeito ? 'linear-gradient(135deg, #2EBD6B, #1B9E54)' : 'linear-gradient(135deg, #EF9F27, #E07B00)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: desafioFeito ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 12, border: 'none' }}>
-              {desafioFeito ? (<div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 22, color: '#fff', fontWeight: 700, lineHeight: 1 }}>✓</span></div>) : (<div style={{ fontSize: 28 }}>🔥</div>)}
+              {desafioFeito ? (<div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 22, color: '#fff', fontWeight: 700, lineHeight: 1 }}><Ic e="✓" c="#fff" /></span></div>) : (<div style={{ fontSize: 28 }}><Ic e="🔥" c="#fff" /></div>)}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{desafioFeito ? 'Desafio concluído!' : 'Desafio do Dia'}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{desafioFeito ? 'Volte amanhã para manter seu streak 🔥' : '5 perguntas rápidas · ganhe até 25 XP'}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{desafioFeito ? <>Volte amanhã para manter seu streak <Ic e="🔥" /></> : '5 perguntas rápidas · ganhe até 25 XP'}</div>
               </div>
-              {!desafioFeito && <div style={{ fontSize: 20, color: '#fff' }}>→</div>}
+              {!desafioFeito && <div style={{ fontSize: 20, color: '#fff' }}><Ic e="→" c="#fff" /></div>}
             </div>
             <div onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null); setTab('nivelamento') }} style={{ background: 'linear-gradient(135deg, #2074C0, #185FA5)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 28 }}>📊</div>
+              <div style={{ fontSize: 28 }}><Ic e="📊" c="#fff" /></div>
               <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Descubra seu nível</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Faça o teste e comece no ponto certo</div></div>
-              <div style={{ fontSize: 20, color: '#fff' }}>→</div>
+              <div style={{ fontSize: 20, color: '#fff' }}><Ic e="→" c="#fff" /></div>
             </div>
             {(() => {
               const proxLicao = lessons[level].find(l => !l.done)
@@ -1011,59 +1074,59 @@ export default function AppPage() {
               }
               return (
                 <div onClick={passo.acao} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, marginBottom: 12, cursor: 'pointer' }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>✨ Próximo passo recomendado</div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}><Ic e="✨" /> Próximo passo recomendado</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 44, height: 44, background: blueLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{passo.icon}</div>
+                    <div style={{ width: 44, height: 44, background: blueLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Ic e={passo.icon} /></div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>{passo.titulo}</div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{passo.sub}</div>
                     </div>
-                    <div style={{ width: 36, height: 36, background: passo.cor, border: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, color: '#fff' }}>→</div>
+                    <div style={{ width: 36, height: 36, background: passo.cor, border: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, color: '#fff' }}><Ic e="→" c="#fff" /></div>
                   </div>
                 </div>
               )
             })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
               <div onClick={() => setTab('speak')} style={{ background: purpleLight, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>🎭</div>
+                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="🎭" /></div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#3C3489' }}>Simulador</div>
                 <div style={{ fontSize: 11, color: purple }}>{isPremium ? `${scenarios.length} cenários` : `${simulacoesHoje}/${FREE_LIMIT} hoje`}</div>
               </div>
               <div onClick={() => setTab('ai')} style={{ background: '#FAEEDA', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>🤖</div>
+                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="🤖" /></div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#633806' }}>Professor IA</div>
                 <div style={{ fontSize: 11, color: '#854F0B' }}>Disponível 24h</div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div onClick={() => setTab('vocab')} style={{ background: greenLight, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>📚</div>
+                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📚" /></div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>Vocabulário</div>
                 <div style={{ fontSize: 11, color: green }}>{vocab.length} palavras</div>
               </div>
               <div onClick={() => setTab('lessons')} style={{ background: blueLight, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>📖</div>
+                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📖" /></div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: blueDark }}>Lições</div>
                 <div style={{ fontSize: 11, color: blue }}>Seu progresso</div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
               <div onClick={() => { setWhatsappInput(whatsapp); setZapModal(true) }} style={{ background: '#E7F8EE', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>📲</div>
+                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📲" /></div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#0B6B3A' }}>WhatsApp</div>
-                <div style={{ fontSize: 11, color: '#178B4E' }}>{whatsapp ? 'Cadastrado ✓' : 'Receber dicas'}</div>
+                <div style={{ fontSize: 11, color: '#178B4E' }}>{whatsapp ? <>Cadastrado <Ic e="✓" /></> : 'Receber dicas'}</div>
               </div>
               <div onClick={() => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') }} style={{ background: '#FDECEC', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}>📝</div>
+                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📝" /></div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#9B2D2D' }}>Prova Semanal</div>
                 <div style={{ fontSize: 11, color: '#C0392B' }}>{provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões'}</div>
               </div>
             </div>
             <div onClick={() => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') }} style={{ marginTop: 10, background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 12, padding: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 26 }}>🎤</div>
+              <div style={{ fontSize: 26 }}><Ic e="🎤" /></div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Treino de Pronúncia</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Fale e receba dicas da IA pra soar nativo 🗣️</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Fale e receba dicas da IA pra soar nativo <Ic e="🗣️" /></div>
               </div>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 9px', borderRadius: 20 }}>NOVO</div>
             </div>
@@ -1075,7 +1138,7 @@ export default function AppPage() {
         <div onClick={() => setZapModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 440, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 26 }}>📲</span>
+              <span style={{ fontSize: 26 }}><Ic e="📲" /></span>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)' }}>Receba dicas no WhatsApp</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Dicas de inglês e lembretes do seu desafio diário, direto no seu WhatsApp.</div>
@@ -1090,8 +1153,8 @@ export default function AppPage() {
       {tab === 'prova' && (
         <div>
           <div style={{ background: 'linear-gradient(135deg, #C0392B, #9B2D2D)', padding: '20px 16px 24px' }}>
-            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}>←</button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>📝 Prova Semanal · {level}</div>
+            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}><Ic e="📝" /> Prova Semanal · {level}</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>20 questões do seu nível · muda toda semana</div>
           </div>
           <div style={{ padding: 16 }}>
@@ -1101,7 +1164,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18, lineHeight: 1.5 }}>Escolha o nível da sua prova desta semana. Você pode testar qualquer um.</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {([['A1', 'A1 · Iniciante'], ['A2', 'A2 · Básico'], ['B1', 'B1 · Intermediário'], ['B2', 'B2 · Intermediário+'], ['C1', 'C1 · Avançado'], ['C2', 'C2 · Domínio']] as const).map(([lv, nome]) => (
-                    <button key={lv} onClick={() => { setLevel(lv); setProvaNivelEscolhido(true); setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false) }} style={{ width: '100%', textAlign: 'left', padding: 16, borderRadius: 14, border: level === lv ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)', background: level === lv ? '#FDECEC' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>{nome}<span style={{ color: '#C0392B', fontSize: 18 }}>→</span></button>
+                    <button key={lv} onClick={() => { setLevel(lv); setProvaNivelEscolhido(true); setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false) }} style={{ width: '100%', textAlign: 'left', padding: 16, borderRadius: 14, border: level === lv ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)', background: level === lv ? '#FDECEC' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>{nome}<span style={{ color: '#C0392B', fontSize: 18 }}><Ic e="→" /></span></button>
                   ))}
                 </div>
               </div>
@@ -1117,15 +1180,15 @@ export default function AppPage() {
                   const correta = provaAns && i === provaQuestoes[provaQ].ans
                   const errada = provaAns && i === provaSel && i !== provaQuestoes[provaQ].ans
                   return (
-                    <button key={i} onClick={() => { if (provaAns) return; setProvaSel(i); setProvaAns(true); if (i === provaQuestoes[provaQ].ans) setProvaAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #3B6D11' : errada ? '2px solid #C0392B' : (provaSel === i ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)'), background: correta ? '#EAF3DE' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: provaAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? ' ✓' : errada ? ' ✗' : ''}</button>
+                    <button key={i} onClick={() => { if (provaAns) return; setProvaSel(i); setProvaAns(true); if (i === provaQuestoes[provaQ].ans) setProvaAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #3B6D11' : errada ? '2px solid #C0392B' : (provaSel === i ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)'), background: correta ? '#EAF3DE' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: provaAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
                   )
                 })}
-                {provaAns && provaQuestoes[provaQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}>💡 {provaQuestoes[provaQ].exp}</div>)}
-                <button disabled={!provaAns} onClick={() => { if (provaQ < provaQuestoes.length - 1) { setProvaQ(provaQ + 1); setProvaSel(-1); setProvaAns(false) } else { finalizarProva() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !provaAns ? 'var(--color-background-secondary)' : '#C0392B', color: !provaAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !provaAns ? 'default' : 'pointer' }}>{provaQ < provaQuestoes.length - 1 ? 'Próxima →' : 'Finalizar prova 🎯'}</button>
+                {provaAns && provaQuestoes[provaQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {provaQuestoes[provaQ].exp}</div>)}
+                <button disabled={!provaAns} onClick={() => { if (provaQ < provaQuestoes.length - 1) { setProvaQ(provaQ + 1); setProvaSel(-1); setProvaAns(false) } else { finalizarProva() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !provaAns ? 'var(--color-background-secondary)' : '#C0392B', color: !provaAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !provaAns ? 'default' : 'pointer' }}>{provaQ < provaQuestoes.length - 1 ? <>Próxima <Ic e="→" /></> : <>Finalizar prova <Ic e="🎯" /></>}</button>
               </div>
             ) : (
               <div style={{ textAlign: 'center', paddingTop: 12 }}>
-                <div style={{ fontSize: 56 }}>{provaAcertos >= 16 ? '🏆' : provaAcertos >= 12 ? '🎉' : provaAcertos >= 8 ? '💪' : '📚'}</div>
+                <div style={{ fontSize: 56 }}><Ic e={provaAcertos >= 16 ? '🏆' : provaAcertos >= 12 ? '🎉' : provaAcertos >= 8 ? '💪' : '📚'} /></div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 8 }}>{provaAcertos}/{provaQuestoes.length}</div>
                 <div style={{ fontSize: 16, color: '#C0392B', fontWeight: 700, marginTop: 4 }}>{Math.round(provaAcertos / provaQuestoes.length * 100)}% de acerto</div>
                 <div style={{ fontSize: 15, color: '#E07B00', fontWeight: 600, marginTop: 8 }}>+{provaAcertos * 2} XP</div>
@@ -1140,8 +1203,8 @@ export default function AppPage() {
       {tab === 'pronuncia' && (
         <div>
           <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', padding: '20px 16px 24px' }}>
-            <button onClick={() => { if (pronCat) { setPronCat(null) } else { setTab('home') } }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}>←</button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>🎤 Treino de Pronúncia</div>
+            <button onClick={() => { if (pronCat) { setPronCat(null) } else { setTab('home') } }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}><Ic e="🎤" /> Treino de Pronúncia</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>{pronCat ? 'Leia em voz alta e receba dicas da IA' : 'Escolha um som para treinar'}</div>
           </div>
           <div style={{ padding: 16 }}>
@@ -1149,12 +1212,12 @@ export default function AppPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {pronCategorias.map(c => (
                   <div key={c.id} onClick={() => { setPronCat(c.id); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip('') }} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div style={{ width: 48, height: 48, background: purpleLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>{c.icon}</div>
+                    <div style={{ width: 48, height: 48, background: purpleLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><Ic e={c.icon} /></div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>{c.label}</div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{c.desc}</div>
                     </div>
-                    <div style={{ fontSize: 18, color: 'var(--color-text-secondary)' }}>→</div>
+                    <div style={{ fontSize: 18, color: 'var(--color-text-secondary)' }}><Ic e="→" /></div>
                   </div>
                 ))}
               </div>
@@ -1165,7 +1228,7 @@ export default function AppPage() {
               const heardSet = pronHeard.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean)
               return (
                 <div>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 14 }}>{cat.icon} {cat.label} · Frase {pronIdx + 1} de {cat.frases.length}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 14 }}><Ic e={cat.icon} /> {cat.label} · Frase {pronIdx + 1} de {cat.frases.length}</div>
                   <div style={{ background: 'var(--color-background-primary)', borderRadius: 16, border: '0.5px solid var(--color-border-tertiary)', padding: 20, textAlign: 'center', marginBottom: 16 }}>
                     <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.5, marginBottom: 8 }}>
                       {palavras.map((w: string, i: number) => {
@@ -1177,8 +1240,8 @@ export default function AppPage() {
                     <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>{frase.pt}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-                    <button onClick={() => ouvirPron(frase.en)} style={{ flex: 1, padding: 14, background: purpleLight, color: '#3C3489', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>🔊 Ouvir</button>
-                    <button onClick={() => gravarPron(frase.en)} style={{ flex: 1, padding: 14, background: pronListening ? '#C0392B' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{pronListening ? '⏹️ Parar e avaliar' : '🎤 Falar'}</button>
+                    <button onClick={() => ouvirPron(frase.en)} style={{ flex: 1, padding: 14, background: purpleLight, color: '#3C3489', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}><Ic e="🔊" /> Ouvir</button>
+                    <button onClick={() => gravarPron(frase.en)} style={{ flex: 1, padding: 14, background: pronListening ? '#C0392B' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{pronListening ? <><Ic e="⏹️" /> Parar e avaliar</> : <><Ic e="🎤" /> Falar</>}</button>
                   </div>
                   {pronScore !== null && (
                     <div style={{ background: 'var(--color-background-secondary)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
@@ -1187,14 +1250,14 @@ export default function AppPage() {
                         <div style={{ fontSize: 14, fontWeight: 700, color: pronScore >= 80 ? '#3B6D11' : pronScore >= 50 ? '#E07B00' : '#C0392B' }}>{pronScore}%</div>
                       </div>
                       <div style={{ fontSize: 15, fontStyle: 'italic', color: 'var(--color-text-primary)', marginBottom: 12 }}>"{pronHeard || '...'}"</div>
-                      {pronScore === 100 && <div style={{ background: '#EAF3DE', borderRadius: 10, padding: 12, fontSize: 13, color: '#3B6D11', fontWeight: 600, textAlign: 'center' }}>🎉 Perfeito! Pronúncia certeira!</div>}
-                      {pronLoadingTip && <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>💡 Analisando sua pronúncia...</div>}
-                      {pronTip && <div style={{ background: purpleLight, borderRadius: 10, padding: 12, fontSize: 13, color: '#3C3489', lineHeight: 1.5 }}>💡 {pronTip}</div>}
+                      {pronScore === 100 && <div style={{ background: '#EAF3DE', borderRadius: 10, padding: 12, fontSize: 13, color: '#3B6D11', fontWeight: 600, textAlign: 'center' }}><Ic e="🎉" /> Perfeito! Pronúncia certeira!</div>}
+                      {pronLoadingTip && <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}><Ic e="💡" /> Analisando sua pronúncia...</div>}
+                      {pronTip && <div style={{ background: purpleLight, borderRadius: 10, padding: 12, fontSize: 13, color: '#3C3489', lineHeight: 1.5 }}><Ic e="💡" /> {pronTip}</div>}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button disabled={pronIdx === 0} onClick={() => { setPronIdx(pronIdx - 1); setPronHeard(''); setPronScore(null); setPronTip('') }} style={{ flex: 1, padding: 13, background: 'var(--color-background-secondary)', color: pronIdx === 0 ? 'var(--color-text-secondary)' : 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: pronIdx === 0 ? 'default' : 'pointer' }}>← Anterior</button>
-                    <button onClick={() => { if (pronIdx < cat.frases.length - 1) { setPronIdx(pronIdx + 1); setPronHeard(''); setPronScore(null); setPronTip('') } else { setPronCat(null) } }} style={{ flex: 1, padding: 13, background: purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{pronIdx < cat.frases.length - 1 ? 'Próxima →' : 'Concluir ✓'}</button>
+                    <button disabled={pronIdx === 0} onClick={() => { setPronIdx(pronIdx - 1); setPronHeard(''); setPronScore(null); setPronTip('') }} style={{ flex: 1, padding: 13, background: 'var(--color-background-secondary)', color: pronIdx === 0 ? 'var(--color-text-secondary)' : 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: pronIdx === 0 ? 'default' : 'pointer' }}><Ic e="←" /> Anterior</button>
+                    <button onClick={() => { if (pronIdx < cat.frases.length - 1) { setPronIdx(pronIdx + 1); setPronHeard(''); setPronScore(null); setPronTip('') } else { setPronCat(null) } }} style={{ flex: 1, padding: 13, background: purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{pronIdx < cat.frases.length - 1 ? <>Próxima <Ic e="→" /></> : <>Concluir <Ic e="✓" /></>}</button>
                   </div>
                 </div>
               )
@@ -1206,8 +1269,8 @@ export default function AppPage() {
       {tab === 'desafio' && (
         <div>
           <div style={{ background: `linear-gradient(135deg, #EF9F27, #E07B00)`, padding: '20px 16px 24px' }}>
-            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}>←</button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>🔥 Desafio do Dia</div>
+            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}><Ic e="🔥" /> Desafio do Dia</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>Acerte tudo e mantenha seu streak vivo</div>
           </div>
           <div style={{ padding: 16 }}>
@@ -1223,18 +1286,18 @@ export default function AppPage() {
                   const correta = desAns && i === desafioQuestions[desQ].ans
                   const errada = desAns && i === desSel && i !== desafioQuestions[desQ].ans
                   return (
-                    <button key={i} onClick={() => { if (desAns) return; setDesSel(i); setDesAns(true); if (i === desafioQuestions[desQ].ans) setDesAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #3B6D11' : errada ? '2px solid #C0392B' : (desSel === i ? '2px solid #EF9F27' : '1px solid var(--color-border-tertiary)'), background: correta ? '#EAF3DE' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: desAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? ' ✓' : errada ? ' ✗' : ''}</button>
+                    <button key={i} onClick={() => { if (desAns) return; setDesSel(i); setDesAns(true); if (i === desafioQuestions[desQ].ans) setDesAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #3B6D11' : errada ? '2px solid #C0392B' : (desSel === i ? '2px solid #EF9F27' : '1px solid var(--color-border-tertiary)'), background: correta ? '#EAF3DE' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: desAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
                   )
                 })}
-                {desAns && desafioQuestions[desQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}>💡 {desafioQuestions[desQ].exp}</div>)}
-                <button disabled={!desAns} onClick={() => { if (desQ < 4) { setDesQ(desQ + 1); setDesSel(-1); setDesAns(false) } else { finalizarDesafio() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !desAns ? 'var(--color-background-secondary)' : '#EF9F27', color: !desAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !desAns ? 'default' : 'pointer' }}>{desQ < 4 ? 'Próxima →' : 'Ver resultado 🎯'}</button>
+                {desAns && desafioQuestions[desQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {desafioQuestions[desQ].exp}</div>)}
+                <button disabled={!desAns} onClick={() => { if (desQ < 4) { setDesQ(desQ + 1); setDesSel(-1); setDesAns(false) } else { finalizarDesafio() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !desAns ? 'var(--color-background-secondary)' : '#EF9F27', color: !desAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !desAns ? 'default' : 'pointer' }}>{desQ < 4 ? <>Próxima <Ic e="→" /></> : <>Ver resultado <Ic e="🎯" /></>}</button>
               </div>
             ) : (
               <div style={{ textAlign: 'center', paddingTop: 12 }}>
-                <div style={{ fontSize: 56 }}>{desAcertos === 5 ? '🏆' : desAcertos >= 3 ? '🎉' : '💪'}</div>
+                <div style={{ fontSize: 56 }}><Ic e={desAcertos === 5 ? '🏆' : desAcertos >= 3 ? '🎉' : '💪'} /></div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Você acertou {desAcertos}/5</div>
-                <div style={{ fontSize: 16, color: '#E07B00', fontWeight: 700, marginTop: 6 }}>+{desAcertos * 5} XP 🔥</div>
-                <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, margin: '14px auto 0' }}>{desAcertos === 5 ? 'Perfeito! Você está afiado hoje. 🌟' : 'Bom trabalho! Volte amanhã para manter seu streak vivo.'}</div>
+                <div style={{ fontSize: 16, color: '#E07B00', fontWeight: 700, marginTop: 6 }}>+{desAcertos * 5} XP <Ic e="🔥" /></div>
+                <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, margin: '14px auto 0' }}>{desAcertos === 5 ? <>Perfeito! Você está afiado hoje. <Ic e="🌟" /></> : 'Bom trabalho! Volte amanhã para manter seu streak vivo.'}</div>
                 <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
               </div>
             )}
@@ -1245,7 +1308,7 @@ export default function AppPage() {
       {tab === 'nivelamento' && (
         <div>
           <div style={{ background: `linear-gradient(160deg, #2074C0, ${blueDark})`, padding: '20px 16px 24px' }}>
-            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}>←</button>
+            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Teste de Nivelamento</div>
             <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 4 }}>Descubra onde começar — leva 2 minutos</div>
           </div>
@@ -1274,7 +1337,7 @@ export default function AppPage() {
                     setNivResult(rec); setLevel(rec)
                     try { localStorage.setItem('speakup_nivel', rec) } catch (e) {}
                   }
-                }} style={{ width: '100%', padding: 15, marginTop: 8, background: nivSel < 0 ? 'var(--color-background-secondary)' : blue, color: nivSel < 0 ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: nivSel < 0 ? 'default' : 'pointer' }}>{nivIdx < placementQuestions.length - 1 ? 'Próxima →' : 'Ver meu nível 🎯'}</button>
+                }} style={{ width: '100%', padding: 15, marginTop: 8, background: nivSel < 0 ? 'var(--color-background-secondary)' : blue, color: nivSel < 0 ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: nivSel < 0 ? 'default' : 'pointer' }}>{nivIdx < placementQuestions.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
               </div>
             ) : (
               <div style={{ textAlign: 'center', paddingTop: 12 }}>
@@ -1282,7 +1345,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 56, fontWeight: 800, color: blue, lineHeight: 1 }}>{nivResult}</div>
                 <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-primary)', marginTop: 8 }}>{({ A1: 'Iniciante', A2: 'Básico', B1: 'Intermediário', B2: 'Intermediário+', C1: 'Avançado', C2: 'Domínio' } as Record<string, string>)[nivResult]}</div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>Vamos te colocar no ponto certo para evoluir mais rápido. Você pode mudar de nível quando quiser na aba Lições.</div>
-                <button onClick={() => setTab('lessons')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Começar no nível {nivResult} →</button>
+                <button onClick={() => setTab('lessons')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Começar no nível {nivResult} <Ic e="→" /></button>
                 <button onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null) }} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 12, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
               </div>
             )}
@@ -1293,9 +1356,9 @@ export default function AppPage() {
       {tab === 'plans' && (
         <div>
           <div style={{ background: `linear-gradient(135deg, ${gold}, #DAA520)`, padding: '28px 16px 24px' }}>
-            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}>←</button>
+            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>⭐</div>
+              <div style={{ fontSize: 36, marginBottom: 8 }}><Ic e="⭐" /></div>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>SPEAKUP Premium</div>
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 6 }}>Alcance a fluência sem limites</div>
             </div>
@@ -1305,9 +1368,9 @@ export default function AppPage() {
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 12 }}>O que você ganha com o Premium:</div>
               {[['🎭', 'Simulações ilimitadas', 'Pratique todos os 12 cenários sem limite diário'], ['🤖', 'Professor IA ilimitado', 'Tire dúvidas sem restrições'], ['📖', 'Todas as 47 lições', 'Beginner, Intermediário e Avançado'], ['📊', 'Relatório de evolução', 'Acompanhe seu progresso semanal'], ['🎯', 'Trilha personalizada', 'IA monta seu plano de 90 dias'], ['🔓', 'Novos cenários em breve', 'Acesso antecipado a conteúdo novo']].map(([icon, title, desc], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < 5 ? 12 : 0 }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={icon} /></span>
                   <div><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{title}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{desc}</div></div>
-                  <span style={{ marginLeft: 'auto', fontSize: 16, color: green, flexShrink: 0 }}>✓</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 16, color: green, flexShrink: 0 }}><Ic e="✓" /></span>
                 </div>
               ))}
             </div>
@@ -1316,15 +1379,15 @@ export default function AppPage() {
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$19,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
               </div>
-              <button onClick={() => window.open(KIWIFY_MENSAL, '_blank')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar mensalmente →</button>
+              <button onClick={() => window.open(KIWIFY_MENSAL, '_blank')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar mensalmente <Ic e="→" /></button>
             </div>
             <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}>🔥 MELHOR OFERTA</div>
+              <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> MELHOR OFERTA</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>Economize R$141 por ano</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>R$97</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · R$8,08/mês</div></div>
               </div>
-              <button onClick={() => window.open(KIWIFY_ANUAL, '_blank')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente →</button>
+              <button onClick={() => window.open(KIWIFY_ANUAL, '_blank')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
             </div>
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento</div>
           </div>
@@ -1342,10 +1405,10 @@ export default function AppPage() {
               </div>
               {!isPremium && simulacoesHoje >= FREE_LIMIT && (
                 <div onClick={() => setTab('plans')} style={{ margin: 16, background: `linear-gradient(135deg, ${gold}, #DAA520)`, borderRadius: 16, padding: 18, cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ fontSize: 30, marginBottom: 6 }}>🔥</div>
+                  <div style={{ fontSize: 30, marginBottom: 6 }}><Ic e="🔥" c="#fff" /></div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Você está pegando o jeito!</div>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 6, lineHeight: 1.5 }}>Você já fez suas {FREE_LIMIT} conversas de hoje. Vire Premium e pratique sem limites — quantas vezes quiser, todos os dias.</div>
-                  <div style={{ display: 'inline-block', marginTop: 14, background: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 600, fontSize: 14, padding: '10px 22px', borderRadius: 24 }}>Conversar sem limites →</div>
+                  <div style={{ display: 'inline-block', marginTop: 14, background: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 600, fontSize: 14, padding: '10px 22px', borderRadius: 24 }}>Conversar sem limites <Ic e="→" /></div>
                 </div>
               )}
               <div style={{ padding: 16, flex: 1 }}>
@@ -1355,13 +1418,13 @@ export default function AppPage() {
                     const bloqueado = !isPremium && idx >= FREE_LIMIT
                     return (
                       <div key={s.id} onClick={() => !bloqueado ? startScenario(s) : setTab('plans')} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', opacity: bloqueado ? 0.6 : 1 }}>
-                        <div style={{ width: 48, height: 48, background: bloqueado ? '#eee' : purpleLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>{bloqueado ? '🔒' : s.icon}</div>
+                        <div style={{ width: 48, height: 48, background: bloqueado ? '#eee' : purpleLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><Ic e={bloqueado ? '🔒' : s.icon} /></div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.title}</div>
                           <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{s.description}</div>
                           <div style={{ marginTop: 6 }}><span style={{ background: bloqueado ? '#eee' : purpleLight, color: bloqueado ? '#999' : purple, fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 20 }}>{bloqueado ? 'Premium' : s.level}</span></div>
                         </div>
-                        <span style={{ color: bloqueado ? gold : purple, fontSize: 18 }}>{bloqueado ? '⭐' : '→'}</span>
+                        <span style={{ color: bloqueado ? gold : purple, fontSize: 18 }}><Ic e={bloqueado ? '⭐' : '→'} /></span>
                       </div>
                     )
                   })}
@@ -1372,35 +1435,35 @@ export default function AppPage() {
             <>
               <div style={{ background: purple, padding: '16px 16px 12px', flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <button onClick={() => { setConvStarted(false); setSelectedScenario(null); setConvMsgs([]) }} style={{ background: 'none', border: 'none', color: '#AFA9EC', cursor: 'pointer', fontSize: 20, padding: 0 }}>←</button>
-                  <div><div style={{ fontSize: 15, fontWeight: 500, color: '#fff' }}>{selectedScenario?.icon} {selectedScenario?.title}</div><div style={{ fontSize: 12, color: '#AFA9EC' }}>{selectedScenario?.context}</div></div>
+                  <button onClick={() => { setConvStarted(false); setSelectedScenario(null); setConvMsgs([]) }} style={{ background: 'none', border: 'none', color: '#AFA9EC', cursor: 'pointer', fontSize: 20, padding: 0 }}><Ic e="←" /></button>
+                  <div><div style={{ fontSize: 15, fontWeight: 500, color: '#fff' }}><Ic e={selectedScenario?.icon} /> {selectedScenario?.title}</div><div style={{ fontSize: 12, color: '#AFA9EC' }}>{selectedScenario?.context}</div></div>
                 </div>
               </div>
               {selectedScenario && (
                 <div style={{ background: '#F1EFE8', padding: '10px 16px', borderBottom: '0.5px solid var(--color-border-tertiary)' }}>
-                  <div style={{ fontSize: 11, color: '#5F5E5A', fontWeight: 500, marginBottom: 4 }}>💡 Dicas:</div>
+                  <div style={{ fontSize: 11, color: '#5F5E5A', fontWeight: 500, marginBottom: 4 }}><Ic e="💡" /> Dicas:</div>
                   {selectedScenario.tips.map((tip, i) => <div key={i} style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 2 }}>• {tip}</div>)}
                 </div>
               )}
               <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
                 {convMsgs.map((m, i) => (
                   <div key={i} style={{ maxWidth: '88%', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                    {m.role === 'ai' && <div style={{ fontSize: 10, color: purple, fontWeight: 500, marginBottom: 4, marginLeft: 2 }}>{selectedScenario?.icon} {selectedScenario?.title}</div>}
+                    {m.role === 'ai' && <div style={{ fontSize: 10, color: purple, fontWeight: 500, marginBottom: 4, marginLeft: 2 }}><Ic e={selectedScenario?.icon} /> {selectedScenario?.title}</div>}
                     <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? purple : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>{m.text}</div>
-                    {m.role === 'ai' && <button onClick={() => falarIngles(m.text, i)} style={{ marginTop: 5, marginLeft: 2, background: speakingId === i ? purple : purpleLight, color: speakingId === i ? '#fff' : purple, border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === i ? '⏸️ Parar' : '🔊 Ouvir'}</button>}
+                    {m.role === 'ai' && <button onClick={() => falarIngles(m.text, i)} style={{ marginTop: 5, marginLeft: 2, background: speakingId === i ? purple : purpleLight, color: speakingId === i ? '#fff' : purple, border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir</>}</button>}
                   </div>
                 ))}
                 {loadingConv && <div style={{ alignSelf: 'flex-start', padding: '10px 14px', borderRadius: '14px 14px 14px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>digitando...</div>}
                 <div ref={convEndRef} />
               </div>
               <div style={{ padding: '12px 16px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', gap: 8 }}>
-                <button onClick={() => toggleMic(setConvInput)} style={{ padding: '10px 14px', background: listening ? '#E24B4A' : 'var(--color-background-secondary)', color: listening ? '#fff' : purple, border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>{listening ? '⏹️' : '🎤'}</button>
+                <button onClick={() => toggleMic(setConvInput)} style={{ padding: '10px 14px', background: listening ? '#E24B4A' : 'var(--color-background-secondary)', color: listening ? '#fff' : purple, border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}><Ic e={listening ? '⏹️' : '🎤'} /></button>
                 <input value={convInput} onChange={e => setConvInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendConvMsg()} placeholder={listening ? '🎙️ Pode falar em inglês...' : 'Digite ou fale em inglês...'} style={{ flex: 1, padding: '10px 12px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, fontSize: 14, background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
-                <button onClick={sendConvMsg} disabled={loadingConv} style={{ padding: '10px 16px', background: purple, color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>→</button>
+                <button onClick={sendConvMsg} disabled={loadingConv} style={{ padding: '10px 16px', background: purple, color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}><Ic e="→" /></button>
               </div>
               {convMsgs.length >= 3 && (
                 <div style={{ padding: '0 16px 12px', background: 'var(--color-background-primary)' }}>
-                  <button onClick={gerarRelatorio} disabled={loadingReport} style={{ width: '100%', padding: 12, background: loadingReport ? '#999' : gold, color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>{loadingReport ? '🔍 Analisando seu inglês...' : '🏁 Finalizar e ver meu relatório'}</button>
+                  <button onClick={gerarRelatorio} disabled={loadingReport} style={{ width: '100%', padding: 12, background: loadingReport ? '#999' : gold, color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>{loadingReport ? <><Ic e="🔍" /> Analisando seu inglês...</> : <><Ic e="🏁" /> Finalizar e ver meu relatório</>}</button>
                 </div>
               )}
             </>
@@ -1412,32 +1475,32 @@ export default function AppPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'su_fade 0.2s ease' }} onClick={() => setFluencyReport(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-tertiary)', width: '100%', maxWidth: 430, borderRadius: '20px 20px 0 0', maxHeight: '90vh', overflowY: 'auto', padding: '0 0 24px', animation: 'su_slide 0.32s cubic-bezier(0.16, 1, 0.3, 1)' }}>
             <div style={{ background: `linear-gradient(135deg, ${purple}, #3C3489)`, padding: '28px 20px 24px', borderRadius: '20px 20px 0 0', textAlign: 'center', position: 'relative' }}>
-              <button onClick={() => setFluencyReport(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 30, height: 30, color: '#fff', fontSize: 16, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setFluencyReport(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 30, height: 30, color: '#fff', fontSize: 16, cursor: 'pointer' }}><Ic e="✕" /></button>
               <div style={{ fontSize: 13, color: '#C9C4F0', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Relatório de Fluência</div>
               <div style={{ fontSize: 64, fontWeight: 700, color: '#fff', lineHeight: 1.1, marginTop: 8, animation: 'su_pop 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>{fluencyReport.score}<span style={{ fontSize: 24, color: '#C9C4F0' }}>/100</span></div>
-              <div style={{ fontSize: 14, color: '#fff', marginTop: 4 }}>{fluencyReport.score >= 80 ? '🌟 Excelente!' : fluencyReport.score >= 60 ? '💪 Muito bom!' : fluencyReport.score >= 40 ? '📈 Continue assim!' : '🌱 Começo de jornada!'}</div>
+              <div style={{ fontSize: 14, color: '#fff', marginTop: 4 }}>{fluencyReport.score >= 80 ? <><Ic e="🌟" /> Excelente!</> : fluencyReport.score >= 60 ? <><Ic e="💪" /> Muito bom!</> : fluencyReport.score >= 40 ? <><Ic e="📈" /> Continue assim!</> : <><Ic e="🌱" /> Começo de jornada!</>}</div>
             </div>
             <div style={{ padding: 20 }}>
               <div style={{ background: greenLight, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#27500A', marginBottom: 10 }}>✅ Seus pontos fortes</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#27500A', marginBottom: 10 }}><Ic e="✅" /> Seus pontos fortes</div>
                 {fluencyReport.strengths.map((s, i) => <div key={i} style={{ fontSize: 13, color: '#3B6D11', marginBottom: 6, lineHeight: 1.5, display: 'flex', gap: 8 }}><span>•</span><span>{s}</span></div>)}
               </div>
               <div style={{ background: '#FAEEDA', borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#633806', marginBottom: 10 }}>📈 O que melhorar</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#633806', marginBottom: 10 }}><Ic e="📈" /> O que melhorar</div>
                 {fluencyReport.improvements.map((s, i) => <div key={i} style={{ fontSize: 13, color: '#854F0B', marginBottom: 6, lineHeight: 1.5, display: 'flex', gap: 8 }}><span>•</span><span>{s}</span></div>)}
               </div>
               <div style={{ background: purpleLight, borderRadius: 14, padding: 16, marginBottom: 16, textAlign: 'center' }}>
-                <div style={{ fontSize: 14, color: '#3C3489', fontWeight: 500, lineHeight: 1.5 }}>💜 {fluencyReport.message}</div>
+                <div style={{ fontSize: 14, color: '#3C3489', fontWeight: 500, lineHeight: 1.5 }}><Ic e="💜" /> {fluencyReport.message}</div>
               </div>
               {!isPremium && (
                 <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #2074C0, #185FA5)', borderRadius: 14, padding: 16, marginBottom: 16, cursor: 'pointer' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>🚀 Quer evoluir mais rápido?</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}><Ic e="🚀" /> Quer evoluir mais rápido?</div>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 1.5 }}>Com o Premium você treina exatamente esses pontos com conversas ilimitadas e chega à fluência muito antes.</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 10 }}>Ver o Premium →</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 10 }}>Ver o Premium <Ic e="→" /></div>
                 </div>
               )}
-              <button onClick={compartilharResultado} style={{ width: '100%', padding: 14, background: '#25D366', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>📲 Compartilhar meu resultado</button>
-              <button onClick={() => { setFluencyReport(null); setConvStarted(false); setSelectedScenario(null); setConvMsgs([]) }} style={{ width: '100%', padding: 14, background: purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10 }}>Praticar outro cenário →</button>
+              <button onClick={compartilharResultado} style={{ width: '100%', padding: 14, background: '#25D366', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Ic e="📲" /> Compartilhar meu resultado</button>
+              <button onClick={() => { setFluencyReport(null); setConvStarted(false); setSelectedScenario(null); setConvMsgs([]) }} style={{ width: '100%', padding: 14, background: purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10 }}>Praticar outro cenário <Ic e="→" /></button>
               <button onClick={() => setFluencyReport(null)} style={{ width: '100%', padding: 12, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 14, cursor: 'pointer' }}>Continuar conversa</button>
             </div>
           </div>
@@ -1455,7 +1518,7 @@ export default function AppPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {([['A1', 'A1 · Iniciante', 'Sobrevivência: o essencial do dia a dia', '#EAF3DE', '#3B6D11', '🌱'], ['A2', 'A2 · Básico', 'Cotidiano: passado, futuro, comparar', '#EAF3DE', '#3B6D11', '🌿'], ['B1', 'B1 · Intermediário', 'Independência: conversar e opinar', '#E6F1FB', '#185FA5', '💬'], ['B2', 'B2 · Intermediário+', 'Fluência: expressar ideias complexas', '#E6F1FB', '#185FA5', '🗣️'], ['C1', 'C1 · Avançado', 'Proficiência: precisão e nuance', '#EEEDFE', '#534AB7', '🎯'], ['C2', 'C2 · Domínio', 'Nível quase nativo', '#EEEDFE', '#534AB7', '🏆']] as const).map(([l, name, desc, bg, color, icon]) => (
                   <div key={l} onClick={() => { setLevel(l); setView('list') }} style={{ background: 'var(--color-background-primary)', border: level === l ? `1.5px solid ${color}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div style={{ width: 44, height: 44, background: bg, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{icon}</div>
+                    <div style={{ width: 44, height: 44, background: bg, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Ic e={icon} c={color} /></div>
                     <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>{name}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{desc}</div></div>
                     {level === l && <div style={{ background: bg, borderRadius: 6, padding: '3px 8px', fontSize: 11, color, fontWeight: 500 }}>Atual</div>}
                   </div>
@@ -1464,13 +1527,13 @@ export default function AppPage() {
             )}
             {view === 'list' && (
               <div>
-                <button onClick={() => setView('levels')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}>← Voltar</button>
+                <button onClick={() => setView('levels')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}><Ic e="←" /> Voltar</button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {lessons[level].map((l, i) => (
                     <div key={i} onClick={() => { setLessonIdx(i); setView('explanation') }} style={{ background: 'var(--color-background-primary)', border: l.done ? '1px solid #97C459' : '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                      <div style={{ width: 44, height: 44, background: l.done ? greenLight : blueLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{l.icon}</div>
+                      <div style={{ width: 44, height: 44, background: l.done ? greenLight : blueLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Ic e={l.icon} /></div>
                       <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{l.title}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{l.sub} · {l.q.length} exercícios</div></div>
-                      {l.done ? <span style={{ fontSize: 18 }}>✅</span> : <span style={{ color: blue, fontSize: 18 }}>→</span>}
+                      {l.done ? <span style={{ fontSize: 18 }}><Ic e="✅" /></span> : <span style={{ color: blue, fontSize: 18 }}><Ic e="→" /></span>}
                     </div>
                   ))}
                 </div>
@@ -1478,9 +1541,9 @@ export default function AppPage() {
             )}
             {view === 'explanation' && (
               <div>
-                <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}>← Voltar</button>
+                <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}><Ic e="←" /> Voltar</button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <div style={{ width: 48, height: 48, background: blueLight, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>{currentLesson.icon}</div>
+                  <div style={{ width: 48, height: 48, background: blueLight, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}><Ic e={currentLesson.icon} /></div>
                   <div><div style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text-primary)' }}>{currentLesson.title}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{currentLesson.q.length} exercícios</div></div>
                 </div>
                 <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 16, marginBottom: 12 }}>
@@ -1488,7 +1551,7 @@ export default function AppPage() {
                   <div style={{ fontSize: 14, color: 'var(--color-text-primary)', lineHeight: 1.6 }}>{currentLesson.explanation}</div>
                 </div>
                 <div style={{ background: '#FAEEDA', borderRadius: 14, padding: 14, marginBottom: 12, display: 'flex', gap: 10 }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e="💡" /></span>
                   <div style={{ fontSize: 13, color: '#633806', lineHeight: 1.6 }}>{currentLesson.tip}</div>
                 </div>
                 <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 16, marginBottom: 16 }}>
@@ -1500,13 +1563,13 @@ export default function AppPage() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios →</button>
+                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios <Ic e="→" /></button>
               </div>
             )}
             {view === 'quiz' && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  <button onClick={() => setView('explanation')} style={{ width: 36, height: 36, border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'var(--color-text-secondary)', flexShrink: 0 }}>←</button>
+                  <button onClick={() => setView('explanation')} style={{ width: 36, height: 36, border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'var(--color-text-secondary)', flexShrink: 0 }}><Ic e="←" /></button>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: 3, marginBottom: 4 }}>{currentLesson.q.map((_, i) => <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < qIdx ? blue : i === qIdx ? '#85B7EB' : 'var(--color-background-secondary)' }} />)}</div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{currentLesson.title}</div>
@@ -1522,22 +1585,22 @@ export default function AppPage() {
                     return (
                       <div key={i} onClick={() => answer(i)} style={{ border: isCorrect ? '1.5px solid #639922' : isWrong ? '1.5px solid #E24B4A' : '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '12px 14px', fontSize: 14, color: isCorrect ? '#27500A' : isWrong ? '#791F1F' : 'var(--color-text-primary)', background: isCorrect ? greenLight : isWrong ? '#FCEBEB' : 'var(--color-background-primary)', cursor: answered ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         {o}
-                        {isCorrect && <span style={{ width: 22, height: 22, background: green, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', flexShrink: 0 }}>✓</span>}
-                        {isWrong && <span style={{ width: 22, height: 22, background: '#E24B4A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', flexShrink: 0 }}>✗</span>}
+                        {isCorrect && <span style={{ width: 22, height: 22, background: green, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', flexShrink: 0 }}><Ic e="✓" c="#fff" /></span>}
+                        {isWrong && <span style={{ width: 22, height: 22, background: '#E24B4A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', flexShrink: 0 }}><Ic e="✗" c="#fff" /></span>}
                       </div>
                     )
                   })}
                 </div>
                 {answered && (
                   <div style={{ background: selected === currentLesson.q[qIdx].ans ? greenLight : '#FCEBEB', borderRadius: 12, padding: 14, marginBottom: 14, display: 'flex', gap: 10 }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>{selected === currentLesson.q[qIdx].ans ? '✅' : '💡'}</span>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={selected === currentLesson.q[qIdx].ans ? '✅' : '💡'} /></span>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: selected === currentLesson.q[qIdx].ans ? '#27500A' : '#633806', marginBottom: 2 }}>{selected === currentLesson.q[qIdx].ans ? 'Correto!' : 'Quase lá!'}</div>
                       <div style={{ fontSize: 13, color: selected === currentLesson.q[qIdx].ans ? green : '#854F0B', lineHeight: 1.5 }}>{currentLesson.q[qIdx].exp}</div>
                     </div>
                   </div>
                 )}
-                {answered && <button onClick={nextQ} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Próxima →</button>}
+                {answered && <button onClick={nextQ} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Próxima <Ic e="→" /></button>}
               </div>
             )}
             {view === 'finish' && (
@@ -1547,12 +1610,12 @@ export default function AppPage() {
                     <div key={i} style={{ position: 'absolute', top: 0, left: `${8 + i * 11}%`, width: 9, height: 9, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1.4 + (i % 4) * 0.3}s ease-in ${(i % 5) * 0.12}s forwards` }} />
                   ))}
                 </div>
-                <div style={{ fontSize: 64, marginBottom: 16, animation: 'su_bounce 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}>🏆</div>
+                <div style={{ fontSize: 64, marginBottom: 16, animation: 'su_bounce 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}><Ic e="🏆" /></div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8, animation: 'su_risefade 0.5s ease 0.2s both' }}>Lição concluída!</div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 10, animation: 'su_risefade 0.5s ease 0.32s both' }}>Você ganhou</div>
                 <div style={{ display: 'inline-block', fontSize: 36, fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, #EF9F27, #E07B00)', padding: '8px 28px', borderRadius: 30, marginBottom: 24, boxShadow: '0 6px 18px rgba(239,159,39,0.4)', animation: 'su_xppop 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both' }}>+30 XP</div>
                 <div style={{ animation: 'su_risefade 0.5s ease 0.6s both' }}>
-                  <button onClick={() => { setView('list'); setAnswered(false); setSelected(-1) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10 }}>Continuar aprendendo →</button>
+                  <button onClick={() => { setView('list'); setAnswered(false); setSelected(-1) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10 }}>Continuar aprendendo <Ic e="→" /></button>
                   <button onClick={() => setTab('home')} style={{ width: '100%', padding: 14, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 15, cursor: 'pointer' }}>Voltar ao início</button>
                 </div>
               </div>
@@ -1568,17 +1631,17 @@ export default function AppPage() {
       {tab === 'vocab' && (
         <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
           <div style={{ background: `linear-gradient(135deg, #2074C0, ${blueDark})`, padding: '20px 16px 18px' }}>
-            <div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>📚 Vocabulário</div>
+            <div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}><Ic e="📚" /> Vocabulário</div>
             <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Toque no card para revelar a tradução</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, background: 'rgba(255,255,255,0.18)', padding: '6px 13px', borderRadius: 20 }}>
-              <span style={{ fontSize: 14 }}>🔄</span>
+              <span style={{ fontSize: 14 }}><Ic e="🔄" /></span>
               <span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Novas palavras toda semana</span>
             </div>
           </div>
           <div style={{ padding: 16 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
               {[['all', '🗂️ Todos'], ['basic', '👋 Essenciais'], ['travel', '✈️ Viagem'], ['work', '💼 Trabalho'], ['food', '🍽️ Comida'], ['home', '🏠 Casa'], ['verbs', '⚡ Verbos'], ['feelings', '😊 Sentimentos'], ['daily', '📅 Dia a dia']].map(([cat, label]) => (
-                <button key={cat} onClick={() => setVocabCat(cat)} style={{ padding: '7px 14px', border: vocabCat === cat ? 'none' : '0.5px solid var(--color-border-tertiary)', borderRadius: 20, background: vocabCat === cat ? blue : 'var(--color-background-primary)', color: vocabCat === cat ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: vocabCat === cat ? 600 : 400 }}>{label}</button>
+                <button key={cat} onClick={() => setVocabCat(cat)} style={{ padding: '7px 14px', border: vocabCat === cat ? 'none' : '0.5px solid var(--color-border-tertiary)', borderRadius: 20, background: vocabCat === cat ? blue : 'var(--color-background-primary)', color: vocabCat === cat ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: vocabCat === cat ? 600 : 400 }}><IcLabel label={label} /></button>
               ))}
             </div>
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontWeight: 600, color: blue }}>{filteredVocab.length}</span> palavras · embaralhadas esta semana</div>
@@ -1586,11 +1649,11 @@ export default function AppPage() {
               {filteredVocab.map((v, i) => (
                 <div key={i} onClick={() => setFlipped(f => ({ ...f, [i]: !f[i] }))} style={{ background: flipped[i] ? blueLight : 'var(--color-background-primary)', border: flipped[i] ? '1px solid #85B7EB' : '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 13, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'background 0.2s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
-                    <span style={{ fontSize: 10.5, background: flipped[i] ? 'rgba(255,255,255,0.7)' : 'var(--color-background-secondary)', padding: '3px 8px', borderRadius: 12, color: 'var(--color-text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>{catEmoji[v.cat]} {catNome[v.cat]}</span>
-                    <button onClick={e => { e.stopPropagation(); speakEN(v.en, 5000 + i) }} style={{ background: speakingId === 5000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 5000 + i ? '#fff' : blue, border: `1px solid ${blueLight}`, borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔊</button>
+                    <span style={{ fontSize: 10.5, background: flipped[i] ? 'rgba(255,255,255,0.7)' : 'var(--color-background-secondary)', padding: '3px 8px', borderRadius: 12, color: 'var(--color-text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}><Ic e={catEmoji[v.cat]} /> {catNome[v.cat]}</span>
+                    <button onClick={e => { e.stopPropagation(); speakEN(v.en, 5000 + i) }} style={{ background: speakingId === 5000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 5000 + i ? '#fff' : blue, border: `1px solid ${blueLight}`, borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="🔊" /></button>
                   </div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: flipped[i] ? blueDark : 'var(--color-text-primary)', lineHeight: 1.2 }}>{v.en}</div>
-                  {flipped[i] ? (<><div style={{ color: blue, marginTop: 6, fontSize: 14, fontWeight: 600 }}>{v.pt}</div><div style={{ fontSize: 11, color: '#0C447C', marginTop: 8, fontStyle: 'italic', lineHeight: 1.45, background: 'rgba(255,255,255,0.6)', padding: '7px 9px', borderRadius: 9 }}>"{v.ex}"</div></>) : (<div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 6 }}>Toque para ver →</div>)}
+                  {flipped[i] ? (<><div style={{ color: blue, marginTop: 6, fontSize: 14, fontWeight: 600 }}>{v.pt}</div><div style={{ fontSize: 11, color: '#0C447C', marginTop: 8, fontStyle: 'italic', lineHeight: 1.45, background: 'rgba(255,255,255,0.6)', padding: '7px 9px', borderRadius: 9 }}>"{v.ex}"</div></>) : (<div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 6 }}>Toque para ver <Ic e="→" /></div>)}
                 </div>
               ))}
             </div>
@@ -1601,7 +1664,7 @@ export default function AppPage() {
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-background-secondary)' }}>
           <div style={{ background: `linear-gradient(135deg, #2074C0, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>👨‍🏫</div>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><Ic e="👨‍🏫" c="#fff" /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Professor de IA</div>
               <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
@@ -1617,16 +1680,16 @@ export default function AppPage() {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👨‍🏫</div>}
+                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}><Ic e="👨‍🏫" /></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2074C0, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
-                  {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? '⏸️ Parar' : '🔊 Ouvir em inglês'}</button>}
+                  {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
                 </div>
               </div>
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>👨‍🏫</div>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}><Ic e="👨‍🏫" /></div>
                 <div style={{ padding: '14px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 5, alignItems: 'center' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
@@ -1636,9 +1699,9 @@ export default function AppPage() {
             )}
           </div>
           <div style={{ padding: '10px 12px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-            <button onClick={micChat} style={{ width: 44, height: 44, background: listening ? '#E24B4A' : blueLight, color: listening ? '#fff' : blue, border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: listening ? 'su_pulse 1.2s infinite' : 'none' }}>{listening ? '⏹️' : '🎤'}</button>
+            <button onClick={micChat} style={{ width: 44, height: 44, background: listening ? '#E24B4A' : blueLight, color: listening ? '#fff' : blue, border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: listening ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e={listening ? '⏹️' : '🎤'} /></button>
             <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? '🎙️ Gravando... toque ⏹️ para parar' : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 14, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
-            <button onClick={sendChat} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}>→</button>
+            <button onClick={sendChat} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}><Ic e="→" /></button>
           </div>
         </div>
       )}
@@ -1646,7 +1709,7 @@ export default function AppPage() {
       <div style={{ position: 'sticky', bottom: 0, background: 'var(--color-background-primary)', borderTop: '0.5px solid var(--color-border-tertiary)', display: 'flex', padding: '8px 0 4px', zIndex: 10 }}>
         {[['home', '🏠', 'Início'], ['speak', '🎭', 'Simular'], ['lessons', '📖', 'Lições'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => (
           <button key={t} onClick={() => { setTab(t); if (t === 'lessons') setView('levels'); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 0' }}>
-            <span style={{ fontSize: 18 }}>{icon}</span>
+            <span style={{ fontSize: 18 }}><Ic e={icon} /></span>
             <span style={{ fontSize: 9, color: tab === t ? (t === 'speak' ? purple : blue) : 'var(--color-text-secondary)', fontWeight: tab === t ? 500 : 400 }}>{label}</span>
             {tab === t && <div style={{ width: 20, height: 3, background: t === 'speak' ? purple : blue, borderRadius: 2 }} />}
           </button>
