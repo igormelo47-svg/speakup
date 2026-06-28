@@ -52,9 +52,9 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
 }
 
 // Renderiza um ícone do lucide a partir do emoji equivalente, mantendo tamanho/cor.
-function Ic({ e, s = '1em', c, style }: { e?: string; s?: number | string; c?: string; style?: CSSProperties }) {
+function Ic({ e, s = '1em', c, sw = 2.25, style }: { e?: string; s?: number | string; c?: string; sw?: number; style?: CSSProperties }) {
   const Cmp = (e && EMOJI_ICONS[e]) || HelpCircle
-  return <Cmp size={s} color={c} style={{ verticalAlign: '-0.125em', flexShrink: 0, display: 'inline-block', ...style }} />
+  return <Cmp size={s} color={c} strokeWidth={sw} style={{ verticalAlign: '-0.125em', flexShrink: 0, display: 'inline-block', ...style }} />
 }
 
 // Para rótulos que começam com um emoji seguido de texto (ex: "🏠 Casa").
@@ -64,6 +64,17 @@ function IcLabel({ label }: { label: string }) {
   return <>
     <Ic e={label.slice(0, sp)} /> {label.slice(sp + 1)}
   </>
+}
+
+// Ícone colorido dentro de um quadradinho arredondado com a cor do tema.
+// Em fundo claro o quadrado usa a cor a ~15% de opacidade; em fundo escuro
+// (cabeçalhos/cards coloridos) usa um fundo quase branco para o ícone se destacar.
+function IcBadge({ e, color, onDark, size = 22, box = 38, radius = 10, style }: { e?: string; color: string; onDark?: boolean; size?: number; box?: number; radius?: number; style?: CSSProperties }) {
+  return (
+    <div style={{ width: box, height: box, borderRadius: radius, background: onDark ? 'rgba(255,255,255,0.92)' : color + '26', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, ...style }}>
+      <Ic e={e} s={size} c={color} sw={2.25} />
+    </div>
+  )
 }
 
 interface Question { q: string; ctx: string; opts: string[]; ans: number; exp: string }
@@ -1042,13 +1053,13 @@ export default function AppPage() {
           <div style={{ padding: '16px', marginTop: 8 }}>
             {!isPremium && (
               <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 28 }}><Ic e="⭐" /></div>
+                <IcBadge e="⭐" color={gold} onDark box={44} size={24} />
                 <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Seja Premium <Ic e="✨" /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$19,90/mês <Ic e="→" /></div>
               </div>
             )}
             <div onClick={() => { if (!desafioFeito) { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }} style={{ background: desafioFeito ? 'linear-gradient(135deg, #2EBD6B, #1B9E54)' : 'linear-gradient(135deg, #EF9F27, #E07B00)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: desafioFeito ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 12, border: 'none' }}>
-              {desafioFeito ? (<div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 22, color: '#fff', fontWeight: 700, lineHeight: 1 }}><Ic e="✓" c="#fff" /></span></div>) : (<div style={{ fontSize: 28 }}><Ic e="🔥" c="#fff" /></div>)}
+              {desafioFeito ? (<div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 22, color: '#fff', fontWeight: 700, lineHeight: 1 }}><Ic e="✓" c="#fff" /></span></div>) : (<IcBadge e="🔥" color="#E07B00" onDark box={44} size={24} />)}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{desafioFeito ? 'Desafio concluído!' : 'Desafio do Dia'}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{desafioFeito ? <>Volte amanhã para manter seu streak <Ic e="🔥" /></> : '5 perguntas rápidas · ganhe até 25 XP'}</div>
@@ -1056,7 +1067,7 @@ export default function AppPage() {
               {!desafioFeito && <div style={{ fontSize: 20, color: '#fff' }}><Ic e="→" c="#fff" /></div>}
             </div>
             <div onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null); setTab('nivelamento') }} style={{ background: 'linear-gradient(135deg, #2074C0, #185FA5)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 28 }}><Ic e="📊" c="#fff" /></div>
+              <IcBadge e="📊" color={blue} onDark box={44} size={24} />
               <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Descubra seu nível</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Faça o teste e comece no ponto certo</div></div>
               <div style={{ fontSize: 20, color: '#fff' }}><Ic e="→" c="#fff" /></div>
             </div>
@@ -1076,7 +1087,7 @@ export default function AppPage() {
                 <div onClick={passo.acao} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, marginBottom: 12, cursor: 'pointer' }}>
                   <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}><Ic e="✨" /> Próximo passo recomendado</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 44, height: 44, background: blueLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Ic e={passo.icon} /></div>
+                    <div style={{ width: 44, height: 44, background: passo.cor + '26', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={passo.icon} s={24} c={passo.cor} /></div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>{passo.titulo}</div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{passo.sub}</div>
@@ -1088,42 +1099,42 @@ export default function AppPage() {
             })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
               <div onClick={() => setTab('speak')} style={{ background: purpleLight, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="🎭" /></div>
+                <IcBadge e="🎭" color={purple} style={{ marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#3C3489' }}>Simulador</div>
                 <div style={{ fontSize: 11, color: purple }}>{isPremium ? `${scenarios.length} cenários` : `${simulacoesHoje}/${FREE_LIMIT} hoje`}</div>
               </div>
               <div onClick={() => setTab('ai')} style={{ background: '#FAEEDA', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="🤖" /></div>
+                <IcBadge e="🤖" color="#B45309" style={{ marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#633806' }}>Professor IA</div>
                 <div style={{ fontSize: 11, color: '#854F0B' }}>Disponível 24h</div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div onClick={() => setTab('vocab')} style={{ background: greenLight, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📚" /></div>
+                <IcBadge e="📚" color={green} style={{ marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>Vocabulário</div>
                 <div style={{ fontSize: 11, color: green }}>{vocab.length} palavras</div>
               </div>
               <div onClick={() => setTab('lessons')} style={{ background: blueLight, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📖" /></div>
+                <IcBadge e="📖" color={blue} style={{ marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 500, color: blueDark }}>Lições</div>
                 <div style={{ fontSize: 11, color: blue }}>Seu progresso</div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
               <div onClick={() => { setWhatsappInput(whatsapp); setZapModal(true) }} style={{ background: '#E7F8EE', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📲" /></div>
+                <IcBadge e="📲" color="#0B6B3A" style={{ marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#0B6B3A' }}>WhatsApp</div>
                 <div style={{ fontSize: 11, color: '#178B4E' }}>{whatsapp ? <>Cadastrado <Ic e="✓" /></> : 'Receber dicas'}</div>
               </div>
               <div onClick={() => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') }} style={{ background: '#FDECEC', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22, marginBottom: 6 }}><Ic e="📝" /></div>
+                <IcBadge e="📝" color="#C0392B" style={{ marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#9B2D2D' }}>Prova Semanal</div>
                 <div style={{ fontSize: 11, color: '#C0392B' }}>{provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões'}</div>
               </div>
             </div>
             <div onClick={() => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') }} style={{ marginTop: 10, background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 12, padding: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 26 }}><Ic e="🎤" /></div>
+              <IcBadge e="🎤" color={purple} onDark box={44} size={24} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Treino de Pronúncia</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Fale e receba dicas da IA pra soar nativo <Ic e="🗣️" /></div>
@@ -1154,7 +1165,7 @@ export default function AppPage() {
         <div>
           <div style={{ background: 'linear-gradient(135deg, #C0392B, #9B2D2D)', padding: '20px 16px 24px' }}>
             <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}><Ic e="📝" /> Prova Semanal · {level}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="📝" color="#C0392B" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Prova Semanal · {level}</div></div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>20 questões do seu nível · muda toda semana</div>
           </div>
           <div style={{ padding: 16 }}>
@@ -1204,7 +1215,7 @@ export default function AppPage() {
         <div>
           <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', padding: '20px 16px 24px' }}>
             <button onClick={() => { if (pronCat) { setPronCat(null) } else { setTab('home') } }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}><Ic e="🎤" /> Treino de Pronúncia</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🎤" color={purple} onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Treino de Pronúncia</div></div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>{pronCat ? 'Leia em voz alta e receba dicas da IA' : 'Escolha um som para treinar'}</div>
           </div>
           <div style={{ padding: 16 }}>
@@ -1270,7 +1281,7 @@ export default function AppPage() {
         <div>
           <div style={{ background: `linear-gradient(135deg, #EF9F27, #E07B00)`, padding: '20px 16px 24px' }}>
             <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}><Ic e="🔥" /> Desafio do Dia</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🔥" color="#E07B00" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Desafio do Dia</div></div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>Acerte tudo e mantenha seu streak vivo</div>
           </div>
           <div style={{ padding: 16 }}>
@@ -1358,7 +1369,7 @@ export default function AppPage() {
           <div style={{ background: `linear-gradient(135deg, ${gold}, #DAA520)`, padding: '28px 16px 24px' }}>
             <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}><Ic e="⭐" /></div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><IcBadge e="⭐" color={gold} onDark box={52} size={28} /></div>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>SPEAKUP Premium</div>
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 6 }}>Alcance a fluência sem limites</div>
             </div>
@@ -1631,7 +1642,7 @@ export default function AppPage() {
       {tab === 'vocab' && (
         <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
           <div style={{ background: `linear-gradient(135deg, #2074C0, ${blueDark})`, padding: '20px 16px 18px' }}>
-            <div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}><Ic e="📚" /> Vocabulário</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="📚" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Vocabulário</div></div>
             <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Toque no card para revelar a tradução</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, background: 'rgba(255,255,255,0.18)', padding: '6px 13px', borderRadius: 20 }}>
               <span style={{ fontSize: 14 }}><Ic e="🔄" /></span>
@@ -1664,7 +1675,7 @@ export default function AppPage() {
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-background-secondary)' }}>
           <div style={{ background: `linear-gradient(135deg, #2074C0, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><Ic e="👨‍🏫" c="#fff" /></div>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="👨‍🏫" s={24} c={blue} /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Professor de IA</div>
               <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
@@ -1680,7 +1691,7 @@ export default function AppPage() {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}><Ic e="👨‍🏫" /></div>}
+                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="👨‍🏫" s={18} c={blue} /></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2074C0, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
@@ -1689,7 +1700,7 @@ export default function AppPage() {
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}><Ic e="👨‍🏫" /></div>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="👨‍🏫" s={18} c={blue} /></div>
                 <div style={{ padding: '14px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 5, alignItems: 'center' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
@@ -1709,7 +1720,7 @@ export default function AppPage() {
       <div style={{ position: 'sticky', bottom: 0, background: 'var(--color-background-primary)', borderTop: '0.5px solid var(--color-border-tertiary)', display: 'flex', padding: '8px 0 4px', zIndex: 10 }}>
         {[['home', '🏠', 'Início'], ['speak', '🎭', 'Simular'], ['lessons', '📖', 'Lições'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => (
           <button key={t} onClick={() => { setTab(t); if (t === 'lessons') setView('levels'); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 0' }}>
-            <span style={{ fontSize: 18 }}><Ic e={icon} /></span>
+            <span style={{ fontSize: 18 }}><Ic e={icon} c={tab === t ? (t === 'speak' ? purple : blue) : 'var(--color-text-secondary)'} /></span>
             <span style={{ fontSize: 9, color: tab === t ? (t === 'speak' ? purple : blue) : 'var(--color-text-secondary)', fontWeight: tab === t ? 500 : 400 }}>{label}</span>
             {tab === t && <div style={{ width: 20, height: 3, background: t === 'speak' ? purple : blue, borderRadius: 2 }} />}
           </button>
