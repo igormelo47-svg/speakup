@@ -15,7 +15,7 @@ import {
   Lightbulb, Sparkles, TrendingUp, BicepsFlexed, PartyPopper, LockOpen, Lock, Search,
   Flag, X, Heart, Rocket, Folder, Home, Apple, Shirt, Goal, ChefHat, Cat, Map as MapIcon,
   Image as ImageIcon, ArrowRight, ArrowLeft, Check, CircleCheck, BookText, Pause, Square,
-  Volume2, MessageCircle, Settings, HelpingHand,
+  Volume2, MessageCircle, Settings, HelpingHand, Bell,
 } from 'lucide-react'
 
 // Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
@@ -45,7 +45,7 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
   '📝': NotebookPen, '🎤': Mic, '⏹️': Square, '⏸️': Pause, '🔊': Volume2, '💡': Lightbulb,
   '✨': Sparkles, '📈': TrendingUp, '💪': BicepsFlexed, '🎉': PartyPopper, '🔓': LockOpen,
   '🔒': Lock, '🔍': Search, '🏁': Flag, '💜': Heart, '🚀': Rocket, '🗂️': Folder,
-  '🏆': Trophy, '🌱': Sprout,
+  '🏆': Trophy, '🌱': Sprout, '🔔': Bell,
   // Símbolos de interface
   '→': ArrowRight, '←': ArrowLeft, '✓': Check, '✗': X, '✅': CircleCheck, '✕': X,
   '🎙️': Mic, '🤲': HelpingHand,
@@ -90,6 +90,17 @@ function embaralharQ(q: any) {
   const order = q.opts.map((_: any, i: number) => i)
   for (let i = order.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); const t = order[i]; order[i] = order[j]; order[j] = t }
   return { ...q, opts: order.map((i: number) => q.opts[i]), ans: order.indexOf(q.ans) }
+}
+
+// Web Push (lembretes diários). A chave pública pode ficar no cliente; a privada fica só na Vercel.
+const VAPID_PUBLIC_KEY = 'BGvDV8RzI74VwBSU6MSVcAgDJS3WF_zTGrpDW9cY26dyf85JAbJP0aRhJpU8BECmc3Z6yvHRHctbxxE0Bk-5cLo'
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  const out = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i)
+  return out
 }
 interface ConvMsg { role: 'ai' | 'user'; text: string }
 interface Scenario { id: string; title: string; description: string; icon: string; level: string; context: string; systemPrompt: string; opener: string; tips: string[] }
@@ -1052,6 +1063,7 @@ export default function AppPage() {
   const [xpHydrated, setXpHydrated] = useState(false)
   const [streak, setStreak] = useState(0)
   const [recorde, setRecorde] = useState(0)
+  const [lembretesAtivos, setLembretesAtivos] = useState(false)
   const [conqNova, setConqNova] = useState<{ e: string; nome: string } | null>(null)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
@@ -1400,6 +1412,25 @@ export default function AppPage() {
 
   async function logout() { await supabase.auth.signOut(); router.push('/login') }
 
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      if (Notification.permission === 'granted') reg.pushManager.getSubscription().then(s => { if (s) setLembretesAtivos(true) })
+    }).catch(() => {})
+  }, [])
+
+  async function ativarLembretes() {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) { alert('Seu navegador não suporta notificações. Tente pelo Chrome no Android ou instale o app na tela inicial.'); return }
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') { alert('Para receber lembretes, permita as notificações nas configurações do navegador.'); return }
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) })
+      if (userId) await supabase.from('push_subscriptions').upsert({ user_id: userId, subscription: sub as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      setLembretesAtivos(true)
+    } catch (e) { alert('Não consegui ativar os lembretes agora. Tente novamente.') }
+  }
+
   function answer(i: number) {
     if (answered) return
     setAnswered(true); setSelected(i)
@@ -1689,6 +1720,19 @@ export default function AppPage() {
                 </div>
               )
             })()}
+            {!lembretesAtivos && (
+              <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="🔔" s={22} c="#fff" /></div>
+                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>Receba um aviso pra não quebrar sua sequência</div></div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
+              </div>
+            )}
+            {lembretesAtivos && (
+              <div style={{ background: '#E3F3EA', borderRadius: 16, padding: '12px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Ic e="🔔" s={20} c="#16A34A" />
+                <div style={{ flex: 1, fontSize: 13, color: '#15803D', fontWeight: 600 }}>Lembretes diários ativados <Ic e="✓" /></div>
+              </div>
+            )}
             {(() => {
               const conquistas = conquistasDef
               const ganhas = conquistas.filter(c => c.ok).length
