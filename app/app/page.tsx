@@ -78,7 +78,7 @@ function IcBadge({ e, color, onDark, size = 22, box = 38, radius = 10, style }: 
 }
 
 interface Question { q: string; ctx: string; opts: string[]; ans: number; exp: string }
-interface Lesson { title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[] }
+interface Lesson { title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[]; cefr?: string }
 interface ConvMsg { role: 'ai' | 'user'; text: string }
 interface Scenario { id: string; title: string; description: string; icon: string; level: string; context: string; systemPrompt: string; opener: string; tips: string[] }
 
@@ -102,6 +102,16 @@ const scenarios: Scenario[] = [
   { id: 'immigration', title: 'Na imigração do aeroporto', description: 'Responda ao oficial de imigração em inglês', icon: '🛂', level: 'Iniciante/Inter.', context: 'Você chegou aos EUA e está na imigração.', systemPrompt: `You are a US immigration officer questioning a Brazilian traveler. Ask standard immigration questions clearly but firmly. After each response, give brief feedback in Portuguese about their English then continue. Stay professional, not scary.`, opener: "Good afternoon. Passport, please. What's the purpose of your visit to the United States?", tips: ['Motivo: "I\'m here on vacation."', 'Tempo: "I\'ll be staying for two weeks."', 'Hospedagem: "I\'m staying at a hotel."'] },
   { id: 'phone_appointment', title: 'Marcando consulta por telefone', description: 'Agende um horário por telefone em inglês', icon: '📅', level: 'Intermediário', context: 'Você liga para marcar uma consulta ou serviço.', systemPrompt: `You are a receptionist at a clinic/office taking a phone call from a Brazilian customer who wants to schedule an appointment. After each response, give brief feedback in Portuguese about their phone English then continue helpfully.`, opener: "Good morning, Riverside Clinic, this is Emma speaking. How can I help you today?", tips: ['Pedir: "I\'d like to schedule an appointment."', 'Horário: "Do you have anything on Friday?"', 'Confirmar: "Let me confirm that..."'] },
   { id: 'meeting_in_laws', title: 'Conhecendo os sogros', description: 'Cause uma boa impressão num jantar em família', icon: '👨‍👩‍👧', level: 'Intermediário', context: 'Você vai jantar com a família do seu parceiro(a) pela primeira vez.', systemPrompt: `You are the warm but slightly curious parent whose son is dating a Brazilian person, meeting them for the first time at dinner. Ask about their life, work, family. After each response, give brief feedback in Portuguese about their English then continue kindly.`, opener: "Oh, it's so lovely to finally meet you! We've heard so much about you. Please, come in, make yourself at home. Tell us little about yourself!", tips: ['Educado: "Thank you for having me."', 'Família: "I have one brother and..."', 'Elogiar: "Dinner smells amazing!"'] },
+  { id: 'bank_account', title: 'Abrindo conta no banco', description: 'Abra uma conta e tire dúvidas bancárias em inglês', icon: '🏦', level: 'Intermediário', context: 'Você vai a um banco nos EUA para abrir uma conta corrente.', systemPrompt: `You are a bank clerk in the US helping a Brazilian customer open a checking account. Explain account types, required documents, fees, and debit cards. After each response, give brief feedback in Portuguese about their English banking vocabulary, then continue.`, opener: "Hi, welcome to First National Bank! How can I help you today? Are you looking to open a new account?", tips: ['Abrir conta: "I\'d like to open a checking account."', 'Documentos: "What documents do I need?"', 'Tarifas: "Are there any monthly fees?"'] },
+  { id: 'apartment_rental', title: 'Alugando um apartamento', description: 'Visite um imóvel e negocie o aluguel em inglês', icon: '🔑', level: 'Intermediário', context: 'Você visita um apartamento para alugar e conversa com o corretor.', systemPrompt: `You are a real estate agent showing an apartment to a Brazilian person looking to rent. Describe the place, answer questions about rent, deposit, lease, and utilities. After each response, give brief feedback in Portuguese about their English, then continue.`, opener: "Hi! Thanks for coming by. So this is the apartment — two bedrooms, lots of natural light. Feel free to look around. What do you think so far?", tips: ['Perguntar: "How much is the rent per month?"', 'Contrato: "How long is the lease?"', 'Incluso: "Are utilities included?"'] },
+  { id: 'pharmacy_visit', title: 'Na farmácia', description: 'Compre remédios e descreva sintomas ao farmacêutico', icon: '💊', level: 'Iniciante/Inter.', context: 'Você vai a uma farmácia nos EUA buscar um remédio.', systemPrompt: `You are a pharmacist in the US helping a Brazilian customer. Ask about symptoms, recommend over-the-counter medicine, explain dosage. After each response, give brief feedback in Portuguese about their English health vocabulary, then continue.`, opener: "Hi there! Welcome to the pharmacy. What can I help you with today?", tips: ['Sintoma: "I have a headache and a sore throat."', 'Pedir: "Do you have something for a cold?"', 'Dosagem: "How often should I take this?"'] },
+  { id: 'emergency_help', title: 'Situação de emergência', description: 'Peça ajuda e explique uma emergência em inglês', icon: '🚨', level: 'Intermediário', context: 'Você liga para o 911 ou pede ajuda numa emergência.', systemPrompt: `You are a 911 emergency operator in the US taking a call from a Brazilian person. Stay calm, ask for location, nature of the emergency, and give clear instructions. After each response, give brief feedback in Portuguese about their English, then continue. Keep it realistic but not traumatic.`, opener: "911, what's your emergency?", tips: ['Pedir ajuda: "I need an ambulance, please."', 'Local: "I\'m at... / The address is..."', 'Explicar: "Someone fainted / There was an accident."'] },
+  { id: 'visa_interview', title: 'Entrevista de visto', description: 'Responda às perguntas do oficial do consulado', icon: '🛂', level: 'Intermediário', context: 'Você tem entrevista para visto americano no consulado.', systemPrompt: `You are a US consular officer interviewing a Brazilian applicant for a tourist/student visa. Ask about travel purpose, finances, ties to Brazil, and plans. After each response, give brief feedback in Portuguese about their English, then continue. Be professional and firm but fair.`, opener: "Good morning. Please step up to the window. Can you tell me the purpose of your trip to the United States?", tips: ['Motivo: "I\'m planning to travel as a tourist."', 'Vínculos: "I have a stable job in Brazil."', 'Custos: "I will cover all my expenses."'] },
+  { id: 'asking_directions', title: 'Pedindo informações na rua', description: 'Peça e entenda direções na cidade em inglês', icon: '🗺️', level: 'Iniciante/Inter.', context: 'Você está perdido numa cidade e pede ajuda a um pedestre.', systemPrompt: `You are a friendly local in a US city. A Brazilian tourist asks you for directions. Give clear directions using landmarks, streets, and turns. After each response, give brief feedback in Portuguese about their English, then continue helpfully.`, opener: "Oh hey, you look a little lost — need some help finding something?", tips: ['Perguntar: "Excuse me, how do I get to...?"', 'Distância: "Is it far from here?"', 'Confirmar: "So I turn left at the corner?"'] },
+  { id: 'tech_support', title: 'Suporte técnico', description: 'Resolva um problema técnico por telefone em inglês', icon: '🛠️', level: 'Intermediário', context: 'Você liga para o suporte técnico de um produto ou serviço.', systemPrompt: `You are a tech support agent helping a Brazilian customer troubleshoot a problem (internet, phone, or software). Ask diagnostic questions and guide them step by step. After each response, give brief feedback in Portuguese about their English tech vocabulary, then continue.`, opener: "Thank you for calling Tech Support, my name is Chris. Can you describe the issue you're having today?", tips: ['Problema: "My internet keeps disconnecting."', 'Já tentei: "I already tried restarting it."', 'Pedir: "Could you walk me through it?"'] },
+  { id: 'gym_signup', title: 'Matrícula na academia', description: 'Conheça os planos e se inscreva numa academia', icon: '🏋️', level: 'Iniciante/Inter.', context: 'Você visita uma academia para conhecer os planos.', systemPrompt: `You are a gym membership consultant in the US helping a Brazilian person sign up. Explain plans, prices, classes, and facilities. After each response, give brief feedback in Portuguese about their English, then continue in a friendly, motivating way.`, opener: "Hey, welcome in! First time here? Let me give you a quick tour. What are your fitness goals?", tips: ['Planos: "What membership plans do you offer?"', 'Preço: "How much is the monthly fee?"', 'Cancelar: "Can I cancel anytime?"'] },
+  { id: 'hair_salon', title: 'No salão de cabeleireiro', description: 'Explique o corte que você quer em inglês', icon: '💇', level: 'Iniciante/Inter.', context: 'Você vai a um salão e explica o que deseja.', systemPrompt: `You are a hairstylist in the US with a Brazilian client. Ask what they want, suggest styles, and chat casually. After each response, give brief feedback in Portuguese about their English, then continue warmly.`, opener: "Hi, come on in, have a seat! So, what are we doing today — just a trim, or something different?", tips: ['Pedir: "Just a trim, please."', 'Comprimento: "Could you take a little off the sides?"', 'Cor: "I\'d like to dye it a bit darker."'] },
+  { id: 'university_enroll', title: 'Matrícula na universidade', description: 'Tire dúvidas sobre cursos e matrícula em inglês', icon: '🎓', level: 'Intermediário', context: 'Você fala com a secretaria de uma universidade no exterior.', systemPrompt: `You are a university admissions advisor helping a Brazilian international student with enrollment. Discuss courses, credits, deadlines, and requirements. After each response, give brief feedback in Portuguese about their academic English, then continue helpfully.`, opener: "Hello! Welcome to the admissions office. Are you here about enrolling for the upcoming semester?", tips: ['Curso: "I\'d like to enroll in the... program."', 'Requisitos: "What are the requirements?"', 'Prazo: "When is the application deadline?"'] },
 ]
 
 
@@ -156,6 +166,32 @@ const baseLessons: Record<string, Lesson[]> = {
     { title: 'Inglês para entrevistas', sub: 'Strengths, weaknesses, goals...', icon: '👔', done: false, explanation: 'Entrevistas em inglês têm perguntas previsíveis. O método STAR: Situation, Task, Action, Result.', tip: '"Tell me about yourself" = pitch profissional de 1-2 min.', examples: [{ en: 'My greatest strength is my ability to work under pressure.', pt: 'Meu maior ponto forte é trabalhar sob pressão.' }, { en: 'I see myself leading a team in five years.', pt: 'Me vejo liderando uma equipe em cinco anos.' }, { en: 'I am a fast learner and adapt quickly.', pt: 'Aprendo rápido e me adapto facilmente.' }], q: [{ q: 'Como responder "What is your greatest weakness?"', ctx: '', opts: ['Mencione uma fraqueza real e como está melhorando', 'Diga que não tem fraquezas', 'Recuse responder', 'Diga que trabalha demais'], ans: 0, exp: 'Fraqueza real + como está melhorando.' }, { q: '"Tell me about yourself." Deve incluir:', ctx: '', opts: ['Resumo profissional relevante ao cargo', 'Sua vida pessoal completa', 'Problemas anteriores', 'Apenas formação'], ans: 0, exp: 'Elevator pitch.' }, { q: 'Como dizer "Sou bom em trabalhar em equipe":', ctx: '', opts: ['I am a strong team player.', 'I like to work with people.', 'Teams are good for me.', 'I work in teams.'], ans: 0, exp: '"Team player".' }, { q: 'O que é o método STAR?', ctx: '', opts: ['Situation, Task, Action, Result', 'Skills, Training, Achievement, Recognition', 'Strengths, Teamwork, Ambition, Responsibility', 'Summary, Timeline, Action, Report'], ans: 0, exp: 'STAR = estrutura para respostas.' }, { q: '"What are your salary expectations?" Como responder:', ctx: '', opts: ['Dê um intervalo baseado no mercado', 'Diga que qualquer valor está bom', 'Recuse responder', 'Pergunte o que oferecem primeiro'], ans: 0, exp: '"Based on my research, I am looking for X to Y."' }, { q: '"Do you have any questions for us?" Você deve:', ctx: '', opts: ['Fazer perguntas inteligentes sobre a empresa', 'Dizer que não tem perguntas', 'Perguntar sobre salário imediatamente', 'Agradecer e sair'], ans: 0, exp: 'Sempre tenha 2-3 perguntas.' }] },
     { title: 'Sotaques e variações', sub: 'American vs British vs Australian...', icon: '🌍', done: false, explanation: 'O inglês varia entre países em vocabulário, pronúncia e gramática.', tip: 'Elevator (EUA) = Lift (UK). Apartment (EUA) = Flat (UK). Soccer (EUA) = Football (UK).', examples: [{ en: 'American: "I live in an apartment on the first floor."', pt: 'Moro num apartamento no primeiro andar.' }, { en: 'British: "I live in a flat on the ground floor."', pt: 'Moro num flat no rés-do-chão.' }, { en: 'Australian: "No worries, mate!"', pt: 'Sem problema, amigo!' }], q: [{ q: '"Elevator" (EUA) = qual palavra britânica?', ctx: '', opts: ['Lift', 'Escalator', 'Stairs', 'Floor'], ans: 0, exp: 'Elevator = Lift.' }, { q: '"Apartment" (EUA) em UK é:', ctx: '', opts: ['Flat', 'House', 'Studio', 'Room'], ans: 0, exp: 'Apartment = Flat.' }, { q: '"Soccer" (EUA) em UK é:', ctx: '', opts: ['Football', 'Rugby', 'Cricket', 'Handball'], ans: 0, exp: 'Soccer = Football.' }, { q: '"Autumn" é a palavra britânica para:', ctx: '', opts: ['Outono', 'Primavera', 'Inverno', 'Verão'], ans: 0, exp: 'Autumn = Fall = outono.' }, { q: '"Cheers!" no UK pode significar:', ctx: '', opts: ['Obrigado / Saúde / Tchau', 'Apenas saúde', 'Apenas obrigado', 'Apenas tchau'], ans: 0, exp: '"Cheers!" = muito versátil.' }, { q: '"G-day mate!" é típico de:', ctx: '', opts: ['Austrália', 'Reino Unido', 'Estados Unidos', 'Irlanda'], ans: 0, exp: '"G-day" = saudação australiana.' }] },
     { title: 'Argumentação e debate', sub: 'In my opinion, on the other hand...', icon: '⚖️', done: false, explanation: 'Argumentar em inglês exige vocabulário específico para opinar e discordar diplomaticamente.', tip: 'Opinar: "In my opinion...", "I believe...". Discordar: "I see your point, but..."', examples: [{ en: 'In my opinion, remote work increases productivity.', pt: 'Na minha opinião, o home office aumenta a produtividade.' }, { en: 'I see your point, but I tend to disagree.', pt: 'Entendo seu ponto, mas tendo a discordar.' }, { en: 'On the other hand, there are clear disadvantages.', pt: 'Por outro lado, há desvantagens claras.' }], q: [{ q: 'Como expressar opinião formalmente:', ctx: '', opts: ['In my opinion / I believe', 'I think so.', 'For me...', 'My idea is...'], ans: 0, exp: '"In my opinion", "I believe".' }, { q: 'Como discordar educadamente:', ctx: '', opts: ['I see your point, but I tend to disagree.', 'You are wrong.', 'That is not right.', 'No, incorrect.'], ans: 0, exp: '"I see your point, but..." = diplomático.' }, { q: '"I beg to differ." significa:', ctx: '', opts: ['Discordo respeitosamente', 'Concordo completamente', 'Não entendi', 'Preciso de mais informação'], ans: 0, exp: '"I beg to differ" = discordo.' }, { q: 'Para o outro lado do argumento:', ctx: '', opts: ['On the other hand / However / That said', 'Therefore / As a result', 'Furthermore / Moreover', 'In conclusion / To sum up'], ans: 0, exp: '"On the other hand", "However".' }, { q: '"That is a valid point." serve para:', ctx: '', opts: ['Reconhecer o argumento do outro', 'Concordar completamente', 'Mudar de assunto', 'Finalizar'], ans: 0, exp: '"That is a valid point" = reconheço o mérito.' }, { q: 'Como concluir um argumento:', ctx: '', opts: ['In conclusion / To sum up / All things considered', 'However / On the other hand', 'Furthermore / In addition', 'Initially / First of all'], ans: 0, exp: '"In conclusion", "To sum up".' }] },
+    { title: 'Collocations naturais', sub: 'Make a decision, heavy rain...', icon: '🧩', done: false, explanation: 'Collocations são combinações naturais de palavras. Soar nativo é usar a combinação certa, não apenas a gramática correta.', tip: '"Make a decision" (não "do"). "Heavy rain" (não "strong"). "Strong coffee" (não "powerful").', examples: [{ en: 'We need to make a decision soon.', pt: 'Precisamos tomar uma decisão logo.' }, { en: 'There was heavy rain all night.', pt: 'Choveu forte a noite toda.' }, { en: 'She has a strong sense of duty.', pt: 'Ela tem um forte senso de dever.' }], q: [{ q: '"___ a decision" — qual verbo?', ctx: '', opts: ['Make', 'Do', 'Take', 'Have'], ans: 0, exp: '"Make a decision".' }, { q: 'Chuva forte em inglês natural:', ctx: '', opts: ['Heavy rain', 'Strong rain', 'Hard rain', 'Big rain'], ans: 0, exp: '"Heavy rain".' }, { q: 'Café forte:', ctx: '', opts: ['Strong coffee', 'Powerful coffee', 'Heavy coffee', 'Hard coffee'], ans: 0, exp: '"Strong coffee".' }, { q: '"___ an effort" — verbo certo:', ctx: '', opts: ['Make', 'Do', 'Take', 'Give'], ans: 0, exp: '"Make an effort".' }, { q: 'Combinação natural com "fast":', ctx: '', opts: ['Fast food', 'Quick food', 'Rapid food', 'Speedy food'], ans: 0, exp: '"Fast food" é collocation fixa.' }, { q: '"Pay attention" — por quê não "give attention"?', ctx: '', opts: ['É a collocation consagrada', 'Give está gramaticalmente errado', 'São sinônimos perfeitos', 'Depende do país'], ans: 0, exp: 'Collocation fixa: "pay attention".' }] },
+    { title: 'Conotação e nuance', sub: 'Slim vs skinny, assertive vs bossy...', icon: '🎚️', done: false, explanation: 'Sinônimos raramente são iguais. A conotação (positiva, neutra ou negativa) muda toda a mensagem.', tip: '"Slim" (elogio) vs "skinny" (crítica). "Assertive" (positivo) vs "bossy" (negativo).', examples: [{ en: 'She is slim and elegant.', pt: 'Ela é magra e elegante.' }, { en: 'He is confident, not arrogant.', pt: 'Ele é confiante, não arrogante.' }, { en: 'That is a frugal, not cheap, approach.', pt: 'É uma abordagem econômica, não pão-dura.' }], q: [{ q: 'Qual tem conotação positiva?', ctx: '', opts: ['Slim', 'Skinny', 'Bony', 'Scrawny'], ans: 0, exp: '"Slim" elogia; os outros criticam.' }, { q: '"Childish" vs "childlike":', ctx: '', opts: ['Childish é negativo; childlike é positivo', 'São idênticos', 'Childlike é insulto', 'Childish é elogio'], ans: 0, exp: 'Conotações opostas.' }, { q: 'Conotação de "bossy":', ctx: '', opts: ['Negativa (mandão)', 'Positiva (líder)', 'Neutra', 'Formal'], ans: 0, exp: '"Bossy" critica; "assertive" elogia.' }, { q: 'Para elogiar economia de gastos use:', ctx: '', opts: ['Frugal / thrifty', 'Cheap / stingy', 'Mean', 'Tight-fisted'], ans: 0, exp: '"Frugal" é positivo; "stingy" é negativo.' }, { q: '"Curious" vs "nosy":', ctx: '', opts: ['Nosy é intrusivo (negativo)', 'São sinônimos neutros', 'Curious é negativo', 'Nosy é formal'], ans: 0, exp: '"Nosy" = enxerido.' }, { q: 'Por que a conotação importa em C2:', ctx: '', opts: ['Comunica julgamento sutil além do literal', 'Não importa', 'Só afeta a gramática', 'Só em textos formais'], ans: 0, exp: 'Nuance = mensagem implícita.' }] },
+    { title: 'Metáforas e linguagem figurada', sub: 'Metaphors, similes, hyperbole...', icon: '🪞', done: false, explanation: 'Falantes avançados usam metáforas, símiles e hipérboles para dar cor e impacto ao discurso.', tip: 'Símile usa "like/as": "as busy as a bee". Metáfora é direta: "time is money".', examples: [{ en: 'Time is money.', pt: 'Tempo é dinheiro. (metáfora)' }, { en: 'She was as brave as a lion.', pt: 'Ela foi corajosa como um leão. (símile)' }, { en: 'I have told you a million times!', pt: 'Já te falei um milhão de vezes! (hipérbole)' }], q: [{ q: 'O que é um símile (simile)?', ctx: '', opts: ['Comparação com "like" ou "as"', 'Comparação direta sem conectivo', 'Exagero proposital', 'Repetição de sons'], ans: 0, exp: 'Símile usa like/as.' }, { q: '"Time is money" é:', ctx: '', opts: ['Metáfora', 'Símile', 'Hipérbole', 'Ironia'], ans: 0, exp: 'Metáfora = comparação direta.' }, { q: '"I could eat a horse" é:', ctx: '', opts: ['Hipérbole (exagero)', 'Símile', 'Metáfora literal', 'Eufemismo'], ans: 0, exp: 'Exagero = hipérbole.' }, { q: '"As cool as a cucumber" significa:', ctx: '', opts: ['Muito calmo', 'Muito frio', 'Muito estranho', 'Muito rápido'], ans: 0, exp: 'Símile = extremamente calmo.' }, { q: '"The world is your oyster" significa:', ctx: '', opts: ['Você pode conquistar o que quiser', 'O mundo é perigoso', 'Você gosta de frutos do mar', 'A vida é dura'], ans: 0, exp: 'Oportunidades ilimitadas.' }, { q: 'Personificação é:', ctx: '', opts: ['Dar qualidades humanas a algo não humano', 'Comparar com "as"', 'Exagerar', 'Repetir palavras'], ans: 0, exp: 'Ex.: "The wind whispered".' }] },
+    { title: 'Eufemismos e diplomacia', sub: 'Pass away, let go, between jobs...', icon: '🤝', done: false, explanation: 'Eufemismos suavizam assuntos delicados. São essenciais para soar educado e diplomático em inglês.', tip: '"Pass away" (em vez de die). "Let go" (em vez de fire). "Between jobs" (em vez de unemployed).', examples: [{ en: 'He passed away last year.', pt: 'Ele faleceu ano passado.' }, { en: 'They had to let go several employees.', pt: 'Tiveram que demitir vários funcionários.' }, { en: 'I am between jobs at the moment.', pt: 'Estou entre empregos no momento.' }], q: [{ q: '"Pass away" é eufemismo para:', ctx: '', opts: ['Morrer (die)', 'Viajar', 'Mudar', 'Dormir'], ans: 0, exp: '"Pass away" suaviza "die".' }, { q: '"We had to let him go." significa:', ctx: '', opts: ['Foi demitido', 'Foi promovido', 'Pediu demissão', 'Saiu mais cedo'], ans: 0, exp: '"Let go" = demitir (suave).' }, { q: '"Between jobs" é forma educada de dizer:', ctx: '', opts: ['Desempregado', 'Aposentado', 'De férias', 'Freelancer'], ans: 0, exp: '"Between jobs" = unemployed.' }, { q: '"Could be better." como resposta significa:', ctx: '', opts: ['Não estou bem (suavizado)', 'Estou ótimo', 'Estou perfeito', 'Não quero falar'], ans: 0, exp: 'Understatement diplomático.' }, { q: 'Eufemismo respeitoso para "old people":', ctx: '', opts: ['Senior citizens', 'Ancient people', 'The aged ones', 'Olds'], ans: 0, exp: '"Senior citizens" é respeitoso.' }, { q: 'Por que usar eufemismos:', ctx: '', opts: ['Soar educado em temas sensíveis', 'Confundir o ouvinte', 'Parecer formal sempre', 'Evitar gramática'], ans: 0, exp: 'Diplomacia e tato.' }] },
+    { title: 'Pronomes relativos', sub: 'who, which, that, whose...', icon: '🔗', done: false, explanation: 'Pronomes relativos ligam uma informação a um substantivo. "Who" para pessoas, "which" para coisas, "that" para ambos, "whose" para posse, "where" para lugar.', tip: 'A vírgula muda o sentido: "My brother who lives in NY" (tenho vários) vs "My brother, who lives in NY," (só um).', examples: [{ en: 'The man who called you is my boss.', pt: 'O homem que te ligou é meu chefe.' }, { en: 'This is the book which changed my life.', pt: 'Este é o livro que mudou minha vida.' }, { en: 'She is the woman whose car was stolen.', pt: 'Ela é a mulher cujo carro foi roubado.' }], q: [{ q: 'Pronome para PESSOAS:', ctx: '', opts: ['who', 'which', 'whose', 'where'], ans: 0, exp: '"Who" para pessoas.' }, { q: 'Pronome para COISAS:', ctx: '', opts: ['which', 'who', 'whom', 'whose'], ans: 0, exp: '"Which" para coisas.' }, { q: '"Whose" indica:', ctx: '', opts: ['Posse', 'Lugar', 'Tempo', 'Coisa'], ans: 0, exp: '"Whose" = de quem (posse).' }, { q: '"The city ___ I was born":', ctx: '', opts: ['where', 'which', 'who', 'whose'], ans: 0, exp: '"Where" para lugar.' }, { q: 'Em oração essencial (sem vírgula) pode-se usar:', ctx: '', opts: ['that', 'and', 'so', 'but'], ans: 0, exp: '"That" em orações restritivas.' }, { q: 'A vírgula em "My car, which is red, ..." indica:', ctx: '', opts: ['Informação extra (não essencial)', 'Informação essencial', 'Que há vários carros', 'Erro de gramática'], ans: 0, exp: 'Vírgula = informação adicional.' }] },
+    { title: 'Causativo: have/get it done', sub: 'I had my hair cut...', icon: '🧰', done: false, explanation: 'Usado quando OUTRA pessoa faz algo por você. Estrutura: have/get + objeto + particípio (past participle).', tip: '"I cut my hair" = você cortou. "I had my hair cut" = o cabeleireiro cortou.', examples: [{ en: 'I had my car repaired yesterday.', pt: 'Mandei consertar meu carro ontem.' }, { en: 'She got her nails done for the party.', pt: 'Ela fez as unhas para a festa.' }, { en: 'We need to have the house painted.', pt: 'Precisamos mandar pintar a casa.' }], q: [{ q: '"I had my car ___" (consertar):', ctx: '', opts: ['repaired', 'repair', 'repairing', 'to repair'], ans: 0, exp: 'have + objeto + particípio.' }, { q: '"I had my hair cut" significa:', ctx: '', opts: ['Outra pessoa cortou', 'Você mesmo cortou', 'Ninguém cortou', 'Vai cortar'], ans: 0, exp: 'Causativo = outra pessoa faz.' }, { q: 'Estrutura do causativo:', ctx: '', opts: ['have/get + objeto + particípio', 'have + infinitivo', 'get + gerúndio', 'have + verbo base'], ans: 0, exp: 'have/get + objeto + past participle.' }, { q: '"She got her photo ___" (tirar):', ctx: '', opts: ['taken', 'take', 'taking', 'took'], ans: 0, exp: 'Particípio: taken.' }, { q: '"I need to have the documents ___" (assinar):', ctx: '', opts: ['signed', 'sign', 'signing', 'to sign'], ans: 0, exp: 'have + documents + signed.' }, { q: '"Get" no causativo é:', ctx: '', opts: ['Mais informal que "have"', 'Mais formal', 'Gramaticalmente errado', 'Só para coisas'], ans: 0, exp: '"Get" é mais coloquial.' }] },
+    { title: 'Nominalização (estilo formal)', sub: 'decide → decision...', icon: '🏛️', done: false, explanation: 'Transformar verbos e adjetivos em substantivos deixa o texto mais formal e denso — típico do inglês acadêmico e de relatórios.', tip: '"They decided quickly" → "Their quick decision". "It is important" → "Its importance".', examples: [{ en: 'The introduction of the policy caused debate.', pt: 'A introdução da política causou debate.' }, { en: 'Our analysis of the data revealed errors.', pt: 'Nossa análise dos dados revelou erros.' }, { en: 'There was a significant improvement in sales.', pt: 'Houve uma melhora significativa nas vendas.' }], q: [{ q: 'Nominalização de "to decide":', ctx: '', opts: ['decision', 'deciding', 'decided', 'decisive'], ans: 0, exp: 'decide → decision.' }, { q: 'Nominalizar deixa o texto mais:', ctx: '', opts: ['Formal e denso', 'Informal', 'Curto', 'Falado'], ans: 0, exp: 'Estilo acadêmico/formal.' }, { q: 'Substantivo de "to analyze":', ctx: '', opts: ['analysis', 'analyzing', 'analyzed', 'analytic'], ans: 0, exp: 'analyze → analysis.' }, { q: 'Substantivo de "important":', ctx: '', opts: ['importance', 'importantly', 'importing', 'import'], ans: 0, exp: 'important → importance.' }, { q: '"They failed" nominalizado:', ctx: '', opts: ['Their failure', 'They failing', 'The failed', 'Fail them'], ans: 0, exp: 'fail → failure.' }, { q: 'Onde é mais usada:', ctx: '', opts: ['Textos acadêmicos e relatórios', 'Conversa casual', 'Mensagens de texto', 'Legendas'], ans: 0, exp: 'Registro formal escrito.' }] },
+    { title: 'Hedging: cautela acadêmica', sub: 'tends to, may suggest...', icon: '🪶', done: false, explanation: 'Hedging é suavizar afirmações para soar cauteloso e profissional — essencial em inglês acadêmico e corporativo. Evita parecer arrogante ou categórico demais.', tip: 'Em vez de "This proves X", escreva "This suggests X" ou "This may indicate X".', examples: [{ en: 'The results suggest a possible link.', pt: 'Os resultados sugerem uma possível ligação.' }, { en: 'This tends to happen in cold climates.', pt: 'Isso tende a acontecer em climas frios.' }, { en: 'It could be argued that the policy failed.', pt: 'Pode-se argumentar que a política falhou.' }], q: [{ q: 'Hedging serve para:', ctx: '', opts: ['Soar cauteloso, não absoluto', 'Afirmar com 100% de certeza', 'Encurtar frases', 'Soar agressivo'], ans: 0, exp: 'Suaviza afirmações.' }, { q: 'Versão com hedging de "This proves it":', ctx: '', opts: ['This suggests it', 'This proves it fully', 'This is it', 'This shows 100%'], ans: 0, exp: '"Suggests" é cauteloso.' }, { q: '"Tends to" significa:', ctx: '', opts: ['Tem tendência a', 'Sempre', 'Nunca', 'Provou que'], ans: 0, exp: 'Tendência, não regra absoluta.' }, { q: 'Verbo de hedging comum:', ctx: '', opts: ['may / might', 'must', 'will definitely', 'always'], ans: 0, exp: '"May/might" = possibilidade.' }, { q: '"It could be argued that..." sinaliza:', ctx: '', opts: ['Posição apresentada com cautela', 'Certeza total', 'Uma ordem', 'Uma pergunta'], ans: 0, exp: 'Apresenta argumento sem afirmar como fato.' }, { q: 'Onde é essencial:', ctx: '', opts: ['Inglês acadêmico e profissional', 'Gírias', 'Placas de trânsito', 'Emojis'], ans: 0, exp: 'Registro formal.' }] },
+    { title: 'Pronomes pessoais (sujeito)', sub: 'I, you, he, she, it, we, they', icon: '🧍', done: false, explanation: 'Pronomes pessoais substituem o nome e funcionam como sujeito: I, you, he, she, it, we, they. Vêm antes do verbo.', tip: '"It" é usado para coisas e animais. "They" serve para pessoas e coisas no plural.', examples: [{ en: 'I am a student.', pt: 'Eu sou estudante.' }, { en: 'They live in Brazil.', pt: 'Eles moram no Brasil.' }, { en: 'It is a nice day.', pt: 'É um dia bonito.' }], q: [{ q: 'Pronome para "eu":', ctx: '', opts: ['I', 'You', 'He', 'We'], ans: 0, exp: '"I" = eu.' }, { q: 'Pronome para uma coisa:', ctx: '', opts: ['He', 'She', 'It', 'They'], ans: 2, exp: '"It" para coisas/animais.' }, { q: '"___ are my friends." (eles):', ctx: '', opts: ['He', 'They', 'She', 'It'], ans: 1, exp: '"They" = eles/elas.' }, { q: 'Pronome para "nós":', ctx: '', opts: ['You', 'They', 'We', 'I'], ans: 2, exp: '"We" = nós.' }, { q: '"Maria is nice. ___ is my friend." :', ctx: '', opts: ['He', 'It', 'She', 'They'], ans: 2, exp: '"She" para mulher.' }, { q: 'Qual é um pronome pessoal (sujeito)?', ctx: '', opts: ['my', 'me', 'he', 'his'], ans: 2, exp: '"He" é sujeito.' }] },
+    { title: 'Demonstrativos (this/that)', sub: 'this, that, these, those', icon: '📍', done: false, explanation: 'this (isto, perto, singular), that (aquilo, longe, singular), these (estes, perto, plural), those (aqueles, longe, plural).', tip: 'Perto de você: this/these. Longe: that/those.', examples: [{ en: 'This is my book.', pt: 'Este é meu livro.' }, { en: 'Those are her shoes.', pt: 'Aqueles são os sapatos dela.' }, { en: 'These apples are fresh.', pt: 'Estas maçãs estão frescas.' }], q: [{ q: '"___ book here is mine." :', ctx: '', opts: ['This', 'That', 'Those', 'Them'], ans: 0, exp: 'Perto e singular: this.' }, { q: 'Plural de "this":', ctx: '', opts: ['these', 'those', 'thats', 'this'], ans: 0, exp: 'this → these.' }, { q: '"___ mountains far away":', ctx: '', opts: ['These', 'This', 'Those', 'That'], ans: 2, exp: 'Longe e plural: those.' }, { q: 'Para algo longe e singular:', ctx: '', opts: ['this', 'that', 'these', 'those'], ans: 1, exp: 'that.' }, { q: '"___ are my keys." (aqui):', ctx: '', opts: ['These', 'That', 'This', 'Those'], ans: 0, exp: 'Perto e plural: these.' }, { q: '"those" indica:', ctx: '', opts: ['perto, plural', 'longe, plural', 'perto, singular', 'longe, singular'], ans: 1, exp: 'Longe e plural.' }] },
+    { title: 'Verbo have got', sub: 'I have got, she has got...', icon: '🤲', done: false, explanation: 'Para posse usa-se "have got" (mais comum no inglês britânico) ou "have" (americano). "I have got a car." = "I have a car."', tip: 'Contração: I\'ve got, she\'s got. Pergunta: "Have you got...?"', examples: [{ en: 'I have got two sisters.', pt: 'Tenho duas irmãs.' }, { en: 'She has got a new phone.', pt: 'Ela tem um celular novo.' }, { en: 'Have you got a pen?', pt: 'Você tem uma caneta?' }], q: [{ q: '"She ___ got a car." :', ctx: '', opts: ['has', 'have', 'is', 'do'], ans: 0, exp: 'she/he/it → has got.' }, { q: '"I ___ got two dogs." :', ctx: '', opts: ['have', 'has', 'am', 'do'], ans: 0, exp: 'I → have got.' }, { q: 'Pergunta correta:', ctx: '', opts: ['Have you got a car?', 'You have car?', 'Got you a car?', 'Has you got?'], ans: 0, exp: '"Have you got...?"' }, { q: 'Contração de "I have got":', ctx: '', opts: ["I've got", 'I am got', "I's got", "I got've"], ans: 0, exp: "I've got." }, { q: '"have got" é mais comum no inglês:', ctx: '', opts: ['britânico', 'nenhum', 'antigo', 'técnico'], ans: 0, exp: 'Britânico.' }, { q: 'Negativa de "I have got a car":', ctx: '', opts: ["I haven't got a car", "I don't got", 'I not got', "I hasn't got"], ans: 0, exp: "haven't got." }] },
+    { title: 'Advérbios de frequência (always/never)', sub: 'always, usually, never...', icon: '🔁', done: false, explanation: 'always, usually, often, sometimes, rarely, never indicam frequência. Vêm antes do verbo principal, mas depois do verbo to be.', tip: '"I always study" mas "I am always late".', examples: [{ en: 'I always brush my teeth.', pt: 'Eu sempre escovo os dentes.' }, { en: 'She is never late.', pt: 'Ela nunca se atrasa.' }, { en: 'We sometimes eat out.', pt: 'Às vezes comemos fora.' }], q: [{ q: 'Posição com verbo comum:', ctx: '', opts: ['antes do verbo', 'depois do objeto', 'sempre no fim', 'antes do sujeito'], ans: 0, exp: 'Antes do verbo principal.' }, { q: '"always" significa:', ctx: '', opts: ['sempre', 'nunca', 'às vezes', 'raramente'], ans: 0, exp: 'Sempre.' }, { q: '"She ___ late." (nunca, com to be):', ctx: '', opts: ['is never', 'never is', 'is not never', 'never'], ans: 0, exp: 'Depois do to be.' }, { q: 'Mais frequente:', ctx: '', opts: ['always', 'sometimes', 'rarely', 'never'], ans: 0, exp: 'Always = 100%.' }, { q: '"raramente" em inglês:', ctx: '', opts: ['rarely', 'often', 'usually', 'always'], ans: 0, exp: 'Rarely.' }, { q: '"I ___ go to the gym." (geralmente):', ctx: '', opts: ['usually', 'am usually', 'usually am', 'the usually'], ans: 0, exp: 'Antes do verbo.' }] },
+    { title: 'Imperativo (ordens)', sub: 'Open the door. Don\'t worry.', icon: '🗣️', done: false, explanation: 'O imperativo dá ordens, instruções e conselhos. Use o verbo na forma base, sem sujeito.', tip: 'Negativo: "Don\'t" + verbo. Ex.: "Don\'t worry."', examples: [{ en: 'Open the window, please.', pt: 'Abra a janela, por favor.' }, { en: "Don't touch that.", pt: 'Não toque nisso.' }, { en: 'Turn left at the corner.', pt: 'Vire à esquerda na esquina.' }], q: [{ q: 'Imperativo de "to close":', ctx: '', opts: ['Close the door.', 'You close.', 'To close.', 'Closing.'], ans: 0, exp: 'Verbo base, sem sujeito.' }, { q: 'Negativo do imperativo:', ctx: '', opts: ["Don't run.", 'No run.', 'Not run.', 'Run not.'], ans: 0, exp: "Don't + verbo." }, { q: 'O imperativo usa o verbo:', ctx: '', opts: ['na forma base', 'no passado', 'com -ing', 'com to'], ans: 0, exp: 'Forma base.' }, { q: 'Para instruções de receita usamos:', ctx: '', opts: ['imperativo', 'futuro', 'present perfect', 'condicional'], ans: 0, exp: 'Imperativo.' }, { q: '"___ careful!" :', ctx: '', opts: ['Be', 'Are', 'Being', 'To be'], ans: 0, exp: 'Be careful!' }, { q: 'O imperativo geralmente:', ctx: '', opts: ['omite o sujeito', 'usa "I"', 'usa "he"', 'precisa de "will"'], ans: 0, exp: 'Sem sujeito.' }] },
+    { title: 'Will ou Going to?', sub: 'Decisão na hora vs plano', icon: '🔀', done: false, explanation: '"going to" para planos já decididos; "will" para decisões tomadas na hora e previsões.', tip: '"I\'m going to study tonight" (plano) vs "I\'ll help you" (decisão agora).', examples: [{ en: 'I am going to visit my aunt.', pt: 'Vou visitar minha tia (plano).' }, { en: 'I think it will rain.', pt: 'Acho que vai chover (previsão).' }, { en: "The phone is ringing. I'll get it!", pt: 'O telefone está tocando. Eu atendo!' }], q: [{ q: 'Plano já decidido:', ctx: '', opts: ['going to', 'will', 'would', 'do'], ans: 0, exp: 'Plano → going to.' }, { q: 'Decisão tomada na hora:', ctx: '', opts: ['will', 'going to', 'used to', 'was'], ans: 0, exp: 'Decisão → will.' }, { q: '"Look at those clouds! It ___ rain." :', ctx: '', opts: ['is going to', 'will', 'would', 'goes'], ans: 0, exp: 'Evidência → going to.' }, { q: '"I ___ call you later, I promise." :', ctx: '', opts: ['will', 'am going', 'would', 'was'], ans: 0, exp: 'Promessa → will.' }, { q: '"going to" é seguido de:', ctx: '', opts: ['verbo base', 'verbo -ing', 'verbo passado', 'to + verbo'], ans: 0, exp: 'going to + verbo base.' }, { q: 'Previsão com evidência usa:', ctx: '', opts: ['going to', 'will', 'used to', 'have to'], ans: 0, exp: 'Evidência → going to.' }] },
+    { title: 'Past Perfect (had done)', sub: 'had + particípio', icon: '⏪', done: false, explanation: 'had + particípio descreve uma ação que aconteceu ANTES de outra ação no passado.', tip: '"When I arrived, the train had already left."', examples: [{ en: 'She had finished before noon.', pt: 'Ela tinha terminado antes do meio-dia.' }, { en: 'They had never seen snow before.', pt: 'Eles nunca tinham visto neve antes.' }, { en: 'I had eaten when he called.', pt: 'Eu já tinha comido quando ele ligou.' }], q: [{ q: 'Estrutura do Past Perfect:', ctx: '', opts: ['had + particípio', 'have + particípio', 'was + -ing', 'will + verbo'], ans: 0, exp: 'had + past participle.' }, { q: 'O Past Perfect indica:', ctx: '', opts: ['ação anterior a outra no passado', 'futuro', 'presente', 'hábito'], ans: 0, exp: 'O passado do passado.' }, { q: '"When we arrived, the film ___ already ___." :', ctx: '', opts: ['had / started', 'has / started', 'was / start', 'had / start'], ans: 0, exp: 'had + started.' }, { q: '"I ___ never ___ sushi before." :', ctx: '', opts: ['had / eaten', 'have / eaten', 'was / eat', 'had / eat'], ans: 0, exp: 'had + eaten.' }, { q: 'Particípio de "go":', ctx: '', opts: ['gone', 'went', 'going', 'goed'], ans: 0, exp: 'go-went-gone.' }, { q: 'Past Perfect combina com:', ctx: '', opts: ['before / after / already', 'now', 'tomorrow', 'usually'], ans: 0, exp: 'Marcadores de anterioridade.' }] },
+    { title: 'Pronomes reflexivos', sub: 'myself, yourself, herself...', icon: '🔄', done: false, explanation: 'myself, yourself, himself, herself, itself, ourselves, yourselves, themselves: usados quando sujeito e objeto são a mesma pessoa.', tip: '"by myself" = sozinho/por conta própria.', examples: [{ en: 'I taught myself English.', pt: 'Eu aprendi inglês sozinho.' }, { en: 'She hurt herself.', pt: 'Ela se machucou.' }, { en: 'They enjoyed themselves.', pt: 'Eles se divertiram.' }], q: [{ q: 'Reflexivo de "I":', ctx: '', opts: ['myself', 'meself', 'my', 'me'], ans: 0, exp: 'myself.' }, { q: 'Reflexivo de "she":', ctx: '', opts: ['herself', 'sheself', 'her', 'hers'], ans: 0, exp: 'herself.' }, { q: '"He cut ___ while cooking." :', ctx: '', opts: ['himself', 'hisself', 'him', 'he'], ans: 0, exp: 'himself.' }, { q: '"by myself" significa:', ctx: '', opts: ['sozinho', 'com ajuda', 'rápido', 'sempre'], ans: 0, exp: 'Sozinho.' }, { q: 'Reflexivo de "they":', ctx: '', opts: ['themselves', 'theirselves', 'them', 'themself'], ans: 0, exp: 'themselves.' }, { q: '"We organized ___." :', ctx: '', opts: ['ourselves', 'ourself', 'us', 'our'], ans: 0, exp: 'ourselves.' }] },
+    { title: 'So, Such, Too e Enough', sub: 'Intensificadores', icon: '⚖️', done: false, explanation: 'so + adjetivo; such + (a) + adjetivo + substantivo; too = demais; enough = suficiente (vem depois do adjetivo).', tip: '"so beautiful", "such a nice day", "too hot", "good enough".', examples: [{ en: 'It was so cold.', pt: 'Estava tão frio.' }, { en: 'It was such a long film.', pt: 'Foi um filme tão longo.' }, { en: 'This coffee is too hot to drink.', pt: 'Este café está quente demais.' }], q: [{ q: '"It was ___ a great party." :', ctx: '', opts: ['such', 'so', 'too', 'enough'], ans: 0, exp: 'such + a + adj + subst.' }, { q: '"She is ___ kind." :', ctx: '', opts: ['so', 'such', 'enough', 'a'], ans: 0, exp: 'so + adjetivo.' }, { q: '"too" significa:', ctx: '', opts: ['demais', 'suficiente', 'pouco', 'muito bom'], ans: 0, exp: 'Demais (excesso).' }, { q: '"enough" vem ___ do adjetivo:', ctx: '', opts: ['depois', 'antes', 'no lugar', 'longe'], ans: 0, exp: 'good enough.' }, { q: '"I\'m not strong ___." :', ctx: '', opts: ['enough', 'too', 'so', 'such'], ans: 0, exp: 'strong enough.' }, { q: '"It\'s ___ expensive to buy." (demais):', ctx: '', opts: ['too', 'so', 'such', 'enough'], ans: 0, exp: 'too + adjetivo.' }] },
+    { title: 'Future Perfect e Continuous', sub: 'will have done / will be doing', icon: '⏳', done: false, explanation: 'Future Perfect: will have + particípio (ação concluída antes de um momento futuro). Future Continuous: will be + -ing (ação em andamento no futuro).', tip: '"By 2030, I will have graduated." / "This time tomorrow, I\'ll be flying."', examples: [{ en: 'By Friday, I will have finished.', pt: 'Até sexta, terei terminado.' }, { en: 'This time next week, we will be relaxing.', pt: 'A esta hora na próxima semana, estaremos relaxando.' }, { en: 'She will have left by then.', pt: 'Ela já terá saído até lá.' }], q: [{ q: 'Future Perfect:', ctx: '', opts: ['will have + particípio', 'will be + -ing', 'will + verbo', 'have + particípio'], ans: 0, exp: 'will have done.' }, { q: 'Future Continuous:', ctx: '', opts: ['will be + -ing', 'will have + particípio', 'was + -ing', 'going to'], ans: 0, exp: 'will be doing.' }, { q: '"By 2030 I ___ ___ my course." :', ctx: '', opts: ['will have / completed', 'will / complete', 'am / completing', 'will be / complete'], ans: 0, exp: 'will have completed.' }, { q: '"This time tomorrow we ___ ___." (voando):', ctx: '', opts: ['will be / flying', 'will have / flown', 'are / fly', 'will / fly'], ans: 0, exp: 'will be flying.' }, { q: 'Future Perfect indica ação:', ctx: '', opts: ['concluída antes de um ponto futuro', 'em andamento', 'passada', 'habitual'], ans: 0, exp: 'Concluída até lá.' }, { q: '"will be working" descreve:', ctx: '', opts: ['ação em curso no futuro', 'ação concluída', 'hábito passado', 'ordem'], ans: 0, exp: 'Em andamento.' }] },
+    { title: 'Modais perfeitos (should have)', sub: 'should/must/could have done', icon: '🌀', done: false, explanation: 'should have (deveria ter), must have (deve ter), could have (poderia ter), might have (talvez tenha) + particípio: especulação ou arrependimento sobre o passado.', tip: '"You should have called." (crítica) / "He must have forgotten." (dedução).', examples: [{ en: 'I should have studied more.', pt: 'Eu deveria ter estudado mais.' }, { en: 'She must have missed the bus.', pt: 'Ela deve ter perdido o ônibus.' }, { en: 'They could have won.', pt: 'Eles poderiam ter ganhado.' }], q: [{ q: '"should have + particípio" expressa:', ctx: '', opts: ['arrependimento/crítica', 'certeza', 'futuro', 'ordem'], ans: 0, exp: 'Algo que não foi feito.' }, { q: '"He ___ have forgotten." (dedução forte):', ctx: '', opts: ['must', 'should', 'could', 'would'], ans: 0, exp: 'must have = dedução.' }, { q: '"I ___ have gone." (arrependimento):', ctx: '', opts: ['should', 'must', 'can', 'will'], ans: 0, exp: 'should have.' }, { q: 'Todos são seguidos de:', ctx: '', opts: ['have + particípio', 'verbo base', '-ing', 'to + verbo'], ans: 0, exp: 'have + past participle.' }, { q: '"might have" indica:', ctx: '', opts: ['possibilidade no passado', 'certeza', 'obrigação', 'futuro'], ans: 0, exp: 'Talvez tenha.' }, { q: '"could have won" significa:', ctx: '', opts: ['poderiam ter ganhado (mas não)', 'ganharam', 'vão ganhar', 'sempre ganham'], ans: 0, exp: 'Possibilidade não realizada.' }] },
+    { title: 'Conjunções de contraste', sub: 'although, despite, however', icon: '🔗', done: false, explanation: 'although/even though + frase (sujeito + verbo); despite/in spite of + substantivo ou -ing; however (porém, após ponto e vírgula).', tip: '"Although it was late, ..." = "Despite being late, ..."', examples: [{ en: 'Although he was tired, he kept working.', pt: 'Embora estivesse cansado, continuou trabalhando.' }, { en: 'Despite the rain, we went out.', pt: 'Apesar da chuva, saímos.' }, { en: 'It was hard. However, we succeeded.', pt: 'Foi difícil. Porém, conseguimos.' }], q: [{ q: '"___ it was raining, we played." :', ctx: '', opts: ['Although', 'Despite', 'However', 'Because'], ans: 0, exp: 'Although + frase.' }, { q: '"Despite" é seguido de:', ctx: '', opts: ['substantivo ou -ing', 'frase completa', 'to + verbo', 'só adjetivo'], ans: 0, exp: 'Despite the rain / despite being.' }, { q: '"Although" é seguido de:', ctx: '', opts: ['sujeito + verbo', 'só substantivo', 'só -ing', 'nada'], ans: 0, exp: 'Frase completa.' }, { q: '"However" geralmente vem:', ctx: '', opts: ['após ponto, com vírgula', 'no meio sem nada', 'no início sem vírgula', 'no fim'], ans: 0, exp: '..., however, ...' }, { q: 'Equivale a "Although he tried":', ctx: '', opts: ['Despite trying', 'Despite he tried', 'However trying', 'Because trying'], ans: 0, exp: 'despite + -ing.' }, { q: 'Conjunção de contraste:', ctx: '', opts: ['even though', 'because', 'so', 'therefore'], ans: 0, exp: 'even though = embora.' }] },
+    { title: 'Inversão condicional', sub: 'Had I known...', icon: '⚙️', done: false, explanation: 'Em registro formal, omite-se "if" invertendo o verbo auxiliar: "Had I known...", "Were I you...", "Should you need...".', tip: '"If I had known" → "Had I known". "If you should need" → "Should you need".', examples: [{ en: 'Had I known, I would have helped.', pt: 'Se eu soubesse, teria ajudado.' }, { en: 'Were I you, I would accept.', pt: 'Se eu fosse você, aceitaria.' }, { en: 'Should you need anything, call me.', pt: 'Caso precise de algo, me ligue.' }], q: [{ q: '"If I had known" invertido:', ctx: '', opts: ['Had I known', 'Did I know', 'Have I known', 'Knew I'], ans: 0, exp: 'Had I known.' }, { q: '"If you should need" invertido:', ctx: '', opts: ['Should you need', 'Need you should', 'You should need', 'Should need you'], ans: 0, exp: 'Should you need.' }, { q: 'A inversão condicional soa:', ctx: '', opts: ['mais formal', 'mais informal', 'errada', 'antiga e incorreta'], ans: 0, exp: 'Registro formal.' }, { q: '"___ I you, I would rest." :', ctx: '', opts: ['Were', 'Was', 'If', 'Am'], ans: 0, exp: 'Were I you.' }, { q: 'A inversão remove qual palavra?', ctx: '', opts: ['if', 'the', 'to', 'have'], ans: 0, exp: 'Omite "if".' }, { q: '"Had she studied, she ___ passed." :', ctx: '', opts: ['would have', 'will have', 'has', 'had'], ans: 0, exp: 'would have passed.' }] },
+    { title: 'Particípios -ing vs -ed', sub: 'boring vs bored', icon: '✍️', done: false, explanation: 'Adjetivos terminados em -ing descrevem a causa/coisa (boring); os terminados em -ed descrevem o sentimento da pessoa (bored).', tip: '"The movie was boring, so I was bored."', examples: [{ en: 'The lesson was interesting.', pt: 'A aula foi interessante.' }, { en: 'I was interested in it.', pt: 'Eu fiquei interessado nela.' }, { en: 'The news was shocking.', pt: 'A notícia foi chocante.' }], q: [{ q: '"The book is ___." (a causa):', ctx: '', opts: ['boring', 'bored', 'bore', 'to bore'], ans: 0, exp: '-ing = causa.' }, { q: '"I am ___." (sentimento):', ctx: '', opts: ['bored', 'boring', 'bore', 'bores'], ans: 0, exp: '-ed = sentimento.' }, { q: '-ed descreve:', ctx: '', opts: ['como a pessoa se sente', 'a causa', 'o futuro', 'um lugar'], ans: 0, exp: 'O sentimento.' }, { q: '"a ___ film" (que assusta):', ctx: '', opts: ['frightening', 'frightened', 'frighten', 'frights'], ans: 0, exp: '-ing = causa.' }, { q: '"She was ___ by the result." :', ctx: '', opts: ['surprised', 'surprising', 'surprise', 'surprises'], ans: 0, exp: '-ed = sentimento.' }, { q: '-ing descreve:', ctx: '', opts: ['a coisa/causa', 'o sentimento', 'o tempo', 'o lugar'], ans: 0, exp: 'A causa.' }] },
+    { title: 'Expressões com get', sub: 'get up, get along, get over...', icon: '🔧', done: false, explanation: '"get" é muito versátil: get up (levantar), get along (se dar bem), get over (superar), get rid of (livrar-se), get used to (acostumar-se).', tip: '"I can\'t get over it." = não consigo superar.', examples: [{ en: 'We get along well.', pt: 'Nós nos damos bem.' }, { en: 'She got over the flu.', pt: 'Ela se recuperou da gripe.' }, { en: 'I need to get rid of these boxes.', pt: 'Preciso me livrar dessas caixas.' }], q: [{ q: '"get along" significa:', ctx: '', opts: ['se dar bem', 'desistir', 'chegar', 'levantar'], ans: 0, exp: 'Se dar bem.' }, { q: '"get over (something)" :', ctx: '', opts: ['superar', 'começar', 'adiar', 'vender'], ans: 0, exp: 'Superar.' }, { q: '"get rid of" :', ctx: '', opts: ['livrar-se de', 'guardar', 'comprar', 'consertar'], ans: 0, exp: 'Livrar-se.' }, { q: '"get used to" :', ctx: '', opts: ['acostumar-se', 'usar', 'emprestar', 'perder'], ans: 0, exp: 'Acostumar-se.' }, { q: '"get up" :', ctx: '', opts: ['levantar-se', 'sentar', 'deitar', 'correr'], ans: 0, exp: 'Levantar.' }, { q: '"I can\'t get over it." :', ctx: '', opts: ['não consigo superar', 'não entendo', 'não termino', 'não compro'], ans: 0, exp: 'Superar.' }] },
+    { title: 'Provérbios e ditados', sub: 'Better late than never...', icon: '🌍', done: false, explanation: 'Provérbios condensam sabedoria popular. Falantes avançados os reconhecem e usam com naturalidade.', tip: '"The early bird catches the worm." = Deus ajuda quem cedo madruga.', examples: [{ en: 'Better late than never.', pt: 'Antes tarde do que nunca.' }, { en: 'Practice makes perfect.', pt: 'A prática leva à perfeição.' }, { en: "Don't judge a book by its cover.", pt: 'Não julgue pela aparência.' }], q: [{ q: '"Better late than never" =', ctx: '', opts: ['Antes tarde do que nunca', 'Nunca é tarde', 'Tarde demais', 'Melhor nunca'], ans: 0, exp: 'Ditado clássico.' }, { q: '"Practice makes perfect" =', ctx: '', opts: ['A prática leva à perfeição', 'Ninguém é perfeito', 'Pratique sempre', 'Erre menos'], ans: 0, exp: 'A prática aperfeiçoa.' }, { q: '"The early bird catches the worm" =', ctx: '', opts: ['Deus ajuda quem cedo madruga', 'Quem espera alcança', 'Devagar se vai longe', 'Mais vale um pássaro na mão'], ans: 0, exp: 'Quem cedo madruga.' }, { q: '"Don\'t judge a book by its cover" =', ctx: '', opts: ['Não julgue pela aparência', 'Leia mais', 'A capa importa', 'Compre o livro'], ans: 0, exp: 'Não julgue pela aparência.' }, { q: '"When in Rome..." sugere:', ctx: '', opts: ['adaptar-se aos costumes locais', 'viajar para Roma', 'evitar Roma', 'seguir só suas regras'], ans: 0, exp: 'Faça como os locais.' }, { q: 'Provérbios geralmente são:', ctx: '', opts: ['expressões fixas', 'frases literais', 'gírias novas', 'erros'], ans: 0, exp: 'Expressões fixas.' }] },
+    { title: 'Phrasal verbs idiomáticos', sub: 'pull off, put up with...', icon: '🛠️', done: false, explanation: 'Phrasal verbs avançados de sentido totalmente figurado: pull off (conseguir), put up with (tolerar), come up with (bolar), get away with (sair impune).', tip: '"She pulled it off." = Ela conseguiu (algo difícil).', examples: [{ en: 'He came up with a great idea.', pt: 'Ele bolou uma ótima ideia.' }, { en: "I can't put up with the noise.", pt: 'Não suporto o barulho.' }, { en: 'They got away with it.', pt: 'Eles saíram impunes.' }], q: [{ q: '"come up with" =', ctx: '', opts: ['bolar/inventar', 'subir', 'encontrar por acaso', 'desistir'], ans: 0, exp: 'Bolar uma ideia.' }, { q: '"put up with" =', ctx: '', opts: ['tolerar', 'hospedar', 'construir', 'levantar'], ans: 0, exp: 'Tolerar.' }, { q: '"pull off" (algo difícil) =', ctx: '', opts: ['conseguir', 'puxar', 'cancelar', 'sair'], ans: 0, exp: 'Conseguir.' }, { q: '"get away with (something)" =', ctx: '', opts: ['sair impune', 'viajar', 'fugir a pé', 'guardar'], ans: 0, exp: 'Sair impune.' }, { q: '"back someone up" =', ctx: '', opts: ['apoiar alguém', 'recuar', 'copiar', 'assustar'], ans: 0, exp: 'Apoiar.' }, { q: 'Esses phrasal verbs têm sentido:', ctx: '', opts: ['figurado', 'literal', 'técnico', 'só formal'], ans: 0, exp: 'Figurado.' }] },
+    { title: 'Linguagem jurídica e formal', sub: 'shall, hereby, pursuant to...', icon: '📝', done: false, explanation: 'Documentos formais usam termos próprios: hereby, herein, pursuant to, shall, the undersigned, terms and conditions.', tip: '"shall" em contratos indica obrigação. "pursuant to" = de acordo com.', examples: [{ en: 'The tenant shall pay rent monthly.', pt: 'O locatário deverá pagar o aluguel mensalmente.' }, { en: 'Pursuant to the agreement...', pt: 'De acordo com o contrato...' }, { en: 'The undersigned agrees to the terms.', pt: 'O abaixo-assinado concorda com os termos.' }], q: [{ q: 'Em contratos, "shall" indica:', ctx: '', opts: ['obrigação', 'sugestão', 'passado', 'dúvida'], ans: 0, exp: 'Obrigação legal.' }, { q: '"pursuant to" =', ctx: '', opts: ['de acordo com', 'apesar de', 'antes de', 'sem'], ans: 0, exp: 'De acordo com.' }, { q: '"the undersigned" =', ctx: '', opts: ['o abaixo-assinado', 'o advogado', 'a testemunha', 'o juiz'], ans: 0, exp: 'Quem assina.' }, { q: '"hereby" aparece em:', ctx: '', opts: ['textos formais/jurídicos', 'conversas casuais', 'gírias', 'legendas'], ans: 0, exp: 'Registro jurídico.' }, { q: '"terms and conditions" =', ctx: '', opts: ['termos e condições', 'prazos finais', 'preços', 'assinaturas'], ans: 0, exp: 'Termos e condições.' }, { q: 'O registro jurídico é:', ctx: '', opts: ['altamente formal', 'informal', 'coloquial', 'simples'], ans: 0, exp: 'Muito formal.' }] },
   ]
 }
 
@@ -166,18 +202,48 @@ const vocab = [
   { en: 'Sorry', pt: 'Desculpe', ex: "Sorry, I don't understand.", cat: 'basic' },
   { en: 'Excuse me', pt: 'Com licença', ex: 'Excuse me, where is the bathroom?', cat: 'basic' },
   { en: 'Yes / No', pt: 'Sim / Não', ex: 'Yes, I understand. No, I do not.', cat: 'basic' },
+  { en: 'Good morning', pt: 'Bom dia', ex: 'Good morning, everyone!', cat: 'basic' },
+  { en: 'Good night', pt: 'Boa noite', ex: 'Good night, sleep well.', cat: 'basic' },
+  { en: 'How are you?', pt: 'Como vai?', ex: 'Hi! How are you?', cat: 'basic' },
+  { en: 'Nice to meet you', pt: 'Prazer em conhecer', ex: 'Nice to meet you, John.', cat: 'basic' },
+  { en: 'Goodbye', pt: 'Adeus / Tchau', ex: 'Goodbye, see you soon.', cat: 'basic' },
+  { en: 'See you later', pt: 'Até mais', ex: 'See you later, take care.', cat: 'basic' },
+  { en: 'Welcome', pt: 'Bem-vindo(a)', ex: 'Welcome to our home!', cat: 'basic' },
+  { en: 'Of course', pt: 'Claro', ex: 'Of course, I can help.', cat: 'basic' },
+  { en: 'No problem', pt: 'Sem problema', ex: 'No problem, you are welcome.', cat: 'basic' },
+  { en: "You're welcome", pt: 'De nada', ex: "You're welcome, anytime.", cat: 'basic' },
   { en: 'Airport', pt: 'Aeroporto', ex: 'Where is the airport?', cat: 'travel' },
   { en: 'Hotel', pt: 'Hotel', ex: 'I need a hotel room.', cat: 'travel' },
   { en: 'Passport', pt: 'Passaporte', ex: 'Show me your passport.', cat: 'travel' },
   { en: 'Breakfast', pt: 'Café da manhã', ex: 'Breakfast is included.', cat: 'travel' },
   { en: 'Ticket', pt: 'Passagem / Ingresso', ex: 'I need two tickets, please.', cat: 'travel' },
   { en: 'Map', pt: 'Mapa', ex: 'Can I have a map of the city?', cat: 'travel' },
+  { en: 'Flight', pt: 'Voo', ex: 'My flight is delayed.', cat: 'travel' },
+  { en: 'Luggage', pt: 'Bagagem', ex: 'Where is my luggage?', cat: 'travel' },
+  { en: 'Boarding pass', pt: 'Cartão de embarque', ex: 'Here is my boarding pass.', cat: 'travel' },
+  { en: 'Gate', pt: 'Portão de embarque', ex: 'The gate is number 12.', cat: 'travel' },
+  { en: 'Taxi', pt: 'Táxi', ex: 'I need a taxi to the hotel.', cat: 'travel' },
+  { en: 'Train', pt: 'Trem', ex: 'The train leaves at noon.', cat: 'travel' },
+  { en: 'Station', pt: 'Estação', ex: 'Where is the train station?', cat: 'travel' },
+  { en: 'Reservation', pt: 'Reserva', ex: 'I have a reservation.', cat: 'travel' },
+  { en: 'Tourist', pt: 'Turista', ex: 'I am a tourist here.', cat: 'travel' },
+  { en: 'Suitcase', pt: 'Mala', ex: 'My suitcase is heavy.', cat: 'travel' },
   { en: 'Meeting', pt: 'Reunião', ex: 'We have a meeting at 3pm.', cat: 'work' },
   { en: 'Deadline', pt: 'Prazo final', ex: 'The deadline is Friday.', cat: 'work' },
   { en: 'Report', pt: 'Relatório', ex: 'Send me the report.', cat: 'work' },
   { en: 'Schedule', pt: 'Agenda / Horário', ex: 'Check your schedule.', cat: 'work' },
   { en: 'Presentation', pt: 'Apresentação', ex: 'I will give a presentation.', cat: 'work' },
   { en: 'Contract', pt: 'Contrato', ex: 'Please sign the contract.', cat: 'work' },
+  { en: 'Office', pt: 'Escritório', ex: 'I work at the office.', cat: 'work' },
+  { en: 'Boss', pt: 'Chefe', ex: 'My boss is in a meeting.', cat: 'work' },
+  { en: 'Colleague', pt: 'Colega de trabalho', ex: 'She is my colleague.', cat: 'work' },
+  { en: 'Salary', pt: 'Salário', ex: 'I got a higher salary.', cat: 'work' },
+  { en: 'Project', pt: 'Projeto', ex: 'The project is done.', cat: 'work' },
+  { en: 'Email', pt: 'E-mail', ex: 'I sent you an email.', cat: 'work' },
+  { en: 'Customer', pt: 'Cliente', ex: 'The customer is happy.', cat: 'work' },
+  { en: 'Team', pt: 'Equipe', ex: 'We are a great team.', cat: 'work' },
+  { en: 'Task', pt: 'Tarefa', ex: 'I finished the task.', cat: 'work' },
+  { en: 'Interview', pt: 'Entrevista', ex: 'I have a job interview.', cat: 'work' },
   { en: 'Water', pt: 'Água', ex: "Can I have some water?", cat: 'food' },
   { en: 'Coffee', pt: 'Café', ex: "I drink coffee every morning.", cat: 'food' },
   { en: 'Bread', pt: 'Pão', ex: "I would like some bread.", cat: 'food' },
@@ -188,6 +254,12 @@ const vocab = [
   { en: 'Cheese', pt: 'Queijo', ex: "I love cheese on bread.", cat: 'food' },
   { en: 'Vegetable', pt: 'Legume / Verdura', ex: "Eat your vegetables.", cat: 'food' },
   { en: 'Dessert', pt: 'Sobremesa', ex: "What is for dessert?", cat: 'food' },
+  { en: 'Lunch', pt: 'Almoço', ex: 'Let us have lunch.', cat: 'food' },
+  { en: 'Dinner', pt: 'Jantar', ex: 'Dinner is ready.', cat: 'food' },
+  { en: 'Menu', pt: 'Cardápio', ex: 'Can I see the menu?', cat: 'food' },
+  { en: 'Sugar', pt: 'Açúcar', ex: 'No sugar in my coffee.', cat: 'food' },
+  { en: 'Salt', pt: 'Sal', ex: 'Pass the salt, please.', cat: 'food' },
+  { en: 'Egg', pt: 'Ovo', ex: 'I want two eggs.', cat: 'food' },
   { en: 'House', pt: 'Casa', ex: "This is my house.", cat: 'home' },
   { en: 'Kitchen', pt: 'Cozinha', ex: "She is in the kitchen.", cat: 'home' },
   { en: 'Bedroom', pt: 'Quarto', ex: "My bedroom is upstairs.", cat: 'home' },
@@ -198,6 +270,12 @@ const vocab = [
   { en: 'Chair', pt: 'Cadeira', ex: "Have a seat on the chair.", cat: 'home' },
   { en: 'Bed', pt: 'Cama', ex: "I go to bed at ten.", cat: 'home' },
   { en: 'Key', pt: 'Chave', ex: "I lost my keys.", cat: 'home' },
+  { en: 'Floor', pt: 'Chão / Andar', ex: 'The keys are on the floor.', cat: 'home' },
+  { en: 'Wall', pt: 'Parede', ex: 'There is a picture on the wall.', cat: 'home' },
+  { en: 'Light', pt: 'Luz', ex: 'Turn on the light.', cat: 'home' },
+  { en: 'Sofa', pt: 'Sofá', ex: 'Sit on the sofa.', cat: 'home' },
+  { en: 'Garden', pt: 'Jardim', ex: 'We have a small garden.', cat: 'home' },
+  { en: 'Roof', pt: 'Telhado', ex: 'The roof is red.', cat: 'home' },
   { en: 'To go', pt: 'Ir', ex: "I want to go home.", cat: 'verbs' },
   { en: 'To eat', pt: 'Comer', ex: "Let us eat together.", cat: 'verbs' },
   { en: 'To sleep', pt: 'Dormir', ex: "I need to sleep now.", cat: 'verbs' },
@@ -210,6 +288,10 @@ const vocab = [
   { en: 'To find', pt: 'Encontrar', ex: "I cannot find my phone.", cat: 'verbs' },
   { en: 'To help', pt: 'Ajudar', ex: "Can you help me?", cat: 'verbs' },
   { en: 'To learn', pt: 'Aprender', ex: "I want to learn English.", cat: 'verbs' },
+  { en: 'To work', pt: 'Trabalhar', ex: "I work every day.", cat: 'verbs' },
+  { en: 'To live', pt: 'Morar / Viver', ex: "I live in Brazil.", cat: 'verbs' },
+  { en: 'To give', pt: 'Dar', ex: "Give me a minute.", cat: 'verbs' },
+  { en: 'To know', pt: 'Saber / Conhecer', ex: "I know the answer.", cat: 'verbs' },
   { en: 'Happy', pt: 'Feliz', ex: "I am very happy today.", cat: 'feelings' },
   { en: 'Sad', pt: 'Triste', ex: "Why are you sad?", cat: 'feelings' },
   { en: 'Tired', pt: 'Cansado(a)', ex: "I am so tired.", cat: 'feelings' },
@@ -218,6 +300,14 @@ const vocab = [
   { en: 'Excited', pt: 'Animado(a)', ex: "I am excited for the trip.", cat: 'feelings' },
   { en: 'Bored', pt: 'Entediado(a)', ex: "The kids are bored.", cat: 'feelings' },
   { en: 'Scared', pt: 'Com medo', ex: "Do not be scared.", cat: 'feelings' },
+  { en: 'Nervous', pt: 'Nervoso(a)', ex: "I am nervous about the exam.", cat: 'feelings' },
+  { en: 'Calm', pt: 'Calmo(a)', ex: "Stay calm, please.", cat: 'feelings' },
+  { en: 'Surprised', pt: 'Surpreso(a)', ex: "She was surprised.", cat: 'feelings' },
+  { en: 'Confused', pt: 'Confuso(a)', ex: "I am a little confused.", cat: 'feelings' },
+  { en: 'Proud', pt: 'Orgulhoso(a)', ex: "I am proud of you.", cat: 'feelings' },
+  { en: 'Lonely', pt: 'Solitário(a)', ex: "He feels lonely.", cat: 'feelings' },
+  { en: 'Grateful', pt: 'Grato(a)', ex: "I am grateful for your help.", cat: 'feelings' },
+  { en: 'Confident', pt: 'Confiante', ex: "She is very confident.", cat: 'feelings' },
   { en: 'Today', pt: 'Hoje', ex: "What are you doing today?", cat: 'daily' },
   { en: 'Tomorrow', pt: 'Amanhã', ex: "See you tomorrow.", cat: 'daily' },
   { en: 'Yesterday', pt: 'Ontem', ex: "I saw him yesterday.", cat: 'daily' },
@@ -228,10 +318,208 @@ const vocab = [
   { en: 'Early', pt: 'Cedo', ex: "I wake up early.", cat: 'daily' },
   { en: 'Late', pt: 'Tarde / Atrasado', ex: "Do not be late.", cat: 'daily' },
   { en: 'Soon', pt: 'Em breve', ex: "I will call you soon.", cat: 'daily' },
+  { en: 'Morning', pt: 'Manhã', ex: "I run in the morning.", cat: 'daily' },
+  { en: 'Afternoon', pt: 'Tarde', ex: "See you this afternoon.", cat: 'daily' },
+  { en: 'Evening', pt: 'Fim de tarde / Noite', ex: "Good evening!", cat: 'daily' },
+  { en: 'Week', pt: 'Semana', ex: "I work five days a week.", cat: 'daily' },
+  { en: 'Weekend', pt: 'Fim de semana', ex: "Have a nice weekend!", cat: 'daily' },
+  { en: 'Every day', pt: 'Todo dia', ex: "I study every day.", cat: 'daily' },
+  { en: 'Doctor', pt: 'Médico(a)', ex: "I need to see a doctor.", cat: 'health' },
+  { en: 'Hospital', pt: 'Hospital', ex: "Take me to the hospital.", cat: 'health' },
+  { en: 'Medicine', pt: 'Remédio', ex: "Take this medicine.", cat: 'health' },
+  { en: 'Pain', pt: 'Dor', ex: "I have a pain in my back.", cat: 'health' },
+  { en: 'Fever', pt: 'Febre', ex: "She has a fever.", cat: 'health' },
+  { en: 'Headache', pt: 'Dor de cabeça', ex: "I have a headache.", cat: 'health' },
+  { en: 'Sick', pt: 'Doente', ex: "I feel sick today.", cat: 'health' },
+  { en: 'Pharmacy', pt: 'Farmácia', ex: "Where is the pharmacy?", cat: 'health' },
+  { en: 'Nurse', pt: 'Enfermeiro(a)', ex: "The nurse will help you.", cat: 'health' },
+  { en: 'Health', pt: 'Saúde', ex: "Your health is important.", cat: 'health' },
+  { en: 'Appointment', pt: 'Consulta', ex: "I have a doctor appointment.", cat: 'health' },
+  { en: 'Emergency', pt: 'Emergência', ex: "This is an emergency!", cat: 'health' },
+  { en: 'Computer', pt: 'Computador', ex: "My computer is slow.", cat: 'tech' },
+  { en: 'Phone', pt: 'Telefone / Celular', ex: "My phone is dead.", cat: 'tech' },
+  { en: 'Internet', pt: 'Internet', ex: "The internet is down.", cat: 'tech' },
+  { en: 'Password', pt: 'Senha', ex: "I forgot my password.", cat: 'tech' },
+  { en: 'Screen', pt: 'Tela', ex: "The screen is broken.", cat: 'tech' },
+  { en: 'File', pt: 'Arquivo', ex: "Send me the file.", cat: 'tech' },
+  { en: 'App', pt: 'Aplicativo', ex: "Download the app.", cat: 'tech' },
+  { en: 'Battery', pt: 'Bateria', ex: "My battery is low.", cat: 'tech' },
+  { en: 'Charger', pt: 'Carregador', ex: "Do you have a charger?", cat: 'tech' },
+  { en: 'Wi-Fi', pt: 'Wi-Fi', ex: "What is the Wi-Fi password?", cat: 'tech' },
+  { en: 'Message', pt: 'Mensagem', ex: "I got your message.", cat: 'tech' },
+  { en: 'Website', pt: 'Site', ex: "Visit our website.", cat: 'tech' },
+  { en: 'Money', pt: 'Dinheiro', ex: "I do not have money.", cat: 'shopping' },
+  { en: 'Price', pt: 'Preço', ex: "What is the price?", cat: 'shopping' },
+  { en: 'Cheap', pt: 'Barato', ex: "This shirt is cheap.", cat: 'shopping' },
+  { en: 'Expensive', pt: 'Caro', ex: "That is too expensive.", cat: 'shopping' },
+  { en: 'Store', pt: 'Loja', ex: "The store is open.", cat: 'shopping' },
+  { en: 'Cash', pt: 'Dinheiro (em espécie)', ex: "I will pay in cash.", cat: 'shopping' },
+  { en: 'Credit card', pt: 'Cartão de crédito', ex: "Can I use a credit card?", cat: 'shopping' },
+  { en: 'Discount', pt: 'Desconto', ex: "Is there a discount?", cat: 'shopping' },
+  { en: 'Receipt', pt: 'Recibo / Nota', ex: "Can I have the receipt?", cat: 'shopping' },
+  { en: 'Size', pt: 'Tamanho', ex: "Do you have my size?", cat: 'shopping' },
+  { en: 'Change', pt: 'Troco', ex: "Here is your change.", cat: 'shopping' },
+  { en: 'Sale', pt: 'Promoção', ex: "The shoes are on sale.", cat: 'shopping' },
+  { en: 'Weather', pt: 'Tempo / Clima', ex: "How is the weather?", cat: 'weather' },
+  { en: 'Sun', pt: 'Sol', ex: "The sun is shining.", cat: 'weather' },
+  { en: 'Rain', pt: 'Chuva', ex: "I do not like the rain.", cat: 'weather' },
+  { en: 'Wind', pt: 'Vento', ex: "The wind is strong.", cat: 'weather' },
+  { en: 'Snow', pt: 'Neve', ex: "I have never seen snow.", cat: 'weather' },
+  { en: 'Hot', pt: 'Quente', ex: "It is very hot today.", cat: 'weather' },
+  { en: 'Cold', pt: 'Frio', ex: "It is cold outside.", cat: 'weather' },
+  { en: 'Cloud', pt: 'Nuvem', ex: "There are many clouds.", cat: 'weather' },
+  { en: 'Storm', pt: 'Tempestade', ex: "A storm is coming.", cat: 'weather' },
+  { en: 'Warm', pt: 'Morno / Ameno', ex: "The water is warm.", cat: 'weather' },
+  { en: 'Temperature', pt: 'Temperatura', ex: "What is the temperature?", cat: 'weather' },
+  { en: 'Umbrella', pt: 'Guarda-chuva', ex: "Take an umbrella.", cat: 'weather' },
+  { en: 'Maybe', pt: 'Talvez', ex: 'Maybe tomorrow.', cat: 'basic' },
+  { en: 'Here', pt: 'Aqui', ex: 'Come here, please.', cat: 'basic' },
+  { en: 'There', pt: 'Lá / Ali', ex: 'It is over there.', cat: 'basic' },
+  { en: 'This', pt: 'Este / Isto', ex: 'I like this.', cat: 'basic' },
+  { en: 'That', pt: 'Aquele / Isso', ex: 'What is that?', cat: 'basic' },
+  { en: 'Who', pt: 'Quem', ex: 'Who is she?', cat: 'basic' },
+  { en: 'What', pt: 'O que / Qual', ex: 'What is this?', cat: 'basic' },
+  { en: 'Where', pt: 'Onde', ex: 'Where are you?', cat: 'basic' },
+  { en: 'When', pt: 'Quando', ex: 'When is the party?', cat: 'basic' },
+  { en: 'Why', pt: 'Por quê', ex: 'Why not?', cat: 'basic' },
+  { en: 'How', pt: 'Como', ex: 'How does it work?', cat: 'basic' },
+  { en: 'Because', pt: 'Porque', ex: 'Because I like it.', cat: 'basic' },
+  { en: 'Beach', pt: 'Praia', ex: 'We went to the beach.', cat: 'travel' },
+  { en: 'Trip', pt: 'Viagem', ex: 'Have a nice trip!', cat: 'travel' },
+  { en: 'Tour', pt: 'Passeio / Tour', ex: 'We booked a city tour.', cat: 'travel' },
+  { en: 'Guide', pt: 'Guia', ex: 'The guide was friendly.', cat: 'travel' },
+  { en: 'Currency', pt: 'Moeda (do país)', ex: 'What is the local currency?', cat: 'travel' },
+  { en: 'Border', pt: 'Fronteira', ex: 'We crossed the border.', cat: 'travel' },
+  { en: 'Visa', pt: 'Visto', ex: 'I need a tourist visa.', cat: 'travel' },
+  { en: 'Backpack', pt: 'Mochila', ex: 'My backpack is heavy.', cat: 'travel' },
+  { en: 'Departure', pt: 'Partida / Embarque', ex: 'Departure is at noon.', cat: 'travel' },
+  { en: 'Arrival', pt: 'Chegada', ex: 'Check the arrival time.', cat: 'travel' },
+  { en: 'Delay', pt: 'Atraso', ex: 'There is a long delay.', cat: 'travel' },
+  { en: 'Souvenir', pt: 'Lembrança', ex: 'I bought a souvenir.', cat: 'travel' },
+  { en: 'Job', pt: 'Emprego', ex: 'I love my job.', cat: 'work' },
+  { en: 'Career', pt: 'Carreira', ex: 'She has a great career.', cat: 'work' },
+  { en: 'Manager', pt: 'Gerente', ex: 'Ask the manager.', cat: 'work' },
+  { en: 'Goal', pt: 'Meta / Objetivo', ex: 'We reached our goal.', cat: 'work' },
+  { en: 'Budget', pt: 'Orçamento', ex: 'The budget is tight.', cat: 'work' },
+  { en: 'Invoice', pt: 'Fatura', ex: 'Send the invoice today.', cat: 'work' },
+  { en: 'Resume', pt: 'Currículo', ex: 'Update your resume.', cat: 'work' },
+  { en: 'Skill', pt: 'Habilidade', ex: 'Communication is a key skill.', cat: 'work' },
+  { en: 'Promotion', pt: 'Promoção (cargo)', ex: 'She got a promotion.', cat: 'work' },
+  { en: 'Staff', pt: 'Equipe / Funcionários', ex: 'The staff is helpful.', cat: 'work' },
+  { en: 'Workload', pt: 'Carga de trabalho', ex: 'My workload is heavy.', cat: 'work' },
+  { en: 'Feedback', pt: 'Retorno / Feedback', ex: 'Thanks for the feedback.', cat: 'work' },
+  { en: 'Soup', pt: 'Sopa', ex: 'The soup is hot.', cat: 'food' },
+  { en: 'Salad', pt: 'Salada', ex: 'I want a green salad.', cat: 'food' },
+  { en: 'Fish', pt: 'Peixe', ex: 'I like grilled fish.', cat: 'food' },
+  { en: 'Apple', pt: 'Maçã', ex: 'An apple a day.', cat: 'food' },
+  { en: 'Banana', pt: 'Banana', ex: 'I eat a banana every day.', cat: 'food' },
+  { en: 'Milk', pt: 'Leite', ex: 'A glass of milk.', cat: 'food' },
+  { en: 'Juice', pt: 'Suco', ex: 'Orange juice, please.', cat: 'food' },
+  { en: 'Butter', pt: 'Manteiga', ex: 'Bread with butter.', cat: 'food' },
+  { en: 'Pepper', pt: 'Pimenta', ex: 'Add some pepper.', cat: 'food' },
+  { en: 'Spicy', pt: 'Apimentado', ex: 'This food is spicy.', cat: 'food' },
+  { en: 'Sweet', pt: 'Doce', ex: 'The cake is too sweet.', cat: 'food' },
+  { en: 'Snack', pt: 'Lanche', ex: "Let's have a snack.", cat: 'food' },
+  { en: 'Garage', pt: 'Garagem', ex: 'The car is in the garage.', cat: 'home' },
+  { en: 'Stairs', pt: 'Escada', ex: 'Use the stairs.', cat: 'home' },
+  { en: 'Mirror', pt: 'Espelho', ex: 'Look in the mirror.', cat: 'home' },
+  { en: 'Towel', pt: 'Toalha', ex: 'I need a clean towel.', cat: 'home' },
+  { en: 'Pillow', pt: 'Travesseiro', ex: 'This pillow is soft.', cat: 'home' },
+  { en: 'Blanket', pt: 'Cobertor', ex: 'I need a warm blanket.', cat: 'home' },
+  { en: 'Fridge', pt: 'Geladeira', ex: 'Put it in the fridge.', cat: 'home' },
+  { en: 'Stove', pt: 'Fogão', ex: 'The stove is hot.', cat: 'home' },
+  { en: 'Sink', pt: 'Pia', ex: 'The dishes are in the sink.', cat: 'home' },
+  { en: 'Closet', pt: 'Armário / Closet', ex: 'My clothes are in the closet.', cat: 'home' },
+  { en: 'Lamp', pt: 'Luminária', ex: 'Turn on the lamp.', cat: 'home' },
+  { en: 'Curtain', pt: 'Cortina', ex: 'Open the curtains.', cat: 'home' },
+  { en: 'To come', pt: 'Vir', ex: 'Come with me.', cat: 'verbs' },
+  { en: 'To see', pt: 'Ver', ex: 'I can see you.', cat: 'verbs' },
+  { en: 'To say', pt: 'Dizer', ex: 'What did you say?', cat: 'verbs' },
+  { en: 'To think', pt: 'Pensar / Achar', ex: 'I think so.', cat: 'verbs' },
+  { en: 'To feel', pt: 'Sentir', ex: 'I feel great.', cat: 'verbs' },
+  { en: 'To put', pt: 'Colocar', ex: 'Put it on the table.', cat: 'verbs' },
+  { en: 'To take', pt: 'Pegar / Levar', ex: 'Take this with you.', cat: 'verbs' },
+  { en: 'To bring', pt: 'Trazer', ex: 'Bring your books.', cat: 'verbs' },
+  { en: 'To start', pt: 'Começar', ex: "Let's start now.", cat: 'verbs' },
+  { en: 'To stop', pt: 'Parar', ex: 'Please stop.', cat: 'verbs' },
+  { en: 'To open', pt: 'Abrir', ex: 'Open the door.', cat: 'verbs' },
+  { en: 'To close', pt: 'Fechar', ex: 'Close the window.', cat: 'verbs' },
+  { en: 'Glad', pt: 'Contente', ex: 'I am glad to see you.', cat: 'feelings' },
+  { en: 'Afraid', pt: 'Com medo', ex: 'I am afraid of dogs.', cat: 'feelings' },
+  { en: 'Jealous', pt: 'Com ciúmes', ex: 'He is a little jealous.', cat: 'feelings' },
+  { en: 'Embarrassed', pt: 'Envergonhado(a)', ex: 'I felt embarrassed.', cat: 'feelings' },
+  { en: 'Relaxed', pt: 'Relaxado(a)', ex: 'I feel relaxed now.', cat: 'feelings' },
+  { en: 'Stressed', pt: 'Estressado(a)', ex: 'I am stressed at work.', cat: 'feelings' },
+  { en: 'Hopeful', pt: 'Esperançoso(a)', ex: 'I am hopeful about it.', cat: 'feelings' },
+  { en: 'Disappointed', pt: 'Decepcionado(a)', ex: 'She was disappointed.', cat: 'feelings' },
+  { en: 'Curious', pt: 'Curioso(a)', ex: 'I am curious about it.', cat: 'feelings' },
+  { en: 'Comfortable', pt: 'Confortável', ex: 'I feel comfortable here.', cat: 'feelings' },
+  { en: 'Anxious', pt: 'Ansioso(a)', ex: 'I feel a bit anxious.', cat: 'feelings' },
+  { en: 'Thankful', pt: 'Agradecido(a)', ex: 'I am thankful for you.', cat: 'feelings' },
+  { en: 'Hour', pt: 'Hora', ex: 'I waited an hour.', cat: 'daily' },
+  { en: 'Minute', pt: 'Minuto', ex: 'Wait a minute.', cat: 'daily' },
+  { en: 'Month', pt: 'Mês', ex: 'See you next month.', cat: 'daily' },
+  { en: 'Year', pt: 'Ano', ex: 'Happy New Year!', cat: 'daily' },
+  { en: 'Night', pt: 'Noite', ex: 'Good night!', cat: 'daily' },
+  { en: 'Noon', pt: 'Meio-dia', ex: 'Lunch at noon.', cat: 'daily' },
+  { en: 'Midnight', pt: 'Meia-noite', ex: 'The party ends at midnight.', cat: 'daily' },
+  { en: 'Birthday', pt: 'Aniversário', ex: 'Happy birthday!', cat: 'daily' },
+  { en: 'Holiday', pt: 'Feriado / Férias', ex: 'Monday is a holiday.', cat: 'daily' },
+  { en: 'Often', pt: 'Frequentemente', ex: 'I often read at night.', cat: 'daily' },
+  { en: 'Rarely', pt: 'Raramente', ex: 'I rarely eat fast food.', cat: 'daily' },
+  { en: 'Usually', pt: 'Geralmente', ex: 'I usually wake up early.', cat: 'daily' },
+  { en: 'Cough', pt: 'Tosse', ex: 'I have a bad cough.', cat: 'health' },
+  { en: 'Cold (illness)', pt: 'Resfriado', ex: 'I caught a cold.', cat: 'health' },
+  { en: 'Allergy', pt: 'Alergia', ex: 'I have a food allergy.', cat: 'health' },
+  { en: 'Dentist', pt: 'Dentista', ex: 'I go to the dentist.', cat: 'health' },
+  { en: 'Tooth', pt: 'Dente', ex: 'My tooth hurts.', cat: 'health' },
+  { en: 'Blood', pt: 'Sangue', ex: 'I need a blood test.', cat: 'health' },
+  { en: 'Bandage', pt: 'Curativo', ex: 'Put a bandage on it.', cat: 'health' },
+  { en: 'Injury', pt: 'Lesão / Ferimento', ex: 'It is a minor injury.', cat: 'health' },
+  { en: 'Surgery', pt: 'Cirurgia', ex: 'She needs surgery.', cat: 'health' },
+  { en: 'Treatment', pt: 'Tratamento', ex: 'The treatment is working.', cat: 'health' },
+  { en: 'Symptom', pt: 'Sintoma', ex: 'Describe your symptoms.', cat: 'health' },
+  { en: 'Rest', pt: 'Descanso', ex: 'You need some rest.', cat: 'health' },
+  { en: 'Keyboard', pt: 'Teclado', ex: 'My keyboard is broken.', cat: 'tech' },
+  { en: 'Mouse', pt: 'Mouse', ex: 'The mouse is wireless.', cat: 'tech' },
+  { en: 'Download', pt: 'Baixar', ex: 'Download the file.', cat: 'tech' },
+  { en: 'Upload', pt: 'Enviar / Subir', ex: 'Upload your photo.', cat: 'tech' },
+  { en: 'Update', pt: 'Atualização', ex: 'Install the update.', cat: 'tech' },
+  { en: 'Link', pt: 'Link', ex: 'Click the link.', cat: 'tech' },
+  { en: 'Folder', pt: 'Pasta', ex: 'Save it in this folder.', cat: 'tech' },
+  { en: 'Software', pt: 'Programa / Software', ex: 'Install the software.', cat: 'tech' },
+  { en: 'Camera', pt: 'Câmera', ex: 'The camera is great.', cat: 'tech' },
+  { en: 'Headphones', pt: 'Fones de ouvido', ex: 'Where are my headphones?', cat: 'tech' },
+  { en: 'Search', pt: 'Buscar / Pesquisa', ex: 'Search it online.', cat: 'tech' },
+  { en: 'Click', pt: 'Clicar', ex: 'Click here to start.', cat: 'tech' },
+  { en: 'Wallet', pt: 'Carteira', ex: 'I lost my wallet.', cat: 'shopping' },
+  { en: 'Coin', pt: 'Moeda', ex: 'I need a coin.', cat: 'shopping' },
+  { en: 'Tax', pt: 'Imposto', ex: 'The price includes tax.', cat: 'shopping' },
+  { en: 'Refund', pt: 'Reembolso', ex: 'I would like a refund.', cat: 'shopping' },
+  { en: 'Order', pt: 'Pedido', ex: 'My order is late.', cat: 'shopping' },
+  { en: 'Delivery', pt: 'Entrega', ex: 'Free delivery today.', cat: 'shopping' },
+  { en: 'Brand', pt: 'Marca', ex: 'I like this brand.', cat: 'shopping' },
+  { en: 'Bargain', pt: 'Pechincha', ex: 'What a bargain!', cat: 'shopping' },
+  { en: 'Mall', pt: 'Shopping', ex: "Let's go to the mall.", cat: 'shopping' },
+  { en: 'Cart', pt: 'Carrinho', ex: 'Add it to the cart.', cat: 'shopping' },
+  { en: 'Checkout', pt: 'Caixa / Finalizar', ex: 'Go to the checkout.', cat: 'shopping' },
+  { en: 'Voucher', pt: 'Vale / Cupom', ex: 'I have a voucher.', cat: 'shopping' },
+  { en: 'Fog', pt: 'Neblina', ex: 'There is thick fog.', cat: 'weather' },
+  { en: 'Ice', pt: 'Gelo', ex: 'The road has ice.', cat: 'weather' },
+  { en: 'Lightning', pt: 'Relâmpago', ex: 'I saw lightning.', cat: 'weather' },
+  { en: 'Thunder', pt: 'Trovão', ex: 'The thunder was loud.', cat: 'weather' },
+  { en: 'Humid', pt: 'Úmido', ex: 'It is very humid today.', cat: 'weather' },
+  { en: 'Dry', pt: 'Seco', ex: 'The weather is dry.', cat: 'weather' },
+  { en: 'Season', pt: 'Estação do ano', ex: 'Summer is my favorite season.', cat: 'weather' },
+  { en: 'Spring', pt: 'Primavera', ex: 'Flowers bloom in spring.', cat: 'weather' },
+  { en: 'Summer', pt: 'Verão', ex: 'I love summer.', cat: 'weather' },
+  { en: 'Autumn', pt: 'Outono', ex: 'Leaves fall in autumn.', cat: 'weather' },
+  { en: 'Winter', pt: 'Inverno', ex: 'Winter is very cold.', cat: 'weather' },
+  { en: 'Forecast', pt: 'Previsão do tempo', ex: 'Check the forecast.', cat: 'weather' },
 ]
 
-const catEmoji: { [k: string]: string } = { basic: '👋', travel: '✈️', work: '💼', food: '🍽️', home: '🏠', verbs: '⚡', feelings: '😊', daily: '📅' }
-const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem', work: 'Trabalho', food: 'Comida', home: 'Casa', verbs: 'Verbo', feelings: 'Sentimento', daily: 'Dia a dia' }
+const catEmoji: { [k: string]: string } = { basic: '👋', travel: '✈️', work: '💼', food: '🍽️', home: '🏠', verbs: '⚡', feelings: '😊', daily: '📅', health: '🏥', tech: '💻', shopping: '🛒', weather: '🌤️' }
+const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem', work: 'Trabalho', food: 'Comida', home: 'Casa', verbs: 'Verbo', feelings: 'Sentimento', daily: 'Dia a dia', health: 'Saúde', tech: 'Tecnologia', shopping: 'Compras', weather: 'Clima' }
 
 interface Msg { role: string; text: string }
 type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'finish'
@@ -259,6 +547,33 @@ const dictCatList = [
   {id:'lugares',label:'🗺️ Lugares'},
   {id:'estacoes',label:'🌤️ Clima'},
 ]
+
+const DICT_LOCAL: Record<string, {en:string;pt:string;pron:string}[]> = {
+  casa: [{en:'Door',pt:'Porta',pron:'dór'},{en:'Window',pt:'Janela',pron:'uín-dou'},{en:'Roof',pt:'Telhado',pron:'rúf'},{en:'Floor',pt:'Chão / Andar',pron:'flór'},{en:'Wall',pt:'Parede',pron:'uól'},{en:'Kitchen',pt:'Cozinha',pron:'kít-chen'},{en:'Bedroom',pt:'Quarto',pron:'béd-rum'},{en:'Bathroom',pt:'Banheiro',pron:'béth-rum'}],
+  comida: [{en:'Bread',pt:'Pão',pron:'bréd'},{en:'Cheese',pt:'Queijo',pron:'chíz'},{en:'Rice',pt:'Arroz',pron:'ráis'},{en:'Meat',pt:'Carne',pron:'mít'},{en:'Egg',pt:'Ovo',pron:'ég'},{en:'Fruit',pt:'Fruta',pron:'frút'},{en:'Coffee',pt:'Café',pron:'kó-fi'},{en:'Water',pt:'Água',pron:'uó-ter'}],
+  corpo: [{en:'Head',pt:'Cabeça',pron:'héd'},{en:'Hand',pt:'Mão',pron:'rénd'},{en:'Arm',pt:'Braço',pron:'árm'},{en:'Leg',pt:'Perna',pron:'lég'},{en:'Foot',pt:'Pé',pron:'fút'},{en:'Eye',pt:'Olho',pron:'ái'},{en:'Nose',pt:'Nariz',pron:'nôuz'},{en:'Mouth',pt:'Boca',pron:'máuth'}],
+  animais: [{en:'Dog',pt:'Cachorro',pron:'dóg'},{en:'Cat',pt:'Gato',pron:'két'},{en:'Bird',pt:'Pássaro',pron:'bârd'},{en:'Horse',pt:'Cavalo',pron:'rórs'},{en:'Cow',pt:'Vaca',pron:'káu'},{en:'Pig',pt:'Porco',pron:'píg'},{en:'Fish',pt:'Peixe',pron:'fích'},{en:'Rabbit',pt:'Coelho',pron:'ré-bit'}],
+  transporte: [{en:'Car',pt:'Carro',pron:'kár'},{en:'Bus',pt:'Ônibus',pron:'bâs'},{en:'Train',pt:'Trem',pron:'trêin'},{en:'Plane',pt:'Avião',pron:'plêin'},{en:'Bike',pt:'Bicicleta',pron:'báik'},{en:'Boat',pt:'Barco',pron:'bôut'},{en:'Taxi',pt:'Táxi',pron:'té-ksi'},{en:'Subway',pt:'Metrô',pron:'sâb-uêi'}],
+  roupas: [{en:'Shirt',pt:'Camisa',pron:'xârt'},{en:'Pants',pt:'Calça',pron:'pénts'},{en:'Shoes',pt:'Sapatos',pron:'xúz'},{en:'Dress',pt:'Vestido',pron:'drés'},{en:'Hat',pt:'Chapéu',pron:'rét'},{en:'Coat',pt:'Casaco',pron:'kôut'},{en:'Socks',pt:'Meias',pron:'sóks'},{en:'Jacket',pt:'Jaqueta',pron:'djé-ket'}],
+  escola: [{en:'Book',pt:'Livro',pron:'búk'},{en:'Pen',pt:'Caneta',pron:'pén'},{en:'Pencil',pt:'Lápis',pron:'pên-sil'},{en:'Teacher',pt:'Professor',pron:'tí-cher'},{en:'Student',pt:'Aluno',pron:'stiú-dent'},{en:'Desk',pt:'Carteira/Mesa',pron:'désk'},{en:'Notebook',pt:'Caderno',pron:'nôut-buk'},{en:'Test',pt:'Prova',pron:'tést'}],
+  natureza: [{en:'Tree',pt:'Árvore',pron:'trí'},{en:'Flower',pt:'Flor',pron:'fláu-er'},{en:'River',pt:'Rio',pron:'rí-ver'},{en:'Mountain',pt:'Montanha',pron:'máun-tin'},{en:'Sea',pt:'Mar',pron:'sí'},{en:'Sky',pt:'Céu',pron:'skái'},{en:'Sun',pt:'Sol',pron:'sân'},{en:'Moon',pt:'Lua',pron:'mún'}],
+  esportes: [{en:'Soccer',pt:'Futebol',pron:'só-ker'},{en:'Ball',pt:'Bola',pron:'ból'},{en:'Game',pt:'Jogo',pron:'guêim'},{en:'Team',pt:'Time',pron:'tím'},{en:'Run',pt:'Correr',pron:'rân'},{en:'Swim',pt:'Nadar',pron:'suím'},{en:'Tennis',pt:'Tênis',pron:'tê-nis'},{en:'Goal',pt:'Gol',pron:'gôul'}],
+  profissoes: [{en:'Doctor',pt:'Médico',pron:'dók-tor'},{en:'Nurse',pt:'Enfermeiro',pron:'nârs'},{en:'Driver',pt:'Motorista',pron:'drái-ver'},{en:'Cook',pt:'Cozinheiro',pron:'kúk'},{en:'Lawyer',pt:'Advogado',pron:'ló-ier'},{en:'Engineer',pt:'Engenheiro',pron:'en-dji-nír'},{en:'Farmer',pt:'Fazendeiro',pron:'fár-mer'},{en:'Police officer',pt:'Policial',pron:'po-lís ó-fi-ser'}],
+  emocoes: [{en:'Happy',pt:'Feliz',pron:'ré-pi'},{en:'Sad',pt:'Triste',pron:'séd'},{en:'Angry',pt:'Bravo',pron:'ên-gri'},{en:'Tired',pt:'Cansado',pron:'tái-erd'},{en:'Scared',pt:'Com medo',pron:'skérd'},{en:'Excited',pt:'Animado',pron:'ek-sái-ted'},{en:'Calm',pt:'Calmo',pron:'cám'},{en:'Proud',pt:'Orgulhoso',pron:'práud'}],
+  cores: [{en:'Red',pt:'Vermelho',pron:'réd'},{en:'Blue',pt:'Azul',pron:'blú'},{en:'Green',pt:'Verde',pron:'grín'},{en:'Yellow',pt:'Amarelo',pron:'ié-lou'},{en:'Black',pt:'Preto',pron:'blék'},{en:'White',pt:'Branco',pron:'uáit'},{en:'Orange',pt:'Laranja',pron:'ó-rinj'},{en:'Purple',pt:'Roxo',pron:'pâr-pol'}],
+  tempo: [{en:'Monday',pt:'Segunda',pron:'mân-dei'},{en:'Friday',pt:'Sexta',pron:'frái-dei'},{en:'Sunday',pt:'Domingo',pron:'sân-dei'},{en:'January',pt:'Janeiro',pron:'djé-niu-eri'},{en:'July',pt:'Julho',pron:'dju-lái'},{en:'December',pt:'Dezembro',pron:'di-sêm-ber'},{en:'Week',pt:'Semana',pron:'uík'},{en:'Month',pt:'Mês',pron:'mânth'}],
+  tecnologia: [{en:'Computer',pt:'Computador',pron:'kom-piú-ter'},{en:'Phone',pt:'Celular',pron:'fôun'},{en:'Internet',pt:'Internet',pron:'ín-ter-net'},{en:'Screen',pt:'Tela',pron:'skrín'},{en:'Keyboard',pt:'Teclado',pron:'kí-bord'},{en:'App',pt:'Aplicativo',pron:'ép'},{en:'Password',pt:'Senha',pron:'pés-uord'},{en:'Wi-Fi',pt:'Wi-Fi',pron:'uái-fai'}],
+  saude: [{en:'Doctor',pt:'Médico',pron:'dók-tor'},{en:'Medicine',pt:'Remédio',pron:'méd-sin'},{en:'Hospital',pt:'Hospital',pron:'rós-pi-tal'},{en:'Pain',pt:'Dor',pron:'pêin'},{en:'Fever',pt:'Febre',pron:'fí-ver'},{en:'Health',pt:'Saúde',pron:'rélth'},{en:'Nurse',pt:'Enfermeiro',pron:'nârs'},{en:'Pill',pt:'Comprimido',pron:'píl'}],
+  financas: [{en:'Money',pt:'Dinheiro',pron:'mâ-ni'},{en:'Bank',pt:'Banco',pron:'bénk'},{en:'Card',pt:'Cartão',pron:'kárd'},{en:'Cash',pt:'Dinheiro vivo',pron:'kéx'},{en:'Price',pt:'Preço',pron:'práis'},{en:'Salary',pt:'Salário',pron:'sé-la-ri'},{en:'Loan',pt:'Empréstimo',pron:'lôun'},{en:'Coin',pt:'Moeda',pron:'kóin'}],
+  arte: [{en:'Music',pt:'Música',pron:'miú-zik'},{en:'Song',pt:'Canção',pron:'sóng'},{en:'Painting',pt:'Pintura',pron:'pêin-ting'},{en:'Dance',pt:'Dança',pron:'déns'},{en:'Movie',pt:'Filme',pron:'mú-vi'},{en:'Art',pt:'Arte',pron:'árt'},{en:'Theater',pt:'Teatro',pron:'thí-a-ter'},{en:'Stage',pt:'Palco',pron:'stêidj'}],
+  cidade: [{en:'Street',pt:'Rua',pron:'strít'},{en:'Building',pt:'Prédio',pron:'bíl-ding'},{en:'Park',pt:'Parque',pron:'párk'},{en:'Store',pt:'Loja',pron:'stór'},{en:'Market',pt:'Mercado',pron:'már-ket'},{en:'Square',pt:'Praça',pron:'skuér'},{en:'Bridge',pt:'Ponte',pron:'bridj'},{en:'Corner',pt:'Esquina',pron:'kór-ner'}],
+  culinaria: [{en:'Recipe',pt:'Receita',pron:'ré-si-pi'},{en:'Oven',pt:'Forno',pron:'â-ven'},{en:'Pan',pt:'Panela/Frigideira',pron:'pén'},{en:'Knife',pt:'Faca',pron:'náif'},{en:'Spoon',pt:'Colher',pron:'spún'},{en:'Fork',pt:'Garfo',pron:'fórk'},{en:'Plate',pt:'Prato',pron:'plêit'},{en:'Salt',pt:'Sal',pron:'sólt'}],
+  selva: [{en:'Lion',pt:'Leão',pron:'lái-on'},{en:'Tiger',pt:'Tigre',pron:'tái-guer'},{en:'Monkey',pt:'Macaco',pron:'mân-ki'},{en:'Snake',pt:'Cobra',pron:'snêik'},{en:'Elephant',pt:'Elefante',pron:'é-le-fant'},{en:'Jaguar',pt:'Onça',pron:'djé-guar'},{en:'Parrot',pt:'Papagaio',pron:'pé-rot'},{en:'Frog',pt:'Sapo',pron:'fróg'}],
+  negocios: [{en:'Meeting',pt:'Reunião',pron:'mí-ting'},{en:'Deal',pt:'Negócio/Acordo',pron:'díl'},{en:'Client',pt:'Cliente',pron:'klái-ent'},{en:'Profit',pt:'Lucro',pron:'pró-fit'},{en:'Company',pt:'Empresa',pron:'kâm-pa-ni'},{en:'Market',pt:'Mercado',pron:'már-ket'},{en:'Boss',pt:'Chefe',pron:'bós'},{en:'Report',pt:'Relatório',pron:'ri-pórt'}],
+  viagem: [{en:'Trip',pt:'Viagem',pron:'tríp'},{en:'Hotel',pt:'Hotel',pron:'rou-tél'},{en:'Flight',pt:'Voo',pron:'fláit'},{en:'Map',pt:'Mapa',pron:'mép'},{en:'Beach',pt:'Praia',pron:'bích'},{en:'Luggage',pt:'Bagagem',pron:'lâ-guidj'},{en:'Passport',pt:'Passaporte',pron:'pés-port'},{en:'Ticket',pt:'Passagem',pron:'tí-ket'}],
+  lugares: [{en:'Home',pt:'Casa/Lar',pron:'rôum'},{en:'School',pt:'Escola',pron:'skúl'},{en:'Office',pt:'Escritório',pron:'ó-fis'},{en:'Airport',pt:'Aeroporto',pron:'ér-port'},{en:'Station',pt:'Estação',pron:'stêi-shon'},{en:'Library',pt:'Biblioteca',pron:'lái-bre-ri'},{en:'Church',pt:'Igreja',pron:'chârch'},{en:'Museum',pt:'Museu',pron:'miu-zí-um'}],
+  estacoes: [{en:'Summer',pt:'Verão',pron:'sâ-mer'},{en:'Winter',pt:'Inverno',pron:'uín-ter'},{en:'Spring',pt:'Primavera',pron:'spríng'},{en:'Autumn',pt:'Outono',pron:'ó-tâm'},{en:'Rain',pt:'Chuva',pron:'rêin'},{en:'Snow',pt:'Neve',pron:'snôu'},{en:'Wind',pt:'Vento',pron:'uínd'},{en:'Hot',pt:'Quente',pron:'rót'}],
+}
 
 function DictCard({word}:{word:{en:string;pt:string;pron:string}}) {
   const [img,setImg]=useState<string|null>(null)
@@ -289,7 +604,7 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
   useEffect(()=>{
     setLoading(true)
     supabase.from('dicionario').select('en,pt,pron').eq('categoria',dictCat).order('en')
-      .then(({data})=>{setWords(data||[]);setLoading(false)})
+      .then(({data})=>{setWords(data&&data.length?data:(DICT_LOCAL[dictCat]||[]));setLoading(false)})
   },[dictCat])
   return(
     <div>
@@ -359,6 +674,32 @@ const cefrByTitle: Record<string, string> = {
   "Discourse Markers": "C1",
   "Argumentação e debate": "C1",
   "Sotaques e variações": "C2",
+  "Collocations naturais": "C2",
+  "Conotação e nuance": "C2",
+  "Metáforas e linguagem figurada": "C2",
+  "Eufemismos e diplomacia": "C2",
+  "Pronomes pessoais (sujeito)": "A1",
+  "Demonstrativos (this/that)": "A1",
+  "Verbo have got": "A1",
+  "Advérbios de frequência (always/never)": "A2",
+  "Imperativo (ordens)": "A2",
+  "Will ou Going to?": "A2",
+  "Past Perfect (had done)": "B1",
+  "Pronomes reflexivos": "B1",
+  "So, Such, Too e Enough": "B1",
+  "Future Perfect e Continuous": "B2",
+  "Modais perfeitos (should have)": "B2",
+  "Conjunções de contraste": "B2",
+  "Inversão condicional": "C1",
+  "Particípios -ing vs -ed": "C1",
+  "Expressões com get": "C1",
+  "Provérbios e ditados": "C2",
+  "Phrasal verbs idiomáticos": "C2",
+  "Linguagem jurídica e formal": "C2",
+  "Pronomes relativos": "B2",
+  "Causativo: have/get it done": "B2",
+  "Nominalização (estilo formal)": "C1",
+  "Hedging: cautela acadêmica": "C1",
   "Artigos: a, an, the": "A1",
   "Plural dos substantivos": "A1",
   "There is / There are": "A1",
@@ -468,6 +809,92 @@ const cefrByTitle: Record<string, string> = {
 }
 
 const placementQuestions = [{"lvl": "A1", "tipo": "G", "q": "\"___ name is John.\"", "opts": ["My", "Me", "I", "Mine"], "ans": 0, "ctx": ""}, {"lvl": "A1", "tipo": "G", "q": "\"She ___ a doctor.\"", "opts": ["am", "is", "are", "be"], "ans": 1, "ctx": ""}, {"lvl": "A1", "tipo": "G", "q": "\"There ___ two books on the table.\"", "opts": ["is", "am", "are", "be"], "ans": 2, "ctx": ""}, {"lvl": "A1", "tipo": "V", "q": "O oposto de \"big\" é:", "opts": ["small", "tall", "long", "old"], "ans": 0, "ctx": ""}, {"lvl": "A1", "tipo": "L", "q": "Pergunta: Where is Tom going?", "opts": ["To the gym", "A blue car", "Three apples", "Yesterday"], "ans": 0, "ctx": "Tom says: \"I am going to the gym now.\""}, {"lvl": "A2", "tipo": "G", "q": "\"Last weekend we ___ a movie.\"", "opts": ["watch", "watched", "watching", "watches"], "ans": 1, "ctx": ""}, {"lvl": "A2", "tipo": "G", "q": "\"He is ___ than his brother.\"", "opts": ["tall", "taller", "tallest", "more tall"], "ans": 1, "ctx": ""}, {"lvl": "A2", "tipo": "G", "q": "\"I ___ going to call you tomorrow.\"", "opts": ["am", "is", "are", "be"], "ans": 0, "ctx": ""}, {"lvl": "A2", "tipo": "V", "q": "\"I am very tired. I need to ___.\"", "opts": ["rest", "run", "cook", "drive"], "ans": 0, "ctx": ""}, {"lvl": "A2", "tipo": "L", "q": "Pergunta: When does the store close?", "opts": ["At 8 p.m.", "On Mondays", "For two hours", "Very cheap"], "ans": 0, "ctx": "Sign: \"Our store is open from 9 a.m. to 8 p.m., Monday to Friday.\""}, {"lvl": "B1", "tipo": "G", "q": "\"I have known her ___ five years.\"", "opts": ["since", "for", "ago", "during"], "ans": 1, "ctx": ""}, {"lvl": "B1", "tipo": "G", "q": "\"If you heat ice, it ___.\"", "opts": ["melt", "melts", "melted", "will melt"], "ans": 1, "ctx": ""}, {"lvl": "B1", "tipo": "G", "q": "\"She asked me where I ___ from.\"", "opts": ["come", "came", "coming", "comes"], "ans": 1, "ctx": ""}, {"lvl": "B1", "tipo": "V", "q": "\"The meeting was ___; everyone fell asleep.\"", "opts": ["boring", "bored", "boredom", "bore"], "ans": 0, "ctx": ""}, {"lvl": "B1", "tipo": "L", "q": "Pergunta: Why was the trip cancelled?", "opts": ["Because of the weather", "Because it was cheap", "Because of the food", "Because Tom was happy"], "ans": 0, "ctx": "Email: \"Unfortunately, due to the heavy storm, we had to cancel the trip this weekend.\""}, {"lvl": "B2", "tipo": "G", "q": "\"By the time the police arrived, the thief ___.\"", "opts": ["escaped", "has escaped", "had escaped", "escapes"], "ans": 2, "ctx": ""}, {"lvl": "B2", "tipo": "G", "q": "\"I wish I ___ more time to study yesterday.\"", "opts": ["have had", "had had", "have", "had"], "ans": 1, "ctx": ""}, {"lvl": "B2", "tipo": "G", "q": "\"The report ___ by the team last week.\"", "opts": ["was written", "wrote", "has wrote", "is writing"], "ans": 0, "ctx": ""}, {"lvl": "B2", "tipo": "V", "q": "\"Her argument was ___; nobody could disagree.\"", "opts": ["compelling", "comfortable", "compulsory", "competitive"], "ans": 0, "ctx": ""}, {"lvl": "B2", "tipo": "L", "q": "A frase implica que o projeto:", "opts": ["será adiado", "já terminou", "nunca começou", "foi um sucesso"], "ans": 0, "ctx": "Note: \"Given the current budget constraints, the launch will have to be postponed until further notice.\""}, {"lvl": "C1", "tipo": "G", "q": "\"Not only ___ the deadline, but he also impressed the client.\"", "opts": ["he met", "met he", "did he meet", "he did meet"], "ans": 2, "ctx": ""}, {"lvl": "C1", "tipo": "G", "q": "\"___ harder, she would have passed the exam.\"", "opts": ["Had she studied", "If she studies", "She had studied", "Did she study"], "ans": 0, "ctx": ""}, {"lvl": "C1", "tipo": "G", "q": "\"It was his persistence ___ ultimately led to success.\"", "opts": ["which", "that", "who", "what"], "ans": 1, "ctx": ""}, {"lvl": "C1", "tipo": "V", "q": "\"The new policy was met with widespread ___.\"", "opts": ["scepticism", "scenery", "schedule", "sculpture"], "ans": 0, "ctx": ""}, {"lvl": "C1", "tipo": "L", "q": "O tom do autor é:", "opts": ["crítico", "entusiasmado", "neutro e informativo", "humorístico"], "ans": 0, "ctx": "Review: \"While the device boasts impressive specs, its exorbitant price and fragile build leave much to be desired.\""}, {"lvl": "C2", "tipo": "G", "q": "\"Seldom ___ such a remarkable performance.\"", "opts": ["we have seen", "have we seen", "we saw", "saw we"], "ans": 1, "ctx": ""}, {"lvl": "C2", "tipo": "G", "q": "\"He spoke as though he ___ the whole story himself.\"", "opts": ["witnessed", "has witnessed", "had witnessed", "witnesses"], "ans": 2, "ctx": ""}, {"lvl": "C2", "tipo": "V", "q": "\"Ephemeral\" most nearly means:", "opts": ["lasting briefly", "extremely loud", "very heavy", "clearly visible"], "ans": 0, "ctx": ""}, {"lvl": "C2", "tipo": "V", "q": "\"To take something with a grain of salt\" means to:", "opts": ["be skeptical of it", "add flavour to it", "accept it fully", "forget it quickly"], "ans": 0, "ctx": ""}, {"lvl": "C2", "tipo": "L", "q": "A passagem sugere que a teoria é:", "opts": ["elegante mas pouco prática", "totalmente comprovada", "simples de aplicar", "amplamente rejeitada"], "ans": 0, "ctx": "Critique: \"The theory, for all its conceptual elegance, founders when confronted with the messy realities of implementation.\""}]
+
+const listeningExercises = [
+  { nivel: 'A1', en: "Hi! My name is Anna and I'm from Canada.", pt: 'Oi! Meu nome é Anna e eu sou do Canadá.', q: 'De onde a Anna é?', opts: ['Do Canadá', 'Da Austrália', 'Da Irlanda', 'Dos Estados Unidos'], ans: 0 },
+  { nivel: 'A1', en: "I wake up at seven o'clock every morning.", pt: 'Eu acordo às sete horas toda manhã.', q: 'A que horas ela acorda?', opts: ['Às sete', 'Às nove', 'Às seis', 'Às onze'], ans: 0 },
+  { nivel: 'A1', en: 'Can I have a glass of water, please?', pt: 'Posso tomar um copo de água, por favor?', q: 'O que a pessoa pediu?', opts: ['Um copo de água', 'Um café', 'A conta', 'Um cardápio'], ans: 0 },
+  { nivel: 'A2', en: 'The train to London leaves at half past nine.', pt: 'O trem para Londres sai às nove e meia.', q: 'Que horas o trem sai?', opts: ['Nove e meia', 'Dez e meia', 'Nove em ponto', 'Meio-dia'], ans: 0 },
+  { nivel: 'A2', en: 'I went to the beach last weekend with my family.', pt: 'Eu fui à praia no fim de semana passado com minha família.', q: 'Para onde ela foi?', opts: ['À praia', 'Ao cinema', 'Ao trabalho', 'À montanha'], ans: 0 },
+  { nivel: 'A2', en: 'Sorry, the restaurant is fully booked tonight.', pt: 'Desculpe, o restaurante está lotado hoje à noite.', q: 'Qual é o problema?', opts: ['Não há mesas disponíveis', 'Fechou para sempre', 'A comida acabou', 'O preço subiu'], ans: 0 },
+  { nivel: 'B1', en: "I've been learning English for about three years now.", pt: 'Eu estudo inglês há cerca de três anos.', q: 'Há quanto tempo ele estuda inglês?', opts: ['Cerca de três anos', 'Há três meses', 'Desde criança', 'Há três semanas'], ans: 0 },
+  { nivel: 'B1', en: "If the weather is nice tomorrow, we'll go hiking.", pt: 'Se o tempo estiver bom amanhã, vamos fazer trilha.', q: 'De que depende o plano?', opts: ['Do tempo estar bom', 'Do dinheiro', 'Da família concordar', 'Do trabalho'], ans: 0 },
+  { nivel: 'B1', en: "She said she couldn't come because she was feeling sick.", pt: 'Ela disse que não podia vir porque estava se sentindo mal.', q: 'Por que ela não veio?', opts: ['Estava doente', 'Estava ocupada', 'Esqueceu', 'Estava viajando'], ans: 0 },
+  { nivel: 'B2', en: 'The flight has been delayed due to bad weather conditions.', pt: 'O voo foi atrasado por causa das más condições do tempo.', q: 'Por que o voo atrasou?', opts: ['Por causa do mau tempo', 'Por problema técnico', 'Por greve', 'Por excesso de bagagem'], ans: 0 },
+  { nivel: 'B2', en: "I'd rather stay home tonight than go to a crowded party.", pt: 'Eu preferiria ficar em casa hoje a ir a uma festa lotada.', q: 'O que a pessoa prefere?', opts: ['Ficar em casa', 'Ir à festa', 'Sair para jantar', 'Trabalhar'], ans: 0 },
+  { nivel: 'C1', en: 'Despite the setbacks, the team managed to meet the deadline.', pt: 'Apesar dos contratempos, a equipe conseguiu cumprir o prazo.', q: 'O que a equipe conseguiu?', opts: ['Cumprir o prazo', 'Cancelar o projeto', 'Adiar a entrega', 'Aumentar o orçamento'], ans: 0 },
+  { nivel: 'A1', en: 'My favorite color is green.', pt: 'Minha cor favorita é verde.', q: 'Qual é a cor favorita dele?', opts: ['Verde', 'Azul', 'Vermelho', 'Amarelo'], ans: 0 },
+  { nivel: 'A1', en: 'I have two brothers and one sister.', pt: 'Eu tenho dois irmãos e uma irmã.', q: 'Quantos irmãos ela tem ao todo?', opts: ['Dois', 'Três', 'Um', 'Quatro'], ans: 1 },
+  { nivel: 'A1', en: 'The cat is sleeping on the sofa.', pt: 'O gato está dormindo no sofá.', q: 'Onde está o gato?', opts: ['Na cama', 'No chão', 'No sofá', 'Na cadeira'], ans: 2 },
+  { nivel: 'A1', en: 'I usually drink coffee in the morning.', pt: 'Eu costumo tomar café de manhã.', q: 'O que ela bebe de manhã?', opts: ['Chá', 'Suco', 'Água', 'Café'], ans: 3 },
+  { nivel: 'A1', en: 'My house has three bedrooms.', pt: 'Minha casa tem três quartos.', q: 'Quantos quartos a casa tem?', opts: ['Três', 'Dois', 'Quatro', 'Cinco'], ans: 0 },
+  { nivel: 'A1', en: 'She is wearing a red dress.', pt: 'Ela está usando um vestido vermelho.', q: 'O que ela está vestindo?', opts: ['Uma saia azul', 'Um vestido vermelho', 'Uma blusa branca', 'Calça preta'], ans: 1 },
+  { nivel: 'A2', en: "I'm going to visit my grandparents next weekend.", pt: 'Vou visitar meus avós no próximo fim de semana.', q: 'Quando ele vai visitar os avós?', opts: ['No próximo fim de semana', 'Hoje', 'Amanhã', 'Mês que vem'], ans: 0 },
+  { nivel: 'A2', en: 'The supermarket is next to the pharmacy.', pt: 'O supermercado fica ao lado da farmácia.', q: 'Onde fica o supermercado?', opts: ['Em frente ao banco', 'Ao lado da farmácia', 'Atrás da escola', 'Longe daqui'], ans: 1 },
+  { nivel: 'A2', en: 'We watched a great movie last night.', pt: 'Assistimos a um ótimo filme ontem à noite.', q: 'O que eles fizeram ontem à noite?', opts: ['Jantaram fora', 'Estudaram', 'Assistiram a um filme', 'Viajaram'], ans: 2 },
+  { nivel: 'A2', en: 'It takes me thirty minutes to get to work.', pt: 'Levo trinta minutos para chegar ao trabalho.', q: 'Quanto tempo ela leva para o trabalho?', opts: ['Uma hora', 'Quinze minutos', 'Dez minutos', 'Trinta minutos'], ans: 3 },
+  { nivel: 'A2', en: 'I bought this jacket because it was on sale.', pt: 'Comprei esta jaqueta porque estava em promoção.', q: 'Por que ela comprou a jaqueta?', opts: ['Estava em promoção', 'Era cara', 'Era um presente', 'Estava velha'], ans: 0 },
+  { nivel: 'A2', en: "He doesn't like spicy food.", pt: 'Ele não gosta de comida apimentada.', q: 'Do que ele não gosta?', opts: ['De comida doce', 'De comida apimentada', 'De frutas', 'De peixe'], ans: 1 },
+  { nivel: 'B1', en: 'Although it was raining, we decided to go for a walk.', pt: 'Embora estivesse chovendo, decidimos sair para caminhar.', q: 'Apesar da chuva, o que decidiram fazer?', opts: ['Ficar em casa', 'Ir ao cinema', 'Sair para caminhar', 'Dormir'], ans: 2 },
+  { nivel: 'B1', en: "I've never been abroad, but I'd love to travel someday.", pt: 'Nunca fui ao exterior, mas adoraria viajar um dia.', q: 'O que é verdade sobre ela?', opts: ['Já morou fora', 'Nunca foi ao exterior', 'Viaja todo ano', 'Odeia viajar'], ans: 1 },
+  { nivel: 'B1', en: 'The manager asked us to finish the report by Friday.', pt: 'O gerente pediu para terminarmos o relatório até sexta.', q: 'Até quando o relatório deve ficar pronto?', opts: ['Até sexta-feira', 'Até segunda', 'Hoje', 'Sem prazo'], ans: 0 },
+  { nivel: 'B1', en: 'If I were you, I would talk to her honestly.', pt: 'Se eu fosse você, falaria com ela honestamente.', q: 'Qual é o conselho dado?', opts: ['Não falar nada', 'Esperar', 'Conversar com ela honestamente', 'Mandar mensagem'], ans: 2 },
+  { nivel: 'B1', en: "We're thinking about moving to a bigger apartment.", pt: 'Estamos pensando em mudar para um apartamento maior.', q: 'O que estão considerando?', opts: ['Comprar um carro', 'Mudar para um apartamento maior', 'Reformar a casa', 'Viajar'], ans: 1 },
+  { nivel: 'B1', en: "She's been working here for almost ten years.", pt: 'Ela trabalha aqui há quase dez anos.', q: 'Há quanto tempo ela trabalha lá?', opts: ['Quase dez anos', 'Dois anos', 'Seis meses', 'Acabou de entrar'], ans: 0 },
+  { nivel: 'B2', en: 'The project was delayed because of a lack of funding.', pt: 'O projeto atrasou por falta de verba.', q: 'Por que o projeto atrasou?', opts: ['Falta de equipe', 'Falta de verba', 'Mau tempo', 'Falta de tempo'], ans: 1 },
+  { nivel: 'B2', en: "I'd rather you didn't mention this to anyone.", pt: 'Eu preferiria que você não comentasse isso com ninguém.', q: 'O que a pessoa prefere?', opts: ['Que você conte a todos', 'Que você não comente com ninguém', 'Que você pergunte', 'Que você espere'], ans: 1 },
+  { nivel: 'B2', en: "Despite his efforts, he couldn't convince the board.", pt: 'Apesar dos esforços, ele não convenceu a diretoria.', q: 'Qual foi o resultado dos esforços dele?', opts: ['Convenceu a diretoria', 'Não convenceu a diretoria', 'Desistiu logo', 'Foi promovido'], ans: 1 },
+  { nivel: 'B2', en: 'By the time we arrived, the meeting had already started.', pt: 'Quando chegamos, a reunião já havia começado.', q: 'O que aconteceu quando chegaram?', opts: ['A reunião não tinha começado', 'A reunião já tinha começado', 'A reunião foi cancelada', 'Chegaram cedo'], ans: 1 },
+  { nivel: 'B2', en: 'The new policy is likely to affect small businesses the most.', pt: 'A nova política provavelmente afetará mais os pequenos negócios.', q: 'Quem será mais afetado?', opts: ['Grandes empresas', 'Pequenos negócios', 'O governo', 'Os turistas'], ans: 1 },
+  { nivel: 'C1', en: 'Had I known about the traffic, I would have left earlier.', pt: 'Se eu soubesse do trânsito, teria saído mais cedo.', q: 'O que a pessoa lamenta?', opts: ['Não ter saído mais cedo', 'Ter saído cedo demais', 'Ter perdido o voo', 'Não ter dirigido'], ans: 0 },
+  { nivel: 'C1', en: 'The findings, while preliminary, are quite promising.', pt: 'Os resultados, embora preliminares, são bastante promissores.', q: 'Como são os resultados?', opts: ['Definitivos', 'Preliminares, mas promissores', 'Decepcionantes', 'Irrelevantes'], ans: 1 },
+  { nivel: 'C1', en: 'She has a tendency to overcommit and then feel overwhelmed.', pt: 'Ela tende a assumir demais e depois se sentir sobrecarregada.', q: 'Qual é a tendência dela?', opts: ['Assumir demais e se sobrecarregar', 'Recusar tarefas', 'Trabalhar pouco', 'Delegar tudo'], ans: 0 },
+  { nivel: 'C1', en: 'The proposal was turned down despite widespread support.', pt: 'A proposta foi recusada apesar do amplo apoio.', q: 'O que aconteceu com a proposta?', opts: ['Foi aprovada', 'Foi recusada', 'Foi adiada', 'Foi reescrita'], ans: 1 },
+  { nivel: 'C1', en: 'His remarks were taken out of context by the media.', pt: 'Os comentários dele foram tirados de contexto pela mídia.', q: 'O que aconteceu com os comentários dele?', opts: ['Foram elogiados', 'Foram tirados de contexto', 'Foram ignorados', 'Foram confirmados'], ans: 1 },
+]
+
+const grammarTips = [
+  { t: 'Verbo to be (am/is/are)', d: 'Use "am" com I, "is" com he/she/it e "are" com you/we/they.', ex: 'She is a teacher. / They are happy.' },
+  { t: 'Artigos a / an', d: 'Use "a" antes de som de consoante e "an" antes de som de vogal.', ex: 'a car · an apple · an hour' },
+  { t: 'Plural dos substantivos', d: 'Geralmente +s; palavras em -s, -x, -ch, -sh levam +es.', ex: 'cat → cats · box → boxes' },
+  { t: 'Present Simple (3ª pessoa)', d: 'Com he/she/it o verbo leva -s no presente.', ex: 'He works. / She studies.' },
+  { t: 'Present Continuous', d: 'am/is/are + verbo-ing para ações acontecendo agora.', ex: 'I am studying right now.' },
+  { t: 'There is / There are', d: '"There is" para singular e "There are" para plural.', ex: 'There is a book. / There are two books.' },
+  { t: 'Pronomes possessivos', d: 'my, your, his, her, its, our, their vêm antes do substantivo.', ex: 'This is my pen. Her car is blue.' },
+  { t: 'Can (habilidade)', d: '"can" + verbo base; não muda com a pessoa.', ex: 'She can swim. / They can help.' },
+  { t: 'Simple Past (regulares)', d: 'Verbos regulares formam o passado com -ed.', ex: 'work → worked · play → played' },
+  { t: 'Simple Past (irregulares)', d: 'Muitos verbos têm passado próprio — vale decorar.', ex: 'go → went · have → had · see → saw' },
+  { t: 'Comparativos', d: 'Curtos: adjetivo + -er than. Longos: more + adjetivo + than.', ex: 'taller than · more expensive than' },
+  { t: 'Superlativos', d: 'Curtos: the + -est. Longos: the most + adjetivo.', ex: 'the tallest · the most expensive' },
+  { t: 'Going to (futuro)', d: 'am/is/are going to + verbo para planos e intenções.', ex: 'I am going to travel next year.' },
+  { t: 'Will (futuro)', d: '"will" + verbo base para decisões e previsões.', ex: 'I will help you. / It will rain.' },
+  { t: 'Some / Any', d: '"some" em afirmativas; "any" em negativas e perguntas.', ex: 'I have some money. / I don\'t have any.' },
+  { t: 'Much / Many', d: '"many" para contáveis; "much" para incontáveis.', ex: 'many books · much water' },
+  { t: 'Preposições de tempo', d: 'in (meses/anos), on (dias/datas), at (horas).', ex: 'in May · on Monday · at 5pm' },
+  { t: 'Present Perfect', d: 'have/has + particípio para experiência ou passado ligado ao agora.', ex: 'I have visited Paris twice.' },
+  { t: 'Since / For', d: '"since" + ponto no tempo; "for" + duração.', ex: 'since 2010 · for five years' },
+  { t: 'Already / Yet', d: '"already" em afirmativas; "yet" em negativas/perguntas, no fim.', ex: 'I\'ve already eaten. / Not yet.' },
+  { t: '1º Condicional', d: 'If + presente, ... will + verbo (situação real e provável).', ex: 'If it rains, I will stay home.' },
+  { t: '2º Condicional', d: 'If + passado, ... would + verbo (situação hipotética).', ex: 'If I were rich, I would travel.' },
+  { t: 'Used to', d: '"used to" + verbo base: hábito do passado que não existe mais.', ex: 'I used to play soccer as a kid.' },
+  { t: 'Have to / Must', d: 'Obrigação: "have to" é externa; "must" é mais forte/pessoal.', ex: 'I have to work. / You must stop.' },
+  { t: 'Should (conselho)', d: '"should" + verbo base para dar conselhos.', ex: 'You should rest more.' },
+  { t: 'Voz passiva', d: 'to be + particípio quando o foco é a ação, não quem a faz.', ex: 'The house was built in 1990.' },
+  { t: 'Gerúndio após preposição', d: 'Depois de preposição, o verbo vai para -ing.', ex: 'good at singing · before leaving' },
+  { t: 'Infinitivo de propósito', d: 'Use "to + verbo" para indicar finalidade.', ex: 'I came here to learn English.' },
+  { t: 'Reported Speech', d: 'Ao relatar, o tempo verbal recua um grau.', ex: '"I am tired" → She said she was tired.' },
+  { t: 'Question tags', d: 'Mini-pergunta no fim: frase afirmativa pede tag negativa.', ex: 'You like coffee, don\'t you?' },
+  { t: 'Phrasal verbs', d: 'Verbo + partícula com sentido novo; não traduza ao pé da letra.', ex: 'give up = desistir · look for = procurar' },
+  { t: 'Make vs Do', d: '"make" para criar/produzir; "do" para tarefas e atividades.', ex: 'make a cake · do homework' },
+  { t: 'Say vs Tell', d: '"tell" precisa de objeto (tell me); "say" não precisa.', ex: 'She told me. / She said hello.' },
+  { t: 'Too / Enough', d: '"too" = demais (antes do adjetivo); "enough" = suficiente (depois).', ex: 'too hot · hot enough' },
+  { t: 'Present Perfect Continuous', d: 'have/has been + -ing: ação contínua que vem até agora.', ex: 'I have been studying for hours.' },
+  { t: 'Past Continuous', d: 'was/were + -ing: ação em andamento no passado.', ex: 'I was sleeping when you called.' },
+  { t: 'Relative clauses', d: 'who (pessoas), which (coisas), that (ambos), whose (posse).', ex: 'The man who called you is here.' },
+  { t: '3º Condicional', d: 'If + past perfect, ... would have + particípio (passado irreal).', ex: 'If I had known, I would have helped.' },
+  { t: 'Wish', d: '"wish" + passado para desejos sobre o presente.', ex: 'I wish I had more free time.' },
+  { t: 'Causativo (have/get done)', d: 'have/get + objeto + particípio: outra pessoa faz por você.', ex: 'I had my car repaired.' },
+]
 
 const pronCategorias = [
   { id: 'th', label: 'O som do TH', icon: '🦷', desc: 'think, three, this, that', frases: [
@@ -597,16 +1024,25 @@ const pronCategorias = [
 ]
 
 export default function AppPage() {
+  const XP_PENDING_KEY = 'speakup_xp_pending'
   const [tab, setTab] = useState('home')
   const [level, setLevel] = useState('A1')
   const [view, setView] = useState<ViewType>('levels')
   const [lessonIdx, setLessonIdx] = useState(0)
+  const [lisIdx, setLisIdx] = useState(0)
+  const [lisSel, setLisSel] = useState(-1)
+  const [lisAns, setLisAns] = useState(false)
+  const [lisScore, setLisScore] = useState(0)
   const [qIdx, setQIdx] = useState(0)
   const [answered, setAnswered] = useState(false)
   const [selected, setSelected] = useState(-1)
   const [xp, setXp] = useState(0)
+  const [xpHydrated, setXpHydrated] = useState(false)
   const [streak, setStreak] = useState(0)
+  const [recorde, setRecorde] = useState(0)
+  const [conqNova, setConqNova] = useState<{ e: string; nome: string } | null>(null)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
+  const [licaoDiaData, setLicaoDiaData] = useState('')
   const [isPremium, setIsPremium] = useState(true) // BETA: liberado pra todos. Pra voltar a cobrar, troque true por false
 
   const tocarSom = (tipo: 'acerto' | 'erro') => {
@@ -618,6 +1054,8 @@ export default function AppPage() {
   }
   const [flipped, setFlipped] = useState<Record<number, boolean>>({})
   const [vocabCat, setVocabCat] = useState('all')
+  const [vocabSrs, setVocabSrs] = useState<Record<string, string>>({})
+  const [vocabModo, setVocabModo] = useState('all')
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?' }])
   const [chatInput, setChatInput] = useState('')
   const [loadingChat, setLoadingChat] = useState(false)
@@ -663,20 +1101,35 @@ export default function AppPage() {
   const [provaNivelEscolhido, setProvaNivelEscolhido] = useState(false)
   const [dbLessons, setDbLessons] = useState<Record<string, Lesson[]>>({ beginner: [], intermediate: [], advanced: [] })
   const recognitionRef = useRef<any>(null)
+  const xpSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSyncedXpRef = useRef<number | null>(null)
   const convEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   const lessons: Record<string, Lesson[]> = { A1: [], A2: [], B1: [], B2: [], C1: [], C2: [] }
   const allForCefr = [...baseLessons.beginner, ...baseLessons.intermediate, ...baseLessons.advanced, ...dbLessons.beginner, ...dbLessons.intermediate, ...dbLessons.advanced]
-  allForCefr.forEach(l => { const k = cefrByTitle[l.title] || 'A1'; if (lessons[k]) lessons[k].push(l) })
+  allForCefr.forEach(l => { const k = cefrByTitle[l.title] || l.cefr || 'A1'; if (lessons[k]) lessons[k].push(l) })
 
   const totalLessons = Object.values(lessons).flat().length
   const doneLessons = licoesConcluidas.length
+  const conquistasDef = [
+    { id: 'l1', e: '🎯', nome: '1ª lição', ok: doneLessons >= 1 },
+    { id: 's3', e: '🔥', nome: '3 dias', ok: streak >= 3 },
+    { id: 's7', e: '🚀', nome: '7 dias', ok: streak >= 7 },
+    { id: 'x100', e: '⭐', nome: '100 XP', ok: xp >= 100 },
+    { id: 'l10', e: '📚', nome: '10 lições', ok: doneLessons >= 10 },
+    { id: 'x500', e: '💎', nome: '500 XP', ok: xp >= 500 },
+    { id: 'l30', e: '🎓', nome: '30 lições', ok: doneLessons >= 30 },
+    { id: 's30', e: '🏆', nome: '30 dias', ok: streak >= 30 },
+  ]
   const FREE_LIMIT = 3
   const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite' })()
   const isNovo = xp === 0 && streak === 0 && doneLessons === 0
 
   const hojeStr = new Date().toISOString().split('T')[0]
+  const LIMITE_DIA_LICOES = 3
+  const licoesHoje = (() => { const p = licaoDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
+  const metaFeitaHoje = licoesHoje >= LIMITE_DIA_LICOES
   const [xpInicioDia, setXpInicioDia] = useState(0)
   useEffect(() => {
     try {
@@ -710,6 +1163,30 @@ export default function AppPage() {
   useEffect(() => {
     try { const d = localStorage.getItem('speakup_desafio'); setDesafioFeito(d === new Date().toISOString().split('T')[0]) } catch (e) {}
   }, [])
+
+  useEffect(() => {
+    try { const d = localStorage.getItem('speakup_licao_dia'); if (d) setLicaoDiaData(d) } catch (e) {}
+    try { const sv = localStorage.getItem('speakup_vocab_srs'); if (sv) setVocabSrs(JSON.parse(sv)) } catch (e) {}
+    try { const r = localStorage.getItem('speakup_recorde'); if (r) setRecorde(parseInt(r) || 0) } catch (e) {}
+  }, [])
+
+  useEffect(() => {
+    if (streak > recorde) { setRecorde(streak); try { localStorage.setItem('speakup_recorde', String(streak)) } catch (e) {} }
+  }, [streak, recorde])
+
+  useEffect(() => {
+    if (!xpHydrated) return
+    const earned = conquistasDef.filter(c => c.ok).map(c => c.id)
+    let seen: string[] | null = null
+    try { const raw = localStorage.getItem('speakup_conq_vistas'); seen = raw ? JSON.parse(raw) : null } catch (e) { seen = null }
+    if (seen === null) { try { localStorage.setItem('speakup_conq_vistas', JSON.stringify(earned)) } catch (e) {} ; return }
+    const novas = conquistasDef.filter(c => c.ok && !seen!.includes(c.id))
+    if (novas.length) {
+      const ult = novas[novas.length - 1]
+      setConqNova({ e: ult.e, nome: ult.nome })
+      try { localStorage.setItem('speakup_conq_vistas', JSON.stringify(Array.from(new Set([...seen!, ...earned])))) } catch (e) {}
+    }
+  }, [xpHydrated, xp, streak, doneLessons])
 
   function finalizarDesafio() {
     const hoje = new Date().toISOString().split('T')[0]
@@ -805,9 +1282,26 @@ export default function AppPage() {
       const nome = data.user.user_metadata?.nome || data.user.email?.split('@')[0] || 'Aluno'
       setUserName(nome.split(' ')[0])
       setUserId(data.user.id)
-      const { data: prog } = await supabase.from('progresso').select('*').eq('user_id', data.user.id).single()
+      const { data: progRows, error: progReadError } = await supabase
+        .from('progresso')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .limit(1)
+      const prog = progRows?.[0] || null
+      if (progReadError) {
+        console.log('[XP][Read] Erro ao ler progresso', progReadError)
+      }
+      let pendingXp = 0
+      try {
+        const rawPending = localStorage.getItem(XP_PENDING_KEY)
+        const parsed = rawPending ? JSON.parse(rawPending) : null
+        if (parsed && typeof parsed.xp === 'number') pendingXp = parsed.xp
+      } catch (e) {}
       if (prog) {
-        setXp(prog.xp || 0)
+        const dbXp = prog.xp || 0
+        const initialXp = Math.max(dbXp, pendingXp)
+        setXp(initialXp)
+        lastSyncedXpRef.current = dbXp
         setStreak(prog.streak || 0)
         setLicoesConcluidas(prog.licoes_concluidas || [])
         setIsPremium(true) // BETA: sempre Premium. Pra voltar a cobrar, use: prog.is_premium || false
@@ -816,10 +1310,50 @@ export default function AppPage() {
         const hoje = new Date().toISOString().split('T')[0]
         if (prog.ultima_atividade === hoje) setSimulacoesHoje(prog.simulacoes_hoje || 0)
       } else {
-        await supabase.from('progresso').insert({ user_id: data.user.id, xp: 0, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: data.user.email })
+        // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
+        // silenciosamente. Cria o profile só se faltar (ignoreDuplicates evita sobrescrever plano/trial de quem já tem).
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email,
+          nome: nome,
+          plano: 'free',
+          ativo: true,
+          trial_expira: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        }, { onConflict: 'id', ignoreDuplicates: true })
+        const initialXp = pendingXp > 0 ? pendingXp : 0
+        setXp(initialXp)
+        const { error: insErr } = await supabase.from('progresso').insert({ user_id: data.user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: data.user.email })
+        if (insErr) { console.log('[XP][Init] Falha ao criar progresso', insErr); lastSyncedXpRef.current = 0 }
+        else { lastSyncedXpRef.current = initialXp }
       }
+      setXpHydrated(true)
     })
   }, [router])
+
+  useEffect(() => {
+    if (!userId || !xpHydrated) return
+    if (lastSyncedXpRef.current === xp) return
+    try {
+      localStorage.setItem(XP_PENDING_KEY, JSON.stringify({ xp, updatedAt: Date.now() }))
+    } catch (e) {}
+    if (xpSaveTimeoutRef.current) clearTimeout(xpSaveTimeoutRef.current)
+    xpSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await supabase.from('progresso').upsert({ user_id: userId, xp, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+        lastSyncedXpRef.current = xp
+        try {
+          const rawPending = localStorage.getItem(XP_PENDING_KEY)
+          const parsed = rawPending ? JSON.parse(rawPending) : null
+          if (parsed && parsed.xp === xp) localStorage.removeItem(XP_PENDING_KEY)
+        } catch (e) {}
+      } catch (e) {
+        // Keep XP pending locally; next XP change or reload retries sync.
+      }
+    }, 800)
+    return () => {
+      if (xpSaveTimeoutRef.current) clearTimeout(xpSaveTimeoutRef.current)
+    }
+  }, [xp, userId, xpHydrated])
 
   useEffect(() => { convEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [convMsgs])
 
@@ -832,7 +1366,8 @@ export default function AppPage() {
         grupos[nivel].push({
           title: row.titulo, sub: row.sub || '', icon: row.icon || '📘', done: false,
           explanation: row.explicacao || '', tip: row.dica || '',
-          examples: row.exemplos || [], q: row.questoes || []
+          examples: row.exemplos || [], q: row.questoes || [],
+          cefr: /^[A-C][12]$/.test(row.nivel) ? row.nivel : undefined
         })
       })
       setDbLessons(grupos)
@@ -841,7 +1376,14 @@ export default function AppPage() {
 
   async function salvarProgresso(novoXp: number, novasLicoes: string[]) {
     if (!userId) return
-    await supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, licoes_concluidas: novasLicoes, ultima_atividade: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    const payload = { user_id: userId, xp: novoXp, licoes_concluidas: novasLicoes, ultima_atividade: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }
+    console.log('[XP][Licao] Antes de gravar no Supabase', { tabela: 'progresso', payload })
+    const { error } = await supabase.from('progresso').upsert(payload, { onConflict: 'user_id' })
+    if (error) {
+      console.log('[XP][Licao] Resposta do Supabase: erro', { tabela: 'progresso', error })
+    } else {
+      console.log('[XP][Licao] Resposta do Supabase: sucesso', { tabela: 'progresso', userId, xp: novoXp })
+    }
   }
 
   async function logout() { await supabase.auth.signOut(); router.push('/login') }
@@ -856,9 +1398,17 @@ export default function AppPage() {
     const qs = lessons[level][lessonIdx].q
     if (qIdx + 1 >= qs.length) {
       const titulo = lessons[level][lessonIdx].title
-      const novasLicoes = licoesConcluidas.includes(titulo) ? licoesConcluidas : [...licoesConcluidas, titulo]
+      const ehNova = !licoesConcluidas.includes(titulo)
+      const novasLicoes = ehNova ? [...licoesConcluidas, titulo] : licoesConcluidas
       const novoXp = xp + 30
+      console.log('[XP][Licao] XP calculado ao concluir lição', {
+        xpAnterior: xp,
+        ganhoNaConclusao: 30,
+        novoXp,
+        licao: titulo,
+      })
       setLicoesConcluidas(novasLicoes); setXp(novoXp)
+      if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val) }
       salvarProgresso(novoXp, novasLicoes); setView('finish')
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1) }
   }
@@ -986,17 +1536,21 @@ export default function AppPage() {
     setLoadingConv(false)
   }
 
-  const blue = '#185FA5'; const blueDark = '#0C447C'; const blueLight = '#E6F1FB'
-  const green = '#3B6D11'; const greenLight = '#EAF3DE'
+  const blue = '#1E63C7'; const blueDark = '#103D77'; const blueLight = '#EAF1FC'
+  const green = '#16A34A'; const greenLight = '#E3F3EA'
   const purple = '#534AB7'; const purpleLight = '#EEEDFE'
   const gold = '#B8860B'; const goldLight = '#FFF8E1'
   const semanaVocab = Math.floor(Date.now() / (7 * 86400000))
   const embaralharSemana = (arr: any[]) => { const a = [...arr]; let s = semanaVocab + 1; for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t } return a }
-  const filteredVocab = embaralharSemana(vocabCat === 'all' ? vocab : vocab.filter(v => v.cat === vocabCat))
+  const vocabBaseCat = vocabCat === 'all' ? vocab : vocab.filter(v => v.cat === vocabCat)
+  const filteredVocab = embaralharSemana(vocabModo === 'revisar' ? vocabBaseCat.filter(v => vocabSrs[v.en] !== 'sabe') : vocabBaseCat)
+  const vocabDominadas = vocab.filter(v => vocabSrs[v.en] === 'sabe').length
+  const vocabRevisar = vocab.length - vocabDominadas
+  const marcarVocab = (en: string, estado: string) => setVocabSrs(prev => { const next = { ...prev, [en]: estado }; try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(next)) } catch (e) {} ; return next })
   const currentLesson = lessons[level][lessonIdx]
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', minHeight: '100vh', paddingBottom: 'calc(78px + env(safe-area-inset-bottom))' }}>
+    <div style={{ maxWidth: 430, margin: '0 auto', fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       <style>{`
         @keyframes su_fade { from { opacity: 0 } to { opacity: 1 } }
@@ -1010,45 +1564,57 @@ export default function AppPage() {
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
       `}</style>
 
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+
       {tab === 'home' && (
         <div>
-          <div style={{ background: `linear-gradient(160deg, #2074C0, ${blueDark})`, padding: '20px 16px 32px' }}>
+          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: '20px 16px 32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div></div>
               <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 12px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
             </div>
-            {isNovo ? (
-              <div style={{ background: blueDark, borderRadius: 14, padding: 20, textAlign: 'center' }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Bem-vindo ao SpeakUp! <Ic e="🎉" /></div>
-                <div style={{ fontSize: 13, color: '#B5D4F4', lineHeight: 1.5, marginBottom: 16 }}>Comece sua primeira lição e ganhe seus primeiros 10 XP. Sua jornada até o inglês fluente começa agora.</div>
-                <button onClick={() => setTab('lessons')} style={{ background: '#EF9F27', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Começar agora <Ic e="→" /></button>
-              </div>
-            ) : (
-            <div style={{ background: blueDark, borderRadius: 14, padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, background: 'rgba(239,159,39,0.15)', borderRadius: 12, padding: '10px 14px' }}>
-                <div style={{ fontSize: 30 }}><Ic e="🔥" c="#EF9F27" /></div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{streak} {streak === 1 ? 'dia' : 'dias'} de sequência</div><div style={{ fontSize: 12, color: '#EF9F27', fontWeight: 600, marginTop: 3 }}>{streak === 0 ? 'Comece hoje a sua sequência!' : 'Continue assim, não quebre a corrente!'}</div></div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 14 }}>
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}><Ic e="⭐" /> {xp}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>XP total</div></div>
-                <div style={{ width: 1, background: blue }} />
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}><Ic e="📚" /> {doneLessons}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>Lições feitas</div></div>
-                <div style={{ width: 1, background: blue }} />
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}><Ic e="🎯" /> {level}</div><div style={{ fontSize: 11, color: '#85B7EB' }}>Seu nível</div></div>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="📚" /> Curso concluído: {doneLessons}/{totalLessons} lições</div>
-                  <div style={{ fontSize: 11, color: '#85B7EB', fontWeight: 600 }}>{totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0}%</div>
+            {(() => {
+              const lvlArr = lessons[level] || []
+              const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(l.title)).length
+              const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
+              const C = 188.5
+              return (
+              <div style={{ background: blueDark, borderRadius: 20, padding: 18 }}>
+                {isNovo && <div style={{ textAlign: 'center', marginBottom: 16 }}><div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 4 }}>Bem-vindo ao SpeakUp! <Ic e="🎉" /></div><div style={{ fontSize: 12, color: '#BCD6F2', lineHeight: 1.5 }}>Comece sua primeira lição e ganhe seus primeiros 10 XP.</div></div>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                  <div style={{ position: 'relative', width: 76, height: 76, flexShrink: 0 }}>
+                    <svg width="76" height="76" viewBox="0 0 76 76">
+                      <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="7" />
+                      <circle cx="38" cy="38" r="30" fill="none" stroke="#4ADE80" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${C * lvlPct / 100} ${C}`} transform="rotate(-90 38 38)" />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{level}</div>
+                      <div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 2 }}>{lvlPct}%</div>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: '#BCD6F2', marginBottom: 9 }}>Seu progresso no nível {level}</div>
+                    <div style={{ display: 'flex', gap: 16 }}>
+                      <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{xp}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>XP</div></div>
+                      <div><div style={{ fontSize: 18, fontWeight: 700, color: xpHoje > 0 ? '#4ADE80' : '#fff', lineHeight: 1 }}>+{xpHoje}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>hoje</div></div>
+                      <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{doneLessons}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>lições</div></div>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ background: blue, borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: '#4ADE80', height: '100%', width: `${totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,166,35,0.16)', borderRadius: 12, padding: '9px 12px', marginBottom: 14 }}>
+                  <Ic e="🔥" c="#F5A623" s={22} />
+                  <div style={{ flex: 1, fontSize: 13, color: '#fff', fontWeight: 600 }}>{streak} {streak === 1 ? 'dia' : 'dias'} de sequência</div>
+                  {recorde > 0 && <div style={{ fontSize: 12, color: '#F5C97A', fontWeight: 600 }}><Ic e="🏆" /> recorde {recorde}</div>}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
+                  <div style={{ fontSize: 11, color: xpHoje >= 50 ? '#4ADE80' : '#BCD6F2', fontWeight: 600 }}>{xpHoje}/50 XP {xpHoje >= 50 && <Ic e="✓" />}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= 50 ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / 50 * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+                {isNovo && <button onClick={() => setTab('lessons')} style={{ width: '100%', marginTop: 16, background: '#F5A623', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Começar minha jornada <Ic e="→" /></button>}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje: {xpHoje}/50 XP</div>
-                <div style={{ fontSize: 11, color: xpHoje >= 50 ? '#4ADE80' : '#85B7EB', fontWeight: 600 }}>{xpHoje >= 50 ? <>Concluída! <Ic e="✓" /></> : `Faltam ${50 - xpHoje}`}</div>
-              </div>
-              <div style={{ background: blue, borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= 50 ? '#4ADE80' : '#EF9F27', height: '100%', width: `${Math.min(100, Math.round(xpHoje / 50 * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
-            </div>)}
+              )
+            })()}
           </div>
           <div style={{ padding: '16px', marginTop: 8 }}>
             {!isPremium && (
@@ -1058,15 +1624,15 @@ export default function AppPage() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$19,90/mês <Ic e="→" /></div>
               </div>
             )}
-            <div onClick={() => { if (!desafioFeito) { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }} style={{ background: desafioFeito ? 'linear-gradient(135deg, #2EBD6B, #1B9E54)' : 'linear-gradient(135deg, #EF9F27, #E07B00)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: desafioFeito ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 12, border: 'none' }}>
-              {desafioFeito ? (<div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 22, color: '#fff', fontWeight: 700, lineHeight: 1 }}><Ic e="✓" c="#fff" /></span></div>) : (<IcBadge e="🔥" color="#E07B00" onDark box={44} size={24} />)}
+            <div onClick={() => { if (!desafioFeito) { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }} style={{ background: desafioFeito ? 'linear-gradient(135deg, #16A34A, #1B9E54)' : 'linear-gradient(135deg, #F5A623, #E08A1E)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: desafioFeito ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 12, border: 'none' }}>
+              {desafioFeito ? (<div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 22, color: '#fff', fontWeight: 700, lineHeight: 1 }}><Ic e="✓" c="#fff" /></span></div>) : (<IcBadge e="🔥" color="#E08A1E" onDark box={44} size={24} />)}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{desafioFeito ? 'Desafio concluído!' : 'Desafio do Dia'}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{desafioFeito ? <>Volte amanhã para manter seu streak <Ic e="🔥" /></> : '5 perguntas rápidas · ganhe até 25 XP'}</div>
               </div>
               {!desafioFeito && <div style={{ fontSize: 20, color: '#fff' }}><Ic e="→" c="#fff" /></div>}
             </div>
-            <div onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null); setTab('nivelamento') }} style={{ background: 'linear-gradient(135deg, #2074C0, #185FA5)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null); setTab('nivelamento') }} style={{ background: 'linear-gradient(135deg, #2E72D6, #185FA5)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
               <IcBadge e="📊" color={blue} onDark box={44} size={24} />
               <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Descubra seu nível</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Faça o teste e comece no ponto certo</div></div>
               <div style={{ fontSize: 20, color: '#fff' }}><Ic e="→" c="#fff" /></div>
@@ -1075,24 +1641,58 @@ export default function AppPage() {
               const proxLicao = lessons[level].find(l => !l.done)
               let passo
               if (streak === 0) {
-                passo = { icon: '🔥', titulo: 'Comece sua sequência hoje', sub: 'Faça o Desafio do Dia e acenda seu streak', cor: '#EF9F27', acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }
+                passo = { icon: '🔥', titulo: 'Comece sua sequência hoje', sub: 'Faça o Desafio do Dia e acenda seu streak', cor: '#F5A623', acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }
               } else if (xpHoje < 50 && !desafioFeito) {
-                passo = { icon: '🎯', titulo: 'Garanta sua meta de hoje', sub: `Faltam ${50 - xpHoje} XP · o Desafio do Dia rende até 25`, cor: '#EF9F27', acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }
+                passo = { icon: '🎯', titulo: 'Garanta sua meta de hoje', sub: `Faltam ${50 - xpHoje} XP · o Desafio do Dia rende até 25`, cor: '#F5A623', acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }
               } else if (proxLicao) {
                 passo = { icon: proxLicao.icon, titulo: proxLicao.title, sub: `Próxima lição · nível ${level}`, cor: blue, acao: () => setTab('lessons') }
               } else {
                 passo = { icon: '🎭', titulo: 'Pratique conversação', sub: 'Você concluiu as lições deste nível · fale com a IA', cor: purple, acao: () => setTab('speak') }
               }
               return (
-                <div onClick={passo.acao} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, marginBottom: 12, cursor: 'pointer' }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}><Ic e="✨" /> Próximo passo recomendado</div>
+                <div onClick={passo.acao} style={{ background: passo.cor, borderRadius: 16, padding: 16, marginBottom: 12, cursor: 'pointer', boxShadow: `0 6px 16px ${passo.cor}40` }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}><Ic e="✨" /> Próximo passo</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 44, height: 44, background: passo.cor + '26', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={passo.icon} s={24} c={passo.cor} /></div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>{passo.titulo}</div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{passo.sub}</div>
+                    <div style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.2)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={passo.icon} s={24} c="#fff" /></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{passo.titulo}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{passo.sub}</div>
                     </div>
-                    <div style={{ width: 36, height: 36, background: passo.cor, border: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, color: '#fff' }}><Ic e="→" c="#fff" /></div>
+                    <div style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.22)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, color: '#fff' }}><Ic e="→" c="#fff" /></div>
+                  </div>
+                </div>
+              )
+            })()}
+            {(() => {
+              const g = grammarTips[daySeed % grammarTips.length]
+              return (
+                <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 14, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="✍️" s={18} c={blue} /></div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Gramática de hoje</div>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>{g.t}</div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 9 }}>{g.d}</div>
+                  <div style={{ fontSize: 12.5, color: blueDark, background: blueLight, borderRadius: 10, padding: '8px 11px', fontStyle: 'italic' }}>{g.ex}</div>
+                </div>
+              )
+            })()}
+            {(() => {
+              const conquistas = conquistasDef
+              const ganhas = conquistas.filter(c => c.ok).length
+              return (
+                <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><Ic e="🏅" /> Conquistas</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: gold }}>{ganhas}/{conquistas.length}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                    {conquistas.map((c, i) => (
+                      <div key={i} style={{ textAlign: 'center', opacity: c.ok ? 1 : 0.45 }}>
+                        <div style={{ width: 46, height: 46, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}><Ic e={c.ok ? c.e : '🔒'} /></div>
+                        <div style={{ fontSize: 9.5, color: 'var(--color-text-secondary)', marginTop: 5, lineHeight: 1.2 }}>{c.nome}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )
@@ -1145,6 +1745,23 @@ export default function AppPage() {
         </div>
       )}
 
+      {conqNova && (
+        <div onClick={() => setConqNova(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320, textAlign: 'center', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+              {['#F5A623', '#534AB7', '#16A34A', '#2E72D6', '#E24B4A', '#DAA520', '#16A34A', '#6A5ACD'].map((cor, i) => (
+                <div key={i} style={{ position: 'absolute', top: 0, left: `${8 + i * 11}%`, width: 9, height: 9, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1.4 + (i % 4) * 0.3}s ease-in ${(i % 5) * 0.12}s forwards` }} />
+              ))}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: gold, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conquista desbloqueada!</div>
+            <div style={{ width: 88, height: 88, margin: '0 auto 16px', borderRadius: '50%', background: goldLight, border: `2px solid ${gold}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, animation: 'su_bounce 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}><Ic e={conqNova.e} /></div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>{conqNova.nome}</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 22, lineHeight: 1.5 }}>Mais uma medalha na sua coleção. Continue assim! <Ic e="🔥" /></div>
+            <button onClick={() => setConqNova(null)} style={{ width: '100%', padding: 13, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Continuar <Ic e="→" /></button>
+          </div>
+        </div>
+      )}
+
       {zapModal && (
         <div onClick={() => setZapModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 440, boxSizing: 'border-box' }}>
@@ -1191,7 +1808,7 @@ export default function AppPage() {
                   const correta = provaAns && i === provaQuestoes[provaQ].ans
                   const errada = provaAns && i === provaSel && i !== provaQuestoes[provaQ].ans
                   return (
-                    <button key={i} onClick={() => { if (provaAns) return; setProvaSel(i); setProvaAns(true); if (i === provaQuestoes[provaQ].ans) setProvaAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #3B6D11' : errada ? '2px solid #C0392B' : (provaSel === i ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)'), background: correta ? '#EAF3DE' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: provaAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
+                    <button key={i} onClick={() => { if (provaAns) return; setProvaSel(i); setProvaAns(true); if (i === provaQuestoes[provaQ].ans) setProvaAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : (provaSel === i ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)'), background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: provaAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
                   )
                 })}
                 {provaAns && provaQuestoes[provaQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {provaQuestoes[provaQ].exp}</div>)}
@@ -1202,7 +1819,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 56 }}><Ic e={provaAcertos >= 16 ? '🏆' : provaAcertos >= 12 ? '🎉' : provaAcertos >= 8 ? '💪' : '📚'} /></div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 8 }}>{provaAcertos}/{provaQuestoes.length}</div>
                 <div style={{ fontSize: 16, color: '#C0392B', fontWeight: 700, marginTop: 4 }}>{Math.round(provaAcertos / provaQuestoes.length * 100)}% de acerto</div>
-                <div style={{ fontSize: 15, color: '#E07B00', fontWeight: 600, marginTop: 8 }}>+{provaAcertos * 2} XP</div>
+                <div style={{ fontSize: 15, color: '#E08A1E', fontWeight: 600, marginTop: 8 }}>+{provaAcertos * 2} XP</div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 320, margin: '14px auto 0' }}>{provaAcertos >= 16 ? 'Excelente! Você domina este nível. Que tal subir um nível?' : provaAcertos >= 10 ? 'Bom resultado! Continue praticando para fixar.' : 'Continue estudando as lições deste nível e tente na próxima semana.'}</div>
                 <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
               </div>
@@ -1244,7 +1861,7 @@ export default function AppPage() {
                     <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.5, marginBottom: 8 }}>
                       {palavras.map((w: string, i: number) => {
                         const clean = w.toLowerCase().replace(/[^a-z0-9']/g, '')
-                        const cor = pronScore === null ? 'var(--color-text-primary)' : (heardSet.includes(clean) ? '#3B6D11' : '#C0392B')
+                        const cor = pronScore === null ? 'var(--color-text-primary)' : (heardSet.includes(clean) ? '#16A34A' : '#C0392B')
                         return <span key={i} style={{ color: cor }}>{w}{i < palavras.length - 1 ? ' ' : ''}</span>
                       })}
                     </div>
@@ -1258,10 +1875,10 @@ export default function AppPage() {
                     <div style={{ background: 'var(--color-background-secondary)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>O microfone entendeu:</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: pronScore >= 80 ? '#3B6D11' : pronScore >= 50 ? '#E07B00' : '#C0392B' }}>{pronScore}%</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: pronScore >= 80 ? '#16A34A' : pronScore >= 50 ? '#E08A1E' : '#C0392B' }}>{pronScore}%</div>
                       </div>
                       <div style={{ fontSize: 15, fontStyle: 'italic', color: 'var(--color-text-primary)', marginBottom: 12 }}>"{pronHeard || '...'}"</div>
-                      {pronScore === 100 && <div style={{ background: '#EAF3DE', borderRadius: 10, padding: 12, fontSize: 13, color: '#3B6D11', fontWeight: 600, textAlign: 'center' }}><Ic e="🎉" /> Perfeito! Pronúncia certeira!</div>}
+                      {pronScore === 100 && <div style={{ background: '#E3F3EA', borderRadius: 10, padding: 12, fontSize: 13, color: '#16A34A', fontWeight: 600, textAlign: 'center' }}><Ic e="🎉" /> Perfeito! Pronúncia certeira!</div>}
                       {pronLoadingTip && <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}><Ic e="💡" /> Analisando sua pronúncia...</div>}
                       {pronTip && <div style={{ background: purpleLight, borderRadius: 10, padding: 12, fontSize: 13, color: '#3C3489', lineHeight: 1.5 }}><Ic e="💡" /> {pronTip}</div>}
                     </div>
@@ -1279,9 +1896,9 @@ export default function AppPage() {
 
       {tab === 'desafio' && (
         <div>
-          <div style={{ background: `linear-gradient(135deg, #EF9F27, #E07B00)`, padding: '20px 16px 24px' }}>
+          <div style={{ background: `linear-gradient(135deg, #F5A623, #E08A1E)`, padding: '20px 16px 24px' }}>
             <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🔥" color="#E07B00" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Desafio do Dia</div></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🔥" color="#E08A1E" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Desafio do Dia</div></div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>Acerte tudo e mantenha seu streak vivo</div>
           </div>
           <div style={{ padding: 16 }}>
@@ -1290,24 +1907,24 @@ export default function AppPage() {
             ) : !desResult ? (
               <div>
                 <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Pergunta {desQ + 1} de 5</div>
-                <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: '#EF9F27', height: '100%', width: `${desQ / 5 * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
-                {desafioQuestions[desQ].ctx ? (<div style={{ background: 'var(--color-background-secondary)', borderLeft: '3px solid #EF9F27', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>{desafioQuestions[desQ].ctx}</div>) : null}
+                <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: '#F5A623', height: '100%', width: `${desQ / 5 * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
+                {desafioQuestions[desQ].ctx ? (<div style={{ background: 'var(--color-background-secondary)', borderLeft: '3px solid #F5A623', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>{desafioQuestions[desQ].ctx}</div>) : null}
                 <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{desafioQuestions[desQ].q}</div>
                 {desafioQuestions[desQ].opts.map((opt: string, i: number) => {
                   const correta = desAns && i === desafioQuestions[desQ].ans
                   const errada = desAns && i === desSel && i !== desafioQuestions[desQ].ans
                   return (
-                    <button key={i} onClick={() => { if (desAns) return; setDesSel(i); setDesAns(true); if (i === desafioQuestions[desQ].ans) setDesAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #3B6D11' : errada ? '2px solid #C0392B' : (desSel === i ? '2px solid #EF9F27' : '1px solid var(--color-border-tertiary)'), background: correta ? '#EAF3DE' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: desAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
+                    <button key={i} onClick={() => { if (desAns) return; setDesSel(i); setDesAns(true); if (i === desafioQuestions[desQ].ans) setDesAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : (desSel === i ? '2px solid #F5A623' : '1px solid var(--color-border-tertiary)'), background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: desAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
                   )
                 })}
                 {desAns && desafioQuestions[desQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {desafioQuestions[desQ].exp}</div>)}
-                <button disabled={!desAns} onClick={() => { if (desQ < 4) { setDesQ(desQ + 1); setDesSel(-1); setDesAns(false) } else { finalizarDesafio() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !desAns ? 'var(--color-background-secondary)' : '#EF9F27', color: !desAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !desAns ? 'default' : 'pointer' }}>{desQ < 4 ? <>Próxima <Ic e="→" /></> : <>Ver resultado <Ic e="🎯" /></>}</button>
+                <button disabled={!desAns} onClick={() => { if (desQ < 4) { setDesQ(desQ + 1); setDesSel(-1); setDesAns(false) } else { finalizarDesafio() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !desAns ? 'var(--color-background-secondary)' : '#F5A623', color: !desAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !desAns ? 'default' : 'pointer' }}>{desQ < 4 ? <>Próxima <Ic e="→" /></> : <>Ver resultado <Ic e="🎯" /></>}</button>
               </div>
             ) : (
               <div style={{ textAlign: 'center', paddingTop: 12 }}>
                 <div style={{ fontSize: 56 }}><Ic e={desAcertos === 5 ? '🏆' : desAcertos >= 3 ? '🎉' : '💪'} /></div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Você acertou {desAcertos}/5</div>
-                <div style={{ fontSize: 16, color: '#E07B00', fontWeight: 700, marginTop: 6 }}>+{desAcertos * 5} XP <Ic e="🔥" /></div>
+                <div style={{ fontSize: 16, color: '#E08A1E', fontWeight: 700, marginTop: 6 }}>+{desAcertos * 5} XP <Ic e="🔥" /></div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, margin: '14px auto 0' }}>{desAcertos === 5 ? <>Perfeito! Você está afiado hoje. <Ic e="🌟" /></> : 'Bom trabalho! Volte amanhã para manter seu streak vivo.'}</div>
                 <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
               </div>
@@ -1318,7 +1935,7 @@ export default function AppPage() {
 
       {tab === 'nivelamento' && (
         <div>
-          <div style={{ background: `linear-gradient(160deg, #2074C0, ${blueDark})`, padding: '20px 16px 24px' }}>
+          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: '20px 16px 24px' }}>
             <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Teste de Nivelamento</div>
             <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 4 }}>Descubra onde começar — leva 2 minutos</div>
@@ -1494,7 +2111,7 @@ export default function AppPage() {
             <div style={{ padding: 20 }}>
               <div style={{ background: greenLight, borderRadius: 14, padding: 16, marginBottom: 12 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#27500A', marginBottom: 10 }}><Ic e="✅" /> Seus pontos fortes</div>
-                {fluencyReport.strengths.map((s, i) => <div key={i} style={{ fontSize: 13, color: '#3B6D11', marginBottom: 6, lineHeight: 1.5, display: 'flex', gap: 8 }}><span>•</span><span>{s}</span></div>)}
+                {fluencyReport.strengths.map((s, i) => <div key={i} style={{ fontSize: 13, color: '#16A34A', marginBottom: 6, lineHeight: 1.5, display: 'flex', gap: 8 }}><span>•</span><span>{s}</span></div>)}
               </div>
               <div style={{ background: '#FAEEDA', borderRadius: 14, padding: 16, marginBottom: 12 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#633806', marginBottom: 10 }}><Ic e="📈" /> O que melhorar</div>
@@ -1504,7 +2121,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 14, color: '#3C3489', fontWeight: 500, lineHeight: 1.5 }}><Ic e="💜" /> {fluencyReport.message}</div>
               </div>
               {!isPremium && (
-                <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #2074C0, #185FA5)', borderRadius: 14, padding: 16, marginBottom: 16, cursor: 'pointer' }}>
+                <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #2E72D6, #185FA5)', borderRadius: 14, padding: 16, marginBottom: 16, cursor: 'pointer' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}><Ic e="🚀" /> Quer evoluir mais rápido?</div>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 1.5 }}>Com o Premium você treina exatamente esses pontos com conversas ilimitadas e chega à fluência muito antes.</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 10 }}>Ver o Premium <Ic e="→" /></div>
@@ -1527,7 +2144,7 @@ export default function AppPage() {
           <div style={{ padding: 16 }}>
             {view === 'levels' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {([['A1', 'A1 · Iniciante', 'Sobrevivência: o essencial do dia a dia', '#EAF3DE', '#3B6D11', '🌱'], ['A2', 'A2 · Básico', 'Cotidiano: passado, futuro, comparar', '#EAF3DE', '#3B6D11', '🌿'], ['B1', 'B1 · Intermediário', 'Independência: conversar e opinar', '#E6F1FB', '#185FA5', '💬'], ['B2', 'B2 · Intermediário+', 'Fluência: expressar ideias complexas', '#E6F1FB', '#185FA5', '🗣️'], ['C1', 'C1 · Avançado', 'Proficiência: precisão e nuance', '#EEEDFE', '#534AB7', '🎯'], ['C2', 'C2 · Domínio', 'Nível quase nativo', '#EEEDFE', '#534AB7', '🏆']] as const).map(([l, name, desc, bg, color, icon]) => (
+                {([['A1', 'A1 · Iniciante', 'Sobrevivência: o essencial do dia a dia', '#E3F3EA', '#16A34A', '🌱'], ['A2', 'A2 · Básico', 'Cotidiano: passado, futuro, comparar', '#E3F3EA', '#16A34A', '🌿'], ['B1', 'B1 · Intermediário', 'Independência: conversar e opinar', '#E6F1FB', '#185FA5', '💬'], ['B2', 'B2 · Intermediário+', 'Fluência: expressar ideias complexas', '#E6F1FB', '#185FA5', '🗣️'], ['C1', 'C1 · Avançado', 'Proficiência: precisão e nuance', '#EEEDFE', '#534AB7', '🎯'], ['C2', 'C2 · Domínio', 'Nível quase nativo', '#EEEDFE', '#534AB7', '🏆']] as const).map(([l, name, desc, bg, color, icon]) => (
                   <div key={l} onClick={() => { setLevel(l); setView('list') }} style={{ background: 'var(--color-background-primary)', border: level === l ? `1.5px solid ${color}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
                     <div style={{ width: 44, height: 44, background: bg, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Ic e={icon} c={color} /></div>
                     <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>{name}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{desc}</div></div>
@@ -1536,20 +2153,53 @@ export default function AppPage() {
                 ))}
               </div>
             )}
-            {view === 'list' && (
-              <div>
-                <button onClick={() => setView('levels')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}><Ic e="←" /> Voltar</button>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {lessons[level].map((l, i) => (
-                    <div key={i} onClick={() => { setLessonIdx(i); setView('explanation') }} style={{ background: 'var(--color-background-primary)', border: l.done ? '1px solid #97C459' : '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                      <div style={{ width: 44, height: 44, background: l.done ? greenLight : blueLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Ic e={l.icon} /></div>
-                      <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{l.title}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{l.sub} · {l.q.length} exercícios</div></div>
-                      {l.done ? <span style={{ fontSize: 18 }}><Ic e="✅" /></span> : <span style={{ color: blue, fontSize: 18 }}><Ic e="→" /></span>}
+            {view === 'list' && (() => {
+              const lvl = lessons[level]
+              const nextIdx = lvl.findIndex(l => !licoesConcluidas.includes(l.title))
+              const allDone = nextIdx === -1
+              const feitasNivel = lvl.filter(l => licoesConcluidas.includes(l.title)).length
+              return (
+                <div>
+                  <button onClick={() => setView('levels')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}><Ic e="←" /> Voltar</button>
+                  <div style={{ background: allDone ? goldLight : metaFeitaHoje ? greenLight : blueLight, borderRadius: 14, padding: '12px 14px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 11 }}>
+                    <span style={{ fontSize: 22 }}><Ic e={allDone ? '🏆' : metaFeitaHoje ? '✅' : '🎯'} /></span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: allDone ? gold : metaFeitaHoje ? green : blue }}>{allDone ? 'Nível concluído!' : metaFeitaHoje ? `Meta de hoje concluída (${LIMITE_DIA_LICOES}/${LIMITE_DIA_LICOES})` : `Lições de hoje · ${licoesHoje}/${LIMITE_DIA_LICOES}`}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{allDone ? `Você terminou as ${lvl.length} lições deste nível 🎉` : metaFeitaHoje ? 'Volte amanhã para liberar mais — é assim que o aprendizado fixa.' : `Você pode concluir até ${LIMITE_DIA_LICOES} lições por dia.`}</div>
                     </div>
-                  ))}
+                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 700, whiteSpace: 'nowrap' }}>{feitasNivel}/{lvl.length}</div>
+                  </div>
+                  <div>
+                    {lvl.map((l, i) => {
+                      const done = licoesConcluidas.includes(l.title)
+                      const isNext = i === nextIdx
+                      const liberada = isNext && !metaFeitaHoje
+                      const unlocked = done || liberada
+                      const amanha = isNext && metaFeitaHoje
+                      const isLast = i === lvl.length - 1
+                      const nodeColor = done ? green : liberada ? blue : '#C2C7CE'
+                      const nodeBg = done ? greenLight : liberada ? blueLight : 'var(--color-background-secondary)'
+                      return (
+                        <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 36, flexShrink: 0 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: nodeBg, border: `2px solid ${nodeColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: nodeColor, fontWeight: 700 }}>{done ? <Ic e="✓" /> : unlocked ? (i + 1) : <Ic e="🔒" />}</div>
+                            {!isLast && <div style={{ flex: 1, width: 2, background: done ? green : '#E2E5E9', minHeight: 16 }} />}
+                          </div>
+                          <div onClick={() => { if (!unlocked) return; setLessonIdx(i); setView('explanation') }} style={{ flex: 1, minWidth: 0, marginBottom: 14, background: 'var(--color-background-primary)', border: liberada ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 13, display: 'flex', alignItems: 'center', gap: 11, cursor: unlocked ? 'pointer' : 'default', opacity: unlocked ? 1 : 0.6 }}>
+                            <div style={{ width: 40, height: 40, background: done ? greenLight : liberada ? blueLight : 'var(--color-background-secondary)', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, filter: unlocked ? 'none' : 'grayscale(1)' }}><Ic e={l.icon} /></div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{l.title}</div>
+                              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{done ? 'Concluída · toque para revisar' : liberada ? `${l.sub} · ${l.q.length} exercícios` : amanha ? 'Liberada amanhã' : 'Conclua a anterior'}</div>
+                            </div>
+                            {done ? <span style={{ fontSize: 16 }}><Ic e="✅" /></span> : liberada ? <span style={{ background: blue, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0 }}>Começar</span> : <span style={{ fontSize: 15, color: '#C2C7CE', flexShrink: 0 }}><Ic e="🔒" /></span>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
             {view === 'explanation' && (
               <div>
                 <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}><Ic e="←" /> Voltar</button>
@@ -1617,14 +2267,14 @@ export default function AppPage() {
             {view === 'finish' && (
               <div style={{ textAlign: 'center', padding: '40px 20px', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-                  {['#EF9F27', '#534AB7', '#3B6D11', '#2074C0', '#E24B4A', '#DAA520', '#2EBD6B', '#6A5ACD'].map((cor, i) => (
+                  {['#F5A623', '#534AB7', '#16A34A', '#2E72D6', '#E24B4A', '#DAA520', '#16A34A', '#6A5ACD'].map((cor, i) => (
                     <div key={i} style={{ position: 'absolute', top: 0, left: `${8 + i * 11}%`, width: 9, height: 9, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1.4 + (i % 4) * 0.3}s ease-in ${(i % 5) * 0.12}s forwards` }} />
                   ))}
                 </div>
                 <div style={{ fontSize: 64, marginBottom: 16, animation: 'su_bounce 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}><Ic e="🏆" /></div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8, animation: 'su_risefade 0.5s ease 0.2s both' }}>Lição concluída!</div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 10, animation: 'su_risefade 0.5s ease 0.32s both' }}>Você ganhou</div>
-                <div style={{ display: 'inline-block', fontSize: 36, fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, #EF9F27, #E07B00)', padding: '8px 28px', borderRadius: 30, marginBottom: 24, boxShadow: '0 6px 18px rgba(239,159,39,0.4)', animation: 'su_xppop 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both' }}>+30 XP</div>
+                <div style={{ display: 'inline-block', fontSize: 36, fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, #F5A623, #E08A1E)', padding: '8px 28px', borderRadius: 30, marginBottom: 24, boxShadow: '0 6px 18px rgba(239,159,39,0.4)', animation: 'su_xppop 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both' }}>+30 XP</div>
                 <div style={{ animation: 'su_risefade 0.5s ease 0.6s both' }}>
                   <button onClick={() => { setView('list'); setAnswered(false); setSelected(-1) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10 }}>Continuar aprendendo <Ic e="→" /></button>
                   <button onClick={() => setTab('home')} style={{ width: '100%', padding: 14, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 15, cursor: 'pointer' }}>Voltar ao início</button>
@@ -1641,7 +2291,7 @@ export default function AppPage() {
 
       {tab === 'vocab' && (
         <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
-          <div style={{ background: `linear-gradient(135deg, #2074C0, ${blueDark})`, padding: '20px 16px 18px' }}>
+          <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="📚" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Vocabulário</div></div>
             <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Toque no card para revelar a tradução</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, background: 'rgba(255,255,255,0.18)', padding: '6px 13px', borderRadius: 20 }}>
@@ -1651,30 +2301,155 @@ export default function AppPage() {
           </div>
           <div style={{ padding: 16 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
-              {[['all', '🗂️ Todos'], ['basic', '👋 Essenciais'], ['travel', '✈️ Viagem'], ['work', '💼 Trabalho'], ['food', '🍽️ Comida'], ['home', '🏠 Casa'], ['verbs', '⚡ Verbos'], ['feelings', '😊 Sentimentos'], ['daily', '📅 Dia a dia']].map(([cat, label]) => (
+              {[['all', '🗂️ Todos'], ['basic', '👋 Essenciais'], ['travel', '✈️ Viagem'], ['work', '💼 Trabalho'], ['food', '🍽️ Comida'], ['home', '🏠 Casa'], ['verbs', '⚡ Verbos'], ['feelings', '😊 Sentimentos'], ['daily', '📅 Dia a dia'], ['health', '🏥 Saúde'], ['tech', '💻 Tecnologia'], ['shopping', '🛒 Compras'], ['weather', '🌤️ Clima']].map(([cat, label]) => (
                 <button key={cat} onClick={() => setVocabCat(cat)} style={{ padding: '7px 14px', border: vocabCat === cat ? 'none' : '0.5px solid var(--color-border-tertiary)', borderRadius: 20, background: vocabCat === cat ? blue : 'var(--color-background-primary)', color: vocabCat === cat ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: vocabCat === cat ? 600 : 400 }}><IcLabel label={label} /></button>
               ))}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontWeight: 600, color: blue }}>{filteredVocab.length}</span> palavras · embaralhadas esta semana</div>
+            <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 600 }}><Ic e="🧠" /> {vocabDominadas}/{vocab.length} palavras dominadas</div>
+                <div style={{ fontSize: 11, color: green, fontWeight: 600 }}>{Math.round(vocabDominadas / vocab.length * 100)}%</div>
+              </div>
+              <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 7, overflow: 'hidden' }}><div style={{ background: '#639922', height: '100%', width: `${Math.round(vocabDominadas / vocab.length * 100)}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <button onClick={() => setVocabModo('all')} style={{ flex: 1, padding: '8px 0', borderRadius: 10, background: vocabModo === 'all' ? blue : 'var(--color-background-primary)', color: vocabModo === 'all' ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, fontWeight: vocabModo === 'all' ? 600 : 400, cursor: 'pointer', border: vocabModo === 'all' ? 'none' : '0.5px solid var(--color-border-tertiary)' }}>Todas ({vocabBaseCat.length})</button>
+              <button onClick={() => setVocabModo('revisar')} style={{ flex: 1, padding: '8px 0', borderRadius: 10, background: vocabModo === 'revisar' ? '#F5A623' : 'var(--color-background-primary)', color: vocabModo === 'revisar' ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, fontWeight: vocabModo === 'revisar' ? 600 : 400, cursor: 'pointer', border: vocabModo === 'revisar' ? 'none' : '0.5px solid var(--color-border-tertiary)' }}><Ic e="🔁" /> Revisar ({vocabRevisar})</button>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'start' }}>
               {filteredVocab.map((v, i) => (
-                <div key={i} onClick={() => setFlipped(f => ({ ...f, [i]: !f[i] }))} style={{ background: flipped[i] ? blueLight : 'var(--color-background-primary)', border: flipped[i] ? '1px solid #85B7EB' : '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 13, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'background 0.2s' }}>
+                <div key={i} onClick={() => setFlipped(f => ({ ...f, [i]: !f[i] }))} style={{ background: flipped[i] ? blueLight : 'var(--color-background-primary)', border: vocabSrs[v.en] === 'sabe' ? '1px solid #97C459' : flipped[i] ? '1px solid #85B7EB' : '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 13, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'background 0.2s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
                     <span style={{ fontSize: 10.5, background: flipped[i] ? 'rgba(255,255,255,0.7)' : 'var(--color-background-secondary)', padding: '3px 8px', borderRadius: 12, color: 'var(--color-text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}><Ic e={catEmoji[v.cat]} /> {catNome[v.cat]}</span>
                     <button onClick={e => { e.stopPropagation(); speakEN(v.en, 5000 + i) }} style={{ background: speakingId === 5000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 5000 + i ? '#fff' : blue, border: `1px solid ${blueLight}`, borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="🔊" /></button>
                   </div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: flipped[i] ? blueDark : 'var(--color-text-primary)', lineHeight: 1.2 }}>{v.en}</div>
-                  {flipped[i] ? (<><div style={{ color: blue, marginTop: 6, fontSize: 14, fontWeight: 600 }}>{v.pt}</div><div style={{ fontSize: 11, color: '#0C447C', marginTop: 8, fontStyle: 'italic', lineHeight: 1.45, background: 'rgba(255,255,255,0.6)', padding: '7px 9px', borderRadius: 9 }}>"{v.ex}"</div></>) : (<div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 6 }}>Toque para ver <Ic e="→" /></div>)}
+                  {flipped[i] ? (<><div style={{ color: blue, marginTop: 6, fontSize: 14, fontWeight: 600 }}>{v.pt}</div><div style={{ fontSize: 11, color: '#0C447C', marginTop: 8, fontStyle: 'italic', lineHeight: 1.45, background: 'rgba(255,255,255,0.6)', padding: '7px 9px', borderRadius: 9 }}>"{v.ex}"</div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
+                    <button onClick={e => { e.stopPropagation(); marcarVocab(v.en, 'revisar') }} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: vocabSrs[v.en] === 'revisar' ? '#F5A623' : 'rgba(239,159,39,0.18)', color: vocabSrs[v.en] === 'revisar' ? '#fff' : '#854F0B', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}><Ic e="🔁" /> Revisar</button>
+                    <button onClick={e => { e.stopPropagation(); marcarVocab(v.en, 'sabe') }} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: vocabSrs[v.en] === 'sabe' ? '#639922' : 'rgba(99,153,34,0.18)', color: vocabSrs[v.en] === 'sabe' ? '#fff' : '#27500A', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}><Ic e="✓" /> Já sei</button>
+                  </div></>) : (<div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 6 }}>Toque para ver <Ic e="→" /></div>)}
                 </div>
               ))}
             </div>
+            {filteredVocab.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-secondary)' }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}><Ic e="🎉" /></div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>Tudo dominado por aqui!</div>
+                <div style={{ fontSize: 13, lineHeight: 1.5 }}>Você marcou todas as palavras desta categoria como "já sei". Troque de categoria ou volte para "Todas".</div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {tab === 'trilha' && (() => {
+        const ordem = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+        const nivelInfo: Record<string, { nome: string; cor: string; bg: string }> = { A1: { nome: 'A1 · Iniciante', cor: '#16A34A', bg: '#E3F3EA' }, A2: { nome: 'A2 · Básico', cor: '#16A34A', bg: '#E3F3EA' }, B1: { nome: 'B1 · Intermediário', cor: '#185FA5', bg: '#E6F1FB' }, B2: { nome: 'B2 · Intermediário+', cor: '#185FA5', bg: '#E6F1FB' }, C1: { nome: 'C1 · Avançado', cor: '#534AB7', bg: '#EEEDFE' }, C2: { nome: 'C2 · Domínio', cor: '#534AB7', bg: '#EEEDFE' } }
+        let atualLvl: string | null = null, atualIdx = -1
+        for (const lv of ordem) { const a = lessons[lv] || []; const idx = a.findIndex(l => !licoesConcluidas.includes(l.title)); if (idx !== -1) { atualLvl = lv; atualIdx = idx; break } }
+        const pct = totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0
+        return (
+          <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
+            <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🗺️" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Sua trilha</div></div>
+              <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>{doneLessons} de {totalLessons} lições · do A1 ao C2</div>
+              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 8, overflow: 'hidden', marginTop: 12 }}><div style={{ background: '#4ADE80', height: '100%', width: `${pct}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+            </div>
+            <div style={{ padding: 16 }}>
+              {atualLvl === null && <div style={{ textAlign: 'center', padding: '20px 0 28px', color: '#16A34A', fontWeight: 600, fontSize: 15 }}><Ic e="🏆" /> Você concluiu toda a trilha! Parabéns!</div>}
+              {ordem.map(lv => {
+                const arr = lessons[lv] || []
+                if (!arr.length) return null
+                const info = nivelInfo[lv]
+                const feitasNivel = arr.filter(l => licoesConcluidas.includes(l.title)).length
+                return (
+                  <div key={lv} style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: info.cor, background: info.bg, padding: '4px 10px', borderRadius: 20 }}>{info.nome}</span>
+                      <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{feitasNivel}/{arr.length}</span>
+                    </div>
+                    {arr.map((l, i) => {
+                      const done = licoesConcluidas.includes(l.title)
+                      const isAtual = lv === atualLvl && i === atualIdx
+                      const liberada = isAtual && !metaFeitaHoje
+                      const unlocked = done || liberada
+                      const isLast = i === arr.length - 1
+                      const nodeColor = done ? '#16A34A' : liberada ? blue : '#C2C7CE'
+                      return (
+                        <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 34, flexShrink: 0 }}>
+                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: done ? greenLight : liberada ? blueLight : 'var(--color-background-secondary)', border: `2px solid ${nodeColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: nodeColor, fontWeight: 700 }}>{done ? <Ic e="✓" /> : unlocked ? (i + 1) : <Ic e="🔒" />}</div>
+                            {!isLast && <div style={{ flex: 1, width: 2, background: done ? '#16A34A' : '#E2E5E9', minHeight: 12 }} />}
+                          </div>
+                          <div onClick={() => { if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ flex: 1, minWidth: 0, marginBottom: 10, background: 'var(--color-background-primary)', border: isAtual ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: unlocked ? 'pointer' : 'default', opacity: unlocked ? 1 : 0.55 }}>
+                            <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={l.icon} /></span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-text-primary)' }}>{l.title}</div>
+                              {isAtual ? <div style={{ fontSize: 11, color: blue, fontWeight: 600, marginTop: 1 }}>← Você está aqui</div> : done ? <div style={{ fontSize: 11, color: '#16A34A', marginTop: 1 }}>Concluída</div> : null}
+                            </div>
+                            {done ? <span style={{ fontSize: 16 }}><Ic e="✅" /></span> : liberada ? <span style={{ background: blue, color: '#fff', fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0 }}>Começar</span> : <span style={{ color: '#C2C7CE', fontSize: 14, flexShrink: 0 }}><Ic e="🔒" /></span>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
+      {tab === 'listening' && (() => {
+        const fim = lisIdx >= listeningExercises.length
+        const ex = fim ? listeningExercises[0] : listeningExercises[lisIdx]
+        return (
+          <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
+            <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🎧" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Listening</div></div>
+              <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Ouça o áudio e entenda o que foi dito</div>
+            </div>
+            <div style={{ padding: 16 }}>
+              {fim ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <div style={{ fontSize: 56, marginBottom: 14 }}><Ic e="🎧" /></div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>Treino concluído!</div>
+                  <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Você acertou <b style={{ color: green }}>{lisScore}</b> de {listeningExercises.length}.</div>
+                  <button onClick={() => { setLisIdx(0); setLisSel(-1); setLisAns(false); setLisScore(0) }} style={{ padding: '12px 28px', background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Treinar de novo <Ic e="🔁" /></button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ fontSize: 12, color: blue, fontWeight: 600, background: blueLight, padding: '3px 10px', borderRadius: 20 }}>{lisIdx + 1}/{listeningExercises.length}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', fontWeight: 600 }}>Nível {ex.nivel}</div>
+                  </div>
+                  <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 24, textAlign: 'center', marginBottom: 16 }}>
+                    <button onClick={() => speakEN(ex.en, 7000 + lisIdx)} style={{ width: 84, height: 84, borderRadius: '50%', background: blue, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', animation: speakingId === 7000 + lisIdx ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e="🔊" /></button>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 12 }}>{lisAns ? 'Ouça de novo se quiser' : 'Toque para ouvir · quantas vezes precisar'}</div>
+                    {lisAns && <div style={{ marginTop: 14, padding: '12px 14px', background: blueLight, borderRadius: 12, textAlign: 'left' }}><div style={{ fontSize: 14, fontWeight: 600, color: blueDark }}>"{ex.en}"</div><div style={{ fontSize: 13, color: blue, marginTop: 5 }}>{ex.pt}</div></div>}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 12 }}>{ex.q}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    {ex.opts.map((o, i) => {
+                      const correct = lisAns && i === ex.ans
+                      const wrong = lisAns && i === lisSel && i !== ex.ans
+                      return (
+                        <div key={i} onClick={() => { if (lisAns) return; setLisSel(i); setLisAns(true); if (i === ex.ans) { setLisScore(s => s + 1); setXp(x => x + 10); tocarSom('acerto') } else tocarSom('erro') }} style={{ border: correct ? '1.5px solid #639922' : wrong ? '1.5px solid #E24B4A' : '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '12px 14px', fontSize: 14, color: correct ? '#27500A' : wrong ? '#791F1F' : 'var(--color-text-primary)', background: correct ? greenLight : wrong ? '#FCEBEB' : 'var(--color-background-primary)', cursor: lisAns ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>{o}{correct && <span style={{ flexShrink: 0 }}><Ic e="✓" c={green} /></span>}</div>
+                      )
+                    })}
+                  </div>
+                  {lisAns && <button onClick={() => { setLisIdx(i => i + 1); setLisSel(-1); setLisAns(false) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{lisIdx + 1 >= listeningExercises.length ? 'Ver resultado' : 'Próxima'} <Ic e="→" /></button>}
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-background-secondary)' }}>
-          <div style={{ background: `linear-gradient(135deg, #2074C0, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="👨‍🏫" s={24} c={blue} /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Professor de IA</div>
@@ -1693,7 +2468,7 @@ export default function AppPage() {
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
                 {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="👨‍🏫" s={18} c={blue} /></div>}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2074C0, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
+                  <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
                 </div>
               </div>
@@ -1717,14 +2492,19 @@ export default function AppPage() {
         </div>
       )}
 
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--color-background-primary)', borderTop: '0.5px solid var(--color-border-tertiary)', display: 'flex', padding: '8px 0 calc(4px + env(safe-area-inset-bottom))', zIndex: 9999 }}>
-        {[['home', '🏠', 'Início'], ['speak', '🎭', 'Simular'], ['lessons', '📖', 'Lições'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => (
-          <button key={t} onClick={() => { setTab(t); if (t === 'lessons') setView('levels'); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 0' }}>
-            <span style={{ fontSize: 18 }}><Ic e={icon} c={tab === t ? (t === 'speak' ? purple : blue) : 'var(--color-text-secondary)'} /></span>
-            <span style={{ fontSize: 9, color: tab === t ? (t === 'speak' ? purple : blue) : 'var(--color-text-secondary)', fontWeight: tab === t ? 500 : 400 }}>{label}</span>
-            {tab === t && <div style={{ width: 20, height: 3, background: t === 'speak' ? purple : blue, borderRadius: 2 }} />}
+      </div>
+
+      <div style={{ background: '#2E72D6', borderTop: '0.5px solid rgba(255,255,255,0.28)', display: 'flex', padding: '8px 0 calc(8px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
+        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => {
+          const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
+          return (
+          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 0' }}>
+            <span style={{ fontSize: 18 }}><Ic e={icon} c={ativo ? '#ffffff' : '#B5D4F4'} /></span>
+            <span style={{ fontSize: 9, color: ativo ? '#ffffff' : '#B5D4F4', fontWeight: ativo ? 600 : 500 }}>{label}</span>
+            {ativo && <div style={{ width: 20, height: 3, background: '#ffffff', borderRadius: 2 }} />}
           </button>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
