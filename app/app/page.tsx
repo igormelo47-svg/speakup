@@ -1080,6 +1080,8 @@ export default function AppPage() {
   const [vocabCat, setVocabCat] = useState('all')
   const [vocabSrs, setVocabSrs] = useState<Record<string, string>>({})
   const [vocabModo, setVocabModo] = useState('all')
+  const [vocabDiaData, setVocabDiaData] = useState('')
+  const [perfilIa, setPerfilIa] = useState<any>({})
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?' }])
   const [chatInput, setChatInput] = useState('')
   const [loadingChat, setLoadingChat] = useState(false)
@@ -1191,6 +1193,7 @@ export default function AppPage() {
   useEffect(() => {
     try { const d = localStorage.getItem('speakup_licao_dia'); if (d) setLicaoDiaData(d) } catch (e) {}
     try { const sv = localStorage.getItem('speakup_vocab_srs'); if (sv) setVocabSrs(JSON.parse(sv)) } catch (e) {}
+    try { const vd = localStorage.getItem('speakup_vocab_dia'); if (vd) setVocabDiaData(vd) } catch (e) {}
     try { const r = localStorage.getItem('speakup_recorde'); if (r) setRecorde(parseInt(r) || 0) } catch (e) {}
   }, [])
 
@@ -1211,6 +1214,21 @@ export default function AppPage() {
       try { localStorage.setItem('speakup_conq_vistas', JSON.stringify(Array.from(new Set([...seen!, ...earned])))) } catch (e) {}
     }
   }, [xpHydrated, xp, streak, doneLessons])
+
+  useEffect(() => {
+    if (!xpHydrated) return
+    setChatMsgs(prev => {
+      if (prev.length !== 1) return prev
+      const nome = userName ? ' ' + userName : ''
+      const fracos = perfilIa.topicos_fracos || []
+      const fraco = fracos[fracos.length - 1]
+      let txt = `Oi${nome}! 👋 Sou seu professor pessoal de inglês. `
+      if (fraco) txt += `Da última vez, "${fraco}" te deu um pouco de trabalho — quer revisar isso ou praticar outra coisa hoje?`
+      else if (streak > 0) txt += `Você está com ${streak} ${streak === 1 ? 'dia' : 'dias'} de sequência, mandando bem! O que vamos praticar hoje?`
+      else txt += 'O que você quer praticar hoje? Posso explicar gramática, vocabulário ou puxar uma conversa.'
+      return [{ role: 'ai', text: txt }]
+    })
+  }, [xpHydrated, perfilIa, userName, streak])
 
   function finalizarDesafio() {
     const hoje = new Date().toISOString().split('T')[0]
@@ -1326,6 +1344,7 @@ export default function AppPage() {
         const initialXp = Math.max(dbXp, pendingXp)
         setXp(initialXp)
         lastSyncedXpRef.current = dbXp
+        setPerfilIa(prog.perfil_ia || {})
         setStreak(prog.streak || 0)
         setLicoesConcluidas(prog.licoes_concluidas || [])
         setIsPremium(true) // BETA: sempre Premium. Pra voltar a cobrar, use: prog.is_premium || false
@@ -1434,7 +1453,7 @@ export default function AppPage() {
   function answer(i: number) {
     if (answered) return
     setAnswered(true); setSelected(i)
-    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro') }
+    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); registrarErro(lessons[level][lessonIdx].title) }
   }
 
   function nextQ() {
@@ -1451,7 +1470,7 @@ export default function AppPage() {
         licao: titulo,
       })
       setLicoesConcluidas(novasLicoes); setXp(novoXp)
-      if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val) }
+      if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val); registrarDominio(titulo) }
       salvarProgresso(novoXp, novasLicoes); setView('finish')
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1) }
   }
@@ -1484,7 +1503,7 @@ export default function AppPage() {
     const msg = chatInput; setChatInput('')
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: 'Você é um professor de inglês simpático e paciente para brasileiros. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta.', messages: [{ role: 'user', content: msg }] }) })
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] }) })
       const data = await res.json()
       setChatMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Erro.' }])
     } catch { setChatMsgs(m => [...m, { role: 'ai', text: 'Erro de conexão. Tente novamente.' }]) }
@@ -1572,7 +1591,7 @@ export default function AppPage() {
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: selectedScenario.systemPrompt, messages: [...history, { role: 'user', content: msg }] }) })
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: selectedScenario.systemPrompt + ' ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] }) })
       const data = await res.json()
       setConvMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Could not respond.' }])
     } catch { setConvMsgs(m => [...m, { role: 'ai', text: 'Connection error. Please try again.' }]) }
@@ -1589,7 +1608,28 @@ export default function AppPage() {
   const filteredVocab = embaralharSemana(vocabModo === 'revisar' ? vocabBaseCat.filter(v => vocabSrs[v.en] !== 'sabe') : vocabBaseCat)
   const vocabDominadas = vocab.filter(v => vocabSrs[v.en] === 'sabe').length
   const vocabRevisar = vocab.length - vocabDominadas
-  const marcarVocab = (en: string, estado: string) => setVocabSrs(prev => { const next = { ...prev, [en]: estado }; try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(next)) } catch (e) {} ; return next })
+  const marcarVocab = (en: string, estado: string) => { try { localStorage.setItem('speakup_vocab_dia', hojeStr) } catch (e) {} ; setVocabDiaData(hojeStr); setVocabSrs(prev => { const next = { ...prev, [en]: estado }; try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(next)) } catch (e) {} ; return next }) }
+  const vocabFeitoHoje = vocabDiaData === hojeStr
+  const OBJETIVO_PADRAO = 'Conversar 30 minutos em inglês sem usar português'
+  function salvarPerfil(novo: any) { setPerfilIa(novo); if (userId) supabase.from('progresso').upsert({ user_id: userId, perfil_ia: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }) }
+  function registrarErro(topico: string) {
+    const fracos = Array.from(new Set([...(perfilIa.topicos_fracos || []), topico])).slice(-12)
+    salvarPerfil({ ...perfilIa, topicos_fracos: fracos, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO })
+  }
+  function registrarDominio(topico: string) {
+    const dominados = Array.from(new Set([...(perfilIa.dominados || []), topico])).slice(-20)
+    const fracos = (perfilIa.topicos_fracos || []).filter((t: string) => t !== topico)
+    salvarPerfil({ ...perfilIa, dominados, topicos_fracos: fracos, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO, resumo_ultima_sessao: `Concluiu a lição "${topico}".`, atualizado_em: hojeStr })
+  }
+  function resumoPerfil(): string {
+    const p = perfilIa || {}
+    const partes: string[] = [`Aluno: ${userName || 'estudante'} (nível ${level}, ${xp} XP, sequência de ${streak} dias).`]
+    partes.push(`Objetivo do aluno: ${p.objetivo || OBJETIVO_PADRAO}.`)
+    if (p.topicos_fracos?.length) partes.push(`Pontos em que o aluno erra e precisa de reforço: ${p.topicos_fracos.slice(-6).join('; ')}.`)
+    if (p.dominados?.length) partes.push(`Tópicos que o aluno já domina: ${p.dominados.slice(-6).join('; ')}.`)
+    partes.push('Use esse histórico para personalizar, mencionar o progresso quando fizer sentido e focar nos pontos fracos. Não invente dados que não estão aqui.')
+    return partes.join(' ')
+  }
   const currentLesson = lessons[level][lessonIdx]
 
   return (
@@ -1660,6 +1700,35 @@ export default function AppPage() {
             })()}
           </div>
           <div style={{ padding: '16px', marginTop: 8 }}>
+            {(() => {
+              const proxL = lessons[level]?.find(l => !l.done)
+              const tasks = [
+                { icon: '📖', titulo: 'Faça sua lição de hoje', sub: proxL ? proxL.title : 'Revisar lições do nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
+                { icon: '🧠', titulo: 'Revisar vocabulário', sub: `${vocabRevisar} palavras para fixar`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
+                { icon: '🎭', titulo: 'Conversar no Simulador', sub: 'Pratique falando com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
+                { icon: '🔥', titulo: 'Desafio do dia', sub: '5 perguntas rápidas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
+              ]
+              const feitos = tasks.filter(t => t.feito).length
+              const tudo = feitos === tasks.length
+              return (
+                <div style={{ background: blueDark, borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}><Ic e="🎯" /> Seu plano de hoje</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: tudo ? '#4ADE80' : '#BCD6F2' }}>{feitos}/{tasks.length}</div>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#9DBBDD', marginBottom: 12 }}>{tudo ? 'Mandou bem! Plano de hoje completo 🎉' : `Meta: ${perfilIa.objetivo || OBJETIVO_PADRAO}`}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {tasks.map((t, i) => (
+                      <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 11, background: t.feito ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', cursor: t.feito ? 'default' : 'pointer' }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: t.feito ? '#16A34A' : 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{t.feito ? <Ic e="✓" s={15} c="#fff" /> : <Ic e={t.icon} s={16} c="#fff" />}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff', textDecoration: t.feito ? 'line-through' : 'none', opacity: t.feito ? 0.7 : 1 }}>{t.titulo}</div><div style={{ fontSize: 11, color: '#9DBBDD', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.sub}</div></div>
+                        {!t.feito && <span style={{ flexShrink: 0 }}><Ic e="→" s={16} c="#9DBBDD" /></span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
             {!isPremium && (
               <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e="⭐" color={gold} onDark box={44} size={24} />
