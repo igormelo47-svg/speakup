@@ -110,6 +110,17 @@ export default function Login() {
           {modo === 'login' ? 'Criar grátis' : 'Entrar'}
         </span>
       </p>
+      {modo === 'cadastro' && (
+        <p style={{ textAlign: 'center', fontSize: 11, color: '#aaa', marginTop: 10, lineHeight: 1.5 }}>
+          Ao criar a conta, você concorda com os{' '}
+          <a href="/termos" style={{ color: '#888' }}>Termos de Uso</a> e a{' '}
+          <a href="/privacidade" style={{ color: '#888' }}>Política de Privacidade</a>.
+        </p>
+      )}
+      <p style={{ textAlign: 'center', fontSize: 11, color: '#bbb', marginTop: 24 }}>
+        <a href="/termos" style={{ color: '#999', marginRight: 14 }}>Termos</a>
+        <a href="/privacidade" style={{ color: '#999' }}>Privacidade</a>
+      </p>
     </div>
   )
 }

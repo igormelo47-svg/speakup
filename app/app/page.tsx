@@ -79,6 +79,18 @@ function IcBadge({ e, color, onDark, size = 22, box = 38, radius = 10, style }: 
 
 interface Question { q: string; ctx: string; opts: string[]; ans: number; exp: string }
 interface Lesson { title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[]; cefr?: string }
+
+// Embaralha as opções de uma questão de forma determinística (pelo texto da pergunta),
+// para a resposta correta não ficar sempre na 1ª posição. Mantém-se estável entre renders.
+function embaralharQ(q: any) {
+  if (!q || !Array.isArray(q.opts) || typeof q.ans !== 'number') return q
+  let s = 0
+  const txt = String(q.q || '')
+  for (let i = 0; i < txt.length; i++) s = (s * 31 + txt.charCodeAt(i)) >>> 0
+  const order = q.opts.map((_: any, i: number) => i)
+  for (let i = order.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); const t = order[i]; order[i] = order[j]; order[j] = t }
+  return { ...q, opts: order.map((i: number) => q.opts[i]), ans: order.indexOf(q.ans) }
+}
 interface ConvMsg { role: 'ai' | 'user'; text: string }
 interface Scenario { id: string; title: string; description: string; icon: string; level: string; context: string; systemPrompt: string; opener: string; tips: string[] }
 
@@ -1108,7 +1120,7 @@ export default function AppPage() {
 
   const lessons: Record<string, Lesson[]> = { A1: [], A2: [], B1: [], B2: [], C1: [], C2: [] }
   const allForCefr = [...baseLessons.beginner, ...baseLessons.intermediate, ...baseLessons.advanced, ...dbLessons.beginner, ...dbLessons.intermediate, ...dbLessons.advanced]
-  allForCefr.forEach(l => { const k = cefrByTitle[l.title] || l.cefr || 'A1'; if (lessons[k]) lessons[k].push(l) })
+  allForCefr.forEach(l => { const k = cefrByTitle[l.title] || l.cefr || 'A1'; if (lessons[k]) lessons[k].push({ ...l, q: (l.q || []).map(embaralharQ) }) })
 
   const totalLessons = Object.values(lessons).flat().length
   const doneLessons = licoesConcluidas.length
