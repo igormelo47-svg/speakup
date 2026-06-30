@@ -1744,9 +1744,12 @@ export default function AppPage() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                     {conquistas.map((c, i) => (
-                      <div key={i} style={{ textAlign: 'center', opacity: c.ok ? 1 : 0.45 }}>
-                        <div style={{ width: 46, height: 46, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}><Ic e={c.ok ? c.e : '🔒'} /></div>
-                        <div style={{ fontSize: 9.5, color: 'var(--color-text-secondary)', marginTop: 5, lineHeight: 1.2 }}>{c.nome}</div>
+                      <div key={i} style={{ textAlign: 'center' }}>
+                        <div style={{ position: 'relative', width: 46, height: 46, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ filter: c.ok ? 'none' : 'grayscale(1)', opacity: c.ok ? 1 : 0.4 }}><Ic e={c.e} s={22} c={c.ok ? gold : undefined} /></span>
+                          {c.ok && <span style={{ position: 'absolute', right: -2, bottom: -2, width: 16, height: 16, borderRadius: '50%', background: '#16A34A', border: '2px solid var(--color-background-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="✓" s={9} c="#fff" /></span>}
+                        </div>
+                        <div style={{ fontSize: 9.5, color: c.ok ? gold : 'var(--color-text-secondary)', fontWeight: c.ok ? 600 : 400, marginTop: 5, lineHeight: 1.2 }}>{c.nome}</div>
                       </div>
                     ))}
                   </div>
