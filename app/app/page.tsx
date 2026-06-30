@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -996,7 +996,7 @@ export default function AppPage() {
   const currentLesson = lessons[level][lessonIdx]
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', minHeight: '100vh' }}>
+    <div style={{ maxWidth: 430, margin: '0 auto', fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', minHeight: '100vh', paddingBottom: 'calc(78px + env(safe-area-inset-bottom))' }}>
 
       <style>{`
         @keyframes su_fade { from { opacity: 0 } to { opacity: 1 } }
@@ -1717,7 +1717,7 @@ export default function AppPage() {
         </div>
       )}
 
-      <div style={{ position: 'sticky', bottom: 0, background: 'var(--color-background-primary)', borderTop: '0.5px solid var(--color-border-tertiary)', display: 'flex', padding: '8px 0 4px', zIndex: 10 }}>
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, width: '100%', maxWidth: 430, margin: '0 auto', background: 'var(--color-background-primary)', borderTop: '0.5px solid var(--color-border-tertiary)', display: 'flex', padding: '8px 0 calc(4px + env(safe-area-inset-bottom))', zIndex: 9999 }}>
         {[['home', '🏠', 'Início'], ['speak', '🎭', 'Simular'], ['lessons', '📖', 'Lições'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => (
           <button key={t} onClick={() => { setTab(t); if (t === 'lessons') setView('levels'); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 0' }}>
             <span style={{ fontSize: 18 }}><Ic e={icon} c={tab === t ? (t === 'speak' ? purple : blue) : 'var(--color-text-secondary)'} /></span>
