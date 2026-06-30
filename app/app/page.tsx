@@ -1706,56 +1706,6 @@ export default function AppPage() {
                 </div>
               )
             })()}
-            {(() => {
-              const g = grammarTips[daySeed % grammarTips.length]
-              return (
-                <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 14, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="✍️" s={18} c={blue} /></div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Gramática de hoje</div>
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>{g.t}</div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 9 }}>{g.d}</div>
-                  <div style={{ fontSize: 12.5, color: blueDark, background: blueLight, borderRadius: 10, padding: '8px 11px', fontStyle: 'italic' }}>{g.ex}</div>
-                </div>
-              )
-            })()}
-            {!lembretesAtivos && (
-              <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="🔔" s={22} c="#fff" /></div>
-                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>Receba um aviso pra não quebrar sua sequência</div></div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
-              </div>
-            )}
-            {lembretesAtivos && (
-              <div style={{ background: '#E3F3EA', borderRadius: 16, padding: '12px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Ic e="🔔" s={20} c="#16A34A" />
-                <div style={{ flex: 1, fontSize: 13, color: '#15803D', fontWeight: 600 }}>Lembretes diários ativados <Ic e="✓" /></div>
-              </div>
-            )}
-            {(() => {
-              const conquistas = conquistasDef
-              const ganhas = conquistas.filter(c => c.ok).length
-              return (
-                <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><Ic e="🏅" /> Conquistas</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: gold }}>{ganhas}/{conquistas.length}</div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                    {conquistas.map((c, i) => (
-                      <div key={i} style={{ textAlign: 'center' }}>
-                        <div style={{ position: 'relative', width: 46, height: 46, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ filter: c.ok ? 'none' : 'grayscale(1)', opacity: c.ok ? 1 : 0.4 }}><Ic e={c.e} s={22} c={c.ok ? gold : undefined} /></span>
-                          {c.ok && <span style={{ position: 'absolute', right: -2, bottom: -2, width: 16, height: 16, borderRadius: '50%', background: '#16A34A', border: '2px solid var(--color-background-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="✓" s={9} c="#fff" /></span>}
-                        </div>
-                        <div style={{ fontSize: 9.5, color: c.ok ? gold : 'var(--color-text-secondary)', fontWeight: c.ok ? 600 : 400, marginTop: 5, lineHeight: 1.2 }}>{c.nome}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
               <div onClick={() => setTab('speak')} style={{ background: purpleLight, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
                 <IcBadge e="🎭" color={purple} style={{ marginBottom: 8 }} />
@@ -1800,6 +1750,42 @@ export default function AppPage() {
               </div>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 9px', borderRadius: 20 }}>NOVO</div>
             </div>
+            {!lembretesAtivos && (
+              <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 12, padding: 16, marginTop: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="🔔" s={22} c="#fff" /></div>
+                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Receba um aviso pra não quebrar sua sequência</div></div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
+              </div>
+            )}
+            {lembretesAtivos && (
+              <div style={{ background: '#E3F3EA', borderRadius: 12, padding: '12px 14px', marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Ic e="🔔" s={20} c="#16A34A" />
+                <div style={{ flex: 1, fontSize: 13, color: '#15803D', fontWeight: 600 }}>Lembretes diários ativados <Ic e="✓" /></div>
+              </div>
+            )}
+            {(() => {
+              const conquistas = conquistasDef
+              const ganhas = conquistas.filter(c => c.ok).length
+              return (
+                <div style={{ background: 'var(--color-background-primary)', borderRadius: 12, border: '0.5px solid var(--color-border-tertiary)', padding: 12, marginTop: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><Ic e="🏅" /> Conquistas</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: gold }}>{ganhas}/{conquistas.length}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                    {conquistas.map((c, i) => (
+                      <div key={i} style={{ textAlign: 'center' }}>
+                        <div style={{ position: 'relative', width: 40, height: 40, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ filter: c.ok ? 'none' : 'grayscale(1)', opacity: c.ok ? 1 : 0.4 }}><Ic e={c.e} s={19} c={c.ok ? gold : undefined} /></span>
+                          {c.ok && <span style={{ position: 'absolute', right: -2, bottom: -2, width: 15, height: 15, borderRadius: '50%', background: '#16A34A', border: '2px solid var(--color-background-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="✓" s={8} c="#fff" /></span>}
+                        </div>
+                        <div style={{ fontSize: 9, color: c.ok ? gold : 'var(--color-text-secondary)', fontWeight: c.ok ? 600 : 400, marginTop: 4, lineHeight: 1.15 }}>{c.nome}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
