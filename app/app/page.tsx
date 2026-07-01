@@ -539,10 +539,49 @@ const vocab = [
   { en: 'Autumn', pt: 'Outono', ex: 'Leaves fall in autumn.', cat: 'weather' },
   { en: 'Winter', pt: 'Inverno', ex: 'Winter is very cold.', cat: 'weather' },
   { en: 'Forecast', pt: 'Previsão do tempo', ex: 'Check the forecast.', cat: 'weather' },
+  // Família
+  { en: 'Family', pt: 'Família', ex: 'I love my family.', cat: 'family' },
+  { en: 'Mother', pt: 'Mãe', ex: 'My mother is a teacher.', cat: 'family' },
+  { en: 'Father', pt: 'Pai', ex: 'His father works downtown.', cat: 'family' },
+  { en: 'Brother', pt: 'Irmão', ex: 'My brother is older than me.', cat: 'family' },
+  { en: 'Sister', pt: 'Irmã', ex: 'Her sister lives abroad.', cat: 'family' },
+  { en: 'Son', pt: 'Filho', ex: 'Their son is five years old.', cat: 'family' },
+  { en: 'Daughter', pt: 'Filha', ex: 'My daughter loves to read.', cat: 'family' },
+  { en: 'Husband', pt: 'Marido', ex: 'Her husband cooks dinner.', cat: 'family' },
+  { en: 'Wife', pt: 'Esposa', ex: 'His wife is a doctor.', cat: 'family' },
+  { en: 'Grandparents', pt: 'Avós', ex: 'We visit our grandparents on Sundays.', cat: 'family' },
+  { en: 'Cousin', pt: 'Primo(a)', ex: 'My cousin is coming to visit.', cat: 'family' },
+  { en: 'Child / Children', pt: 'Criança / Crianças', ex: 'The children are playing.', cat: 'family' },
+  // Natureza
+  { en: 'Tree', pt: 'Árvore', ex: 'The tree is very tall.', cat: 'nature' },
+  { en: 'Flower', pt: 'Flor', ex: 'She picked a red flower.', cat: 'nature' },
+  { en: 'River', pt: 'Rio', ex: 'We swam in the river.', cat: 'nature' },
+  { en: 'Mountain', pt: 'Montanha', ex: 'They climbed the mountain.', cat: 'nature' },
+  { en: 'Sea', pt: 'Mar', ex: 'The sea is calm today.', cat: 'nature' },
+  { en: 'Beach', pt: 'Praia', ex: 'Let us go to the beach.', cat: 'nature' },
+  { en: 'Forest', pt: 'Floresta', ex: 'The forest is full of birds.', cat: 'nature' },
+  { en: 'Animal', pt: 'Animal', ex: 'A dog is a friendly animal.', cat: 'nature' },
+  { en: 'Bird', pt: 'Pássaro', ex: 'A bird is singing outside.', cat: 'nature' },
+  { en: 'Sky', pt: 'Céu', ex: 'The sky is clear and blue.', cat: 'nature' },
+  { en: 'Ground', pt: 'Chão / Solo', ex: 'The leaves fell on the ground.', cat: 'nature' },
+  { en: 'Island', pt: 'Ilha', ex: 'They live on a small island.', cat: 'nature' },
+  // Cidade e lugares
+  { en: 'City', pt: 'Cidade', ex: 'This city is very busy.', cat: 'city' },
+  { en: 'Street', pt: 'Rua', ex: 'My house is on this street.', cat: 'city' },
+  { en: 'Building', pt: 'Prédio', ex: 'That building is very tall.', cat: 'city' },
+  { en: 'Bank', pt: 'Banco', ex: 'I need to go to the bank.', cat: 'city' },
+  { en: 'Hospital', pt: 'Hospital', ex: 'The hospital is near here.', cat: 'city' },
+  { en: 'School', pt: 'Escola', ex: 'The children walk to school.', cat: 'city' },
+  { en: 'Market', pt: 'Mercado', ex: 'She buys fruit at the market.', cat: 'city' },
+  { en: 'Restaurant', pt: 'Restaurante', ex: 'We ate at a nice restaurant.', cat: 'city' },
+  { en: 'Station', pt: 'Estação', ex: 'The train station is crowded.', cat: 'city' },
+  { en: 'Airport', pt: 'Aeroporto', ex: 'The airport is far from downtown.', cat: 'city' },
+  { en: 'Corner', pt: 'Esquina', ex: 'Turn left at the corner.', cat: 'city' },
+  { en: 'Neighborhood', pt: 'Bairro / Vizinhança', ex: 'It is a quiet neighborhood.', cat: 'city' },
 ]
 
-const catEmoji: { [k: string]: string } = { basic: '👋', travel: '✈️', work: '💼', food: '🍽️', home: '🏠', verbs: '⚡', feelings: '😊', daily: '📅', health: '🏥', tech: '💻', shopping: '🛒', weather: '🌤️' }
-const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem', work: 'Trabalho', food: 'Comida', home: 'Casa', verbs: 'Verbo', feelings: 'Sentimento', daily: 'Dia a dia', health: 'Saúde', tech: 'Tecnologia', shopping: 'Compras', weather: 'Clima' }
+const catEmoji: { [k: string]: string } = { basic: '👋', travel: '✈️', work: '💼', food: '🍽️', home: '🏠', verbs: '⚡', feelings: '😊', daily: '📅', health: '🏥', tech: '💻', shopping: '🛒', weather: '🌤️', family: '👨‍👩‍👧', nature: '🌳', city: '🏙️' }
+const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem', work: 'Trabalho', food: 'Comida', home: 'Casa', verbs: 'Verbo', feelings: 'Sentimento', daily: 'Dia a dia', health: 'Saúde', tech: 'Tecnologia', shopping: 'Compras', weather: 'Clima', family: 'Família', nature: 'Natureza', city: 'Cidade' }
 
 interface Msg { role: string; text: string }
 type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'finish'
@@ -878,6 +917,18 @@ const listeningExercises = [
   { nivel: 'C1', en: 'She has a tendency to overcommit and then feel overwhelmed.', pt: 'Ela tende a assumir demais e depois se sentir sobrecarregada.', q: 'Qual é a tendência dela?', opts: ['Assumir demais e se sobrecarregar', 'Recusar tarefas', 'Trabalhar pouco', 'Delegar tudo'], ans: 0 },
   { nivel: 'C1', en: 'The proposal was turned down despite widespread support.', pt: 'A proposta foi recusada apesar do amplo apoio.', q: 'O que aconteceu com a proposta?', opts: ['Foi aprovada', 'Foi recusada', 'Foi adiada', 'Foi reescrita'], ans: 1 },
   { nivel: 'C1', en: 'His remarks were taken out of context by the media.', pt: 'Os comentários dele foram tirados de contexto pela mídia.', q: 'O que aconteceu com os comentários dele?', opts: ['Foram elogiados', 'Foram tirados de contexto', 'Foram ignorados', 'Foram confirmados'], ans: 1 },
+  { nivel: 'A1', en: 'The store opens at nine in the morning.', pt: 'A loja abre às nove da manhã.', q: 'Que horas a loja abre?', opts: ['Às nove da manhã', 'Ao meio-dia', 'Às sete', 'À noite'], ans: 0 },
+  { nivel: 'A1', en: 'I like to play soccer with my friends.', pt: 'Eu gosto de jogar futebol com meus amigos.', q: 'Do que ele gosta?', opts: ['De jogar futebol', 'De nadar', 'De correr', 'De ler'], ans: 0 },
+  { nivel: 'A2', en: 'Could you tell me how to get to the museum?', pt: 'Você poderia me dizer como chegar ao museu?', q: 'O que a pessoa quer saber?', opts: ['Como chegar ao museu', 'O preço do ingresso', 'O horário', 'Onde comer'], ans: 0 },
+  { nivel: 'A2', en: 'My sister is studying to become a nurse.', pt: 'Minha irmã está estudando para se tornar enfermeira.', q: 'O que a irmã quer ser?', opts: ['Médica', 'Enfermeira', 'Professora', 'Advogada'], ans: 1 },
+  { nivel: 'B1', en: 'I wish I had studied more before the exam.', pt: 'Eu queria ter estudado mais antes da prova.', q: 'Do que ela se arrepende?', opts: ['De não ter estudado mais', 'De ter faltado', 'De ter dormido tarde', 'De não ter comido'], ans: 0 },
+  { nivel: 'B1', en: 'The bus was so crowded that I decided to walk.', pt: 'O ônibus estava tão cheio que decidi ir a pé.', q: 'Por que ele foi a pé?', opts: ['O ônibus estava cheio', 'Estava com pressa', 'Perdeu o ônibus', 'Queria se exercitar'], ans: 0 },
+  { nivel: 'B2', en: 'You should have told me you were running late.', pt: 'Você deveria ter me avisado que estava atrasado.', q: 'Qual é a crítica?', opts: ['Não avisou do atraso', 'Chegou cedo demais', 'Falou demais', 'Esqueceu o trabalho'], ans: 0 },
+  { nivel: 'B2', en: 'The company is investing heavily in renewable energy.', pt: 'A empresa está investindo pesado em energia renovável.', q: 'Em que a empresa investe?', opts: ['Em energia renovável', 'Em imóveis', 'Em publicidade', 'Em tecnologia militar'], ans: 0 },
+  { nivel: 'C1', en: 'Only after reviewing the data did they realize the mistake.', pt: 'Só depois de revisar os dados é que perceberam o erro.', q: 'Quando perceberam o erro?', opts: ['Antes de começar', 'Depois de revisar os dados', 'Nunca perceberam', 'No primeiro dia'], ans: 1 },
+  { nivel: 'C2', en: 'The nuances of the argument were lost on most of the audience.', pt: 'As sutilezas do argumento passaram despercebidas pela maioria da plateia.', q: 'O que aconteceu com as sutilezas?', opts: ['Foram bem compreendidas', 'Passaram despercebidas pela plateia', 'Foram exageradas', 'Foram anotadas por todos'], ans: 1 },
+  { nivel: 'C2', en: 'Far from being a burden, the change proved remarkably beneficial.', pt: 'Longe de ser um fardo, a mudança se mostrou notavelmente benéfica.', q: 'Como foi a mudança?', opts: ['Um fardo pesado', 'Notavelmente benéfica', 'Indiferente', 'Um desastre'], ans: 1 },
+  { nivel: 'C2', en: 'She conceded the point, albeit somewhat reluctantly.', pt: 'Ela admitiu o ponto, ainda que um tanto relutante.', q: 'Como ela admitiu o ponto?', opts: ['Com entusiasmo', 'Um tanto relutante', 'Sem admitir', 'Rapidamente'], ans: 1 },
 ]
 
 const grammarTips = [
@@ -967,6 +1018,9 @@ const pronCategorias = [
     { en: 'The hotel is behind the hospital.', pt: 'O hotel fica atrás do hospital.' },
     { en: 'I hope you have a good holiday.', pt: 'Espero que tenha boas férias.' },
     { en: 'Her house has a huge hall.', pt: 'A casa dela tem um salão enorme.' },
+    { en: 'How high can he hang the hat?', pt: 'Quão alto ele consegue pendurar o chapéu?' },
+    { en: 'Harry heard a horrible howl.', pt: 'O Harry ouviu um uivo horrível.' },
+    { en: 'I have to help him at home.', pt: 'Eu tenho que ajudá-lo em casa.' },
   ] },
   { id: 'r', label: 'O R do inglês', icon: '🔴', desc: 'red, very, world, around', frases: [
     { en: 'The red car is very fast.', pt: 'O carro vermelho é muito rápido.' },
@@ -1004,6 +1058,9 @@ const pronCategorias = [
     { en: 'Vegetables are important for health.', pt: 'Vegetais são importantes para a saúde.' },
     { en: 'The interesting hotel was beautiful.', pt: 'O hotel interessante era lindo.' },
     { en: 'Technology develops very quickly.', pt: 'A tecnologia evolui muito rápido.' },
+    { en: 'I prefer to record a new record.', pt: 'Prefiro gravar um novo disco.' },
+    { en: 'The desert is dry, but I want dessert.', pt: 'O deserto é seco, mas eu quero sobremesa.' },
+    { en: 'Please present the birthday present.', pt: 'Por favor, apresente o presente de aniversário.' },
   ] },
   { id: 'wv', label: 'W x V', icon: '🌊', desc: 'we, very, wine, view', frases: [
     { en: 'We live in a quiet village.', pt: 'Nós moramos numa vila tranquila.' },
@@ -1074,6 +1131,33 @@ const pronCategorias = [
     { en: 'There are fifteen students here.', pt: 'Há quinze alunos aqui.' },
     { en: 'The meeting is on the twenty-first.', pt: 'A reunião é no dia vinte e um.' },
     { en: 'It costs forty-four dollars.', pt: 'Custa quarenta e quatro dólares.' },
+  ] },
+  { id: 'shch', label: 'SH x CH', icon: '👟', desc: 'shoe/chew, wash/watch', frases: [
+    { en: 'She wears cheap shoes to the church.', pt: 'Ela usa sapatos baratos para a igreja.' },
+    { en: 'Watch me wash the dishes.', pt: 'Me observe lavar a louça.' },
+    { en: 'The chef shares a short lunch.', pt: 'O chef divide um almoço curto.' },
+    { en: 'Which shirt should I choose?', pt: 'Qual camisa eu deveria escolher?' },
+    { en: 'The children push the shopping cart.', pt: 'As crianças empurram o carrinho de compras.' },
+    { en: 'I wish to teach and share.', pt: 'Eu desejo ensinar e compartilhar.' },
+    { en: 'Charlie showed his cheap watch.', pt: 'O Charlie mostrou seu relógio barato.' },
+  ] },
+  { id: 'darkl', label: 'L no fim (dark L)', icon: '🌑', desc: 'ball, milk, full, feel', frases: [
+    { en: 'I feel the cold ball in the hall.', pt: 'Eu sinto a bola fria no salão.' },
+    { en: 'The little girl drinks warm milk.', pt: 'A garotinha bebe leite morno.' },
+    { en: 'My meal is full of small apples.', pt: 'Minha refeição está cheia de maçãs pequenas.' },
+    { en: 'Please tell Bill to call me.', pt: 'Por favor, diga ao Bill para me ligar.' },
+    { en: 'The wheel fell off the well.', pt: 'A roda caiu do poço.' },
+    { en: 'We will travel until April.', pt: 'Vamos viajar até abril.' },
+    { en: 'The final goal feels real.', pt: 'O objetivo final parece real.' },
+  ] },
+  { id: 'jg', label: 'J e G suave', icon: '🧃', desc: 'judge, giant, age, page', frases: [
+    { en: 'The judge is a gentle giant.', pt: 'O juiz é um gigante gentil.' },
+    { en: 'Just turn to the next page.', pt: 'Apenas vire para a próxima página.' },
+    { en: 'George enjoys orange juice.', pt: 'O George gosta de suco de laranja.' },
+    { en: 'The magic bridge is huge.', pt: 'A ponte mágica é enorme.' },
+    { en: 'Jane manages a large garage.', pt: 'A Jane administra uma garagem grande.' },
+    { en: 'His message changed my age.', pt: 'A mensagem dele mudou minha idade.' },
+    { en: 'Generally, the general agrees.', pt: 'Geralmente, o general concorda.' },
   ] },
 ]
 
@@ -2631,7 +2715,7 @@ export default function AppPage() {
           </div>
           <div style={{ padding: 16 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
-              {[['all', '🗂️ Todos'], ['basic', '👋 Essenciais'], ['travel', '✈️ Viagem'], ['work', '💼 Trabalho'], ['food', '🍽️ Comida'], ['home', '🏠 Casa'], ['verbs', '⚡ Verbos'], ['feelings', '😊 Sentimentos'], ['daily', '📅 Dia a dia'], ['health', '🏥 Saúde'], ['tech', '💻 Tecnologia'], ['shopping', '🛒 Compras'], ['weather', '🌤️ Clima']].map(([cat, label]) => (
+              {[['all', '🗂️ Todos'], ['basic', '👋 Essenciais'], ['travel', '✈️ Viagem'], ['work', '💼 Trabalho'], ['food', '🍽️ Comida'], ['home', '🏠 Casa'], ['verbs', '⚡ Verbos'], ['feelings', '😊 Sentimentos'], ['daily', '📅 Dia a dia'], ['health', '🏥 Saúde'], ['tech', '💻 Tecnologia'], ['shopping', '🛒 Compras'], ['weather', '🌤️ Clima'], ['family', '👨‍👩‍👧 Família'], ['nature', '🌳 Natureza'], ['city', '🏙️ Cidade']].map(([cat, label]) => (
                 <button key={cat} onClick={() => setVocabCat(cat)} style={{ padding: '7px 14px', border: vocabCat === cat ? 'none' : '0.5px solid var(--color-border-tertiary)', borderRadius: 20, background: vocabCat === cat ? blue : 'var(--color-background-primary)', color: vocabCat === cat ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: vocabCat === cat ? 600 : 400 }}><IcLabel label={label} /></button>
               ))}
             </div>
