@@ -18,27 +18,25 @@ export async function GET(req: NextRequest) {
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:igormelo47@gmail.com', VAPID_PUBLIC, priv)
   const admin = createClient(url, service)
 
-  const force = req.nextUrl.searchParams.get('force') === '1'
   const hoje = new Date().toISOString().split('T')[0]
-  const { data: subs, error: subsErr } = await admin.from('push_subscriptions').select('user_id, subscription')
-  const { data: prog, error: progErr } = await admin.from('progresso').select('user_id, ultima_atividade')
+  const { data: subs } = await admin.from('push_subscriptions').select('user_id, subscription')
+  const { data: prog } = await admin.from('progresso').select('user_id, ultima_atividade')
   const estudouHoje = new Set((prog || []).filter((p: any) => p.ultima_atividade === hoje).map((p: any) => p.user_id))
 
   const payload = JSON.stringify({ title: 'SpeakUp 🔥', body: 'Mantenha sua sequência! Faça sua lição de hoje.', url: '/app' })
-  let enviados = 0, removidos = 0, erros: string[] = []
+  let enviados = 0, removidos = 0
   for (const s of subs || []) {
-    if (!force && estudouHoje.has(s.user_id)) continue
+    if (estudouHoje.has(s.user_id)) continue
     try {
       await webpush.sendNotification(s.subscription as any, payload)
       enviados++
     } catch (e: any) {
-      if (e?.statusCode === 404 || e?.statusCode === 410) {
+      // Inscrição expirada ou inválida → remove para não tentar de novo
+      if (e?.statusCode === 404 || e?.statusCode === 410 || e?.statusCode === 400 || String(e?.message || '').includes('p256dh')) {
         await admin.from('push_subscriptions').delete().eq('user_id', s.user_id)
         removidos++
-      } else {
-        erros.push(String(e?.statusCode || '') + ' ' + (e?.body || e?.message || e))
       }
     }
   }
-  return NextResponse.json({ enviados, removidos, total: (subs || []).length, subsErr: subsErr?.message || null, progErr: progErr?.message || null, erros })
+  return NextResponse.json({ enviados, removidos, total: (subs || []).length })
 }
