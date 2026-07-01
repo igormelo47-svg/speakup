@@ -1672,7 +1672,7 @@ export default function AppPage() {
   const currentLesson = lessons[level][lessonIdx]
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       <style>{`
         @keyframes su_fade { from { opacity: 0 } to { opacity: 1 } }
@@ -1687,7 +1687,7 @@ export default function AppPage() {
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
       `}</style>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}>
 
       {tab === 'home' && (
         <div>
