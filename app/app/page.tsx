@@ -1083,6 +1083,7 @@ export default function AppPage() {
   const [vocabDiaData, setVocabDiaData] = useState('')
   const [perfilIa, setPerfilIa] = useState<any>({})
   const [onboarded, setOnboarded] = useState(false)
+  const [hist, setHist] = useState<Record<string, number>>({})
   const [onbStep, setOnbStep] = useState(0)
   const [onbObj, setOnbObj] = useState('')
   const [onbMeta, setOnbMeta] = useState(50)
@@ -1243,6 +1244,19 @@ export default function AppPage() {
     setXp(x => x + 20)
     setConqNova({ e: '🎉', nome: 'Plano do dia completo! +20 XP' })
   }, [xpHydrated, licoesHoje, vocabDiaData, simulacoesHoje, desafioFeito])
+
+  useEffect(() => {
+    if (!xpHydrated) return
+    try {
+      const raw = localStorage.getItem('speakup_hist')
+      const h: Record<string, number> = raw ? JSON.parse(raw) : {}
+      h[hojeStr] = xp
+      const keys = Object.keys(h).sort()
+      while (keys.length > 30) { const k = keys.shift(); if (k) delete h[k] }
+      localStorage.setItem('speakup_hist', JSON.stringify(h))
+      setHist(h)
+    } catch (e) {}
+  }, [xpHydrated, xp])
 
   function finalizarDesafio() {
     const hoje = new Date().toISOString().split('T')[0]
@@ -1799,10 +1813,10 @@ export default function AppPage() {
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#0B3A52' }}>Teste de nível</div>
                 <div style={{ fontSize: 11, color: '#0F6FA8' }}>Descubra seu nível</div>
               </div>
-              <div onClick={() => { setWhatsappInput(whatsapp); setZapModal(true) }} style={{ background: '#E7F8EE', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="📲" color="#0B6B3A" style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#0B6B3A' }}>WhatsApp</div>
-                <div style={{ fontSize: 11, color: '#178B4E' }}>{whatsapp ? <>Cadastrado <Ic e="✓" /></> : 'Receber dicas'}</div>
+              <div onClick={() => setTab('evolucao')} style={{ background: '#EAF1FC', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
+                <IcBadge e="📈" color={blue} style={{ marginBottom: 8 }} />
+                <div style={{ fontSize: 13, fontWeight: 500, color: blueDark }}>Evolução</div>
+                <div style={{ fontSize: 11, color: blue }}>Métricas e conquistas</div>
               </div>
             </div>
             {!lembretesAtivos && (
@@ -1822,10 +1836,10 @@ export default function AppPage() {
               const conquistas = conquistasDef
               const ganhas = conquistas.filter(c => c.ok).length
               return (
-                <div style={{ background: 'var(--color-background-primary)', borderRadius: 12, border: '0.5px solid var(--color-border-tertiary)', padding: 12, marginTop: 10 }}>
+                <div onClick={() => setTab('evolucao')} style={{ background: 'var(--color-background-primary)', borderRadius: 12, border: '0.5px solid var(--color-border-tertiary)', padding: 12, marginTop: 10, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><Ic e="🏅" /> Conquistas</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: gold }}>{ganhas}/{conquistas.length}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: blue }}>{ganhas}/{conquistas.length} · ver tudo <Ic e="→" /></div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                     {conquistas.map((c, i) => (
@@ -2572,6 +2586,70 @@ export default function AppPage() {
                   {lisAns && <button onClick={() => { setLisIdx(i => i + 1); setLisSel(-1); setLisAns(false) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{lisIdx + 1 >= listeningExercises.length ? 'Ver resultado' : 'Próxima'} <Ic e="→" /></button>}
                 </>
               )}
+            </div>
+          </div>
+        )
+      })()}
+
+      {tab === 'evolucao' && (() => {
+        const dias = Object.keys(hist).sort().slice(-7)
+        const maxXp = Math.max(1, ...dias.map(d => hist[d] || 0))
+        const ganhas = conquistasDef.filter(c => c.ok).length
+        const metricas = [
+          { e: '⭐', v: xp, l: 'XP total', c: '#B8860B' },
+          { e: '🧠', v: vocabDominadas, l: 'palavras dominadas', c: green },
+          { e: '📚', v: doneLessons, l: 'lições concluídas', c: blue },
+          { e: '🔥', v: streak, l: 'dias de sequência', c: '#E08A1E' },
+          { e: '🏆', v: recorde, l: 'recorde de sequência', c: '#B8860B' },
+          { e: '🏅', v: `${ganhas}/${conquistasDef.length}`, l: 'conquistas', c: purple },
+        ]
+        return (
+          <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
+            <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="📈" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Sua evolução</div></div>
+              <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Nível {level} · rumo a: {perfilIa.objetivo || OBJETIVO_PADRAO}</div>
+            </div>
+            <div style={{ padding: 16 }}>
+              <div style={{ background: `linear-gradient(135deg, #16A34A, #15803D)`, borderRadius: 16, padding: 16, marginBottom: 14, color: '#fff' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5 }}>🎉 Você já domina <b>{vocabDominadas}</b> {vocabDominadas === 1 ? 'palavra' : 'palavras'} e concluiu <b>{doneLessons}</b> {doneLessons === 1 ? 'lição' : 'lições'}!</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+                {metricas.map((m, i) => (
+                  <div key={i} style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 18 }}><Ic e={m.e} c={m.c} /></div>
+                    <div style={{ fontSize: 19, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 3 }}>{m.v}</div>
+                    <div style={{ fontSize: 9.5, color: 'var(--color-text-secondary)', marginTop: 2, lineHeight: 1.2 }}>{m.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 12 }}><Ic e="📈" c={blue} /> XP nos últimos dias</div>
+                {dias.length <= 1 ? (
+                  <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>Continue estudando! Seu gráfico de evolução aparece conforme você usa o app dia após dia.</div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 110 }}>
+                    {dias.map((d, i) => (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                        <div style={{ fontSize: 9, color: 'var(--color-text-secondary)', fontWeight: 600 }}>{hist[d]}</div>
+                        <div style={{ width: '100%', maxWidth: 30, background: i === dias.length - 1 ? blue : '#B5D4F4', borderRadius: 6, height: `${Math.max(6, Math.round((hist[d] || 0) / maxXp * 80))}px` }} />
+                        <div style={{ fontSize: 9, color: 'var(--color-text-secondary)' }}>{d.slice(8, 10)}/{d.slice(5, 7)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '2px 2px 12px' }}><Ic e="🏅" /> Conquistas · {ganhas}/{conquistasDef.length}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14 }}>
+                {conquistasDef.map((c, i) => (
+                  <div key={i} style={{ textAlign: 'center' }}>
+                    <div style={{ position: 'relative', width: 44, height: 44, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ filter: c.ok ? 'none' : 'grayscale(1)', opacity: c.ok ? 1 : 0.4 }}><Ic e={c.e} s={21} c={c.ok ? gold : undefined} /></span>
+                      {c.ok && <span style={{ position: 'absolute', right: -2, bottom: -2, width: 16, height: 16, borderRadius: '50%', background: '#16A34A', border: '2px solid var(--color-background-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="✓" s={9} c="#fff" /></span>}
+                    </div>
+                    <div style={{ fontSize: 9.5, color: c.ok ? gold : 'var(--color-text-secondary)', fontWeight: c.ok ? 600 : 400, marginTop: 5, lineHeight: 1.15 }}>{c.nome}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )
