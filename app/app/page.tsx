@@ -923,6 +923,33 @@ const grammarTips = [
   { t: 'Causativo (have/get done)', d: 'have/get + objeto + particípio: outra pessoa faz por você.', ex: 'I had my car repaired.' },
 ]
 
+// Compara duas palavras por proximidade (0 a 1), tolerando pequenos erros do reconhecimento de voz.
+function _levDist(a: string, b: string): number {
+  const m = a.length, n = b.length
+  if (!m) return n; if (!n) return m
+  let prev = Array.from({ length: n + 1 }, (_, i) => i)
+  for (let i = 1; i <= m; i++) {
+    let cur = [i, ...Array(n).fill(0)]
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost)
+    }
+    prev = cur
+  }
+  return prev[n]
+}
+function simPalavra(a: string, b: string): number {
+  if (a === b) return 1
+  const max = Math.max(a.length, b.length, 1)
+  return 1 - _levDist(a, b) / max
+}
+// Melhor semelhança entre uma palavra-alvo e a lista de palavras ouvidas.
+function melhorSim(alvo: string, ouvidas: string[]): number {
+  let m = 0
+  for (const o of ouvidas) { const s = simPalavra(alvo, o); if (s > m) m = s }
+  return m
+}
+
 const pronCategorias = [
   { id: 'th', label: 'O som do TH', icon: '🦷', desc: 'think, three, this, that', frases: [
     { en: 'I think this is the best one.', pt: 'Acho que este é o melhor.' },
@@ -1121,6 +1148,14 @@ export default function AppPage() {
   const [desAns, setDesAns] = useState(false)
   const [desAcertos, setDesAcertos] = useState(0)
   const [desResult, setDesResult] = useState(false)
+  // Revisão Inteligente (SRS): agenda cada lição concluída para voltar na hora certa.
+  const [srsData, setSrsData] = useState<Record<string, { due: string; box: number }>>({})
+  const [revQ, setRevQ] = useState(0)
+  const [revSel, setRevSel] = useState(-1)
+  const [revAns, setRevAns] = useState(false)
+  const [revAcertos, setRevAcertos] = useState(0)
+  const [revResult, setRevResult] = useState(false)
+  const licaoErrosRef = useRef(0)
   const [whatsapp, setWhatsapp] = useState('')
   const [whatsappInput, setWhatsappInput] = useState('')
   const [pronCat, setPronCat] = useState<string | null>(null)
@@ -1209,6 +1244,7 @@ export default function AppPage() {
     try { const vd = localStorage.getItem('speakup_vocab_dia'); if (vd) setVocabDiaData(vd) } catch (e) {}
     try { if (localStorage.getItem('speakup_onboarded')) setOnboarded(true) } catch (e) {}
     try { const r = localStorage.getItem('speakup_recorde'); if (r) setRecorde(parseInt(r) || 0) } catch (e) {}
+    try { const s = localStorage.getItem('speakup_srs'); if (s) setSrsData(JSON.parse(s)) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1291,10 +1327,12 @@ export default function AppPage() {
   function avaliarPron(target: string, heard: string) {
     const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').trim().split(/\s+/).filter(Boolean)
     const tw = norm(target); const hw = norm(heard)
-    const acertos = tw.filter(w => hw.includes(w)).length
-    const score = tw.length ? Math.round(acertos / tw.length * 100) : 0
+    // Crédito parcial: cada palavra vale pela proximidade com a melhor palavra ouvida
+    // (tolera trocas típicas do reconhecimento de voz, ex.: think→sink). Abaixo de 0.5 não conta.
+    const soma = tw.reduce((acc, w) => { const s = melhorSim(w, hw); return acc + (s >= 0.5 ? s : 0) }, 0)
+    const score = tw.length ? Math.round(soma / tw.length * 100) : 0
     setPronScore(score)
-    if (score < 100) pedirDicaPron(target, heard); else setPronTip('')
+    if (score < 90) pedirDicaPron(target, heard); else setPronTip('')
   }
 
   function gravarPron(target: string) {
@@ -1505,7 +1543,7 @@ export default function AppPage() {
   function answer(i: number) {
     if (answered) return
     setAnswered(true); setSelected(i)
-    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); registrarErro(lessons[level][lessonIdx].title) }
+    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title) }
   }
 
   function nextQ() {
@@ -1523,6 +1561,7 @@ export default function AppPage() {
       })
       setLicoesConcluidas(novasLicoes); setXp(novoXp)
       if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val); registrarDominio(titulo) }
+      agendarRevisao(titulo, licaoErrosRef.current === 0)
       salvarProgresso(novoXp, novasLicoes); setView('finish')
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1) }
   }
@@ -1673,6 +1712,46 @@ export default function AppPage() {
     const fracos = (perfilIa.topicos_fracos || []).filter((t: string) => t !== topico)
     salvarPerfil({ ...perfilIa, dominados, topicos_fracos: fracos, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO, resumo_ultima_sessao: `Concluiu a lição "${topico}".`, atualizado_em: hojeStr })
   }
+  // ----- Revisão Inteligente (SRS) -----
+  // Intervalos em dias por "caixa": acertou sobe de caixa (revisa mais tarde); errou volta pra caixa 0.
+  const SRS_INTERVALOS = [1, 2, 4, 8, 16]
+  function agendarRevisao(titulo: string, acertou: boolean) {
+    setSrsData(prev => {
+      const atual = prev[titulo] || { box: 0, due: hojeStr }
+      const box = acertou ? Math.min(atual.box + 1, SRS_INTERVALOS.length - 1) : 0
+      const due = new Date(Date.now() + SRS_INTERVALOS[box] * 86400000).toISOString().split('T')[0]
+      const next = { ...prev, [titulo]: { box, due } }
+      try { localStorage.setItem('speakup_srs', JSON.stringify(next)) } catch (e) {}
+      return next
+    })
+  }
+  // Lições concluídas cuja revisão já venceu (due <= hoje) e que ainda existem.
+  const todasLicoes = Object.values(lessons).flat()
+  const revisoesDevidas = Object.keys(srsData)
+    .filter(t => srsData[t].due <= hojeStr && todasLicoes.some(l => l.title === t))
+  // Monta até 6 questões vindas das lições a revisar (1-2 por lição), determinístico por dia.
+  const revisaoQuestions: Question[] = (() => {
+    const qs: Question[] = []
+    for (const titulo of revisoesDevidas) {
+      const lic = todasLicoes.find(l => l.title === titulo)
+      const pool = (lic?.q || [])
+      if (!pool.length) continue
+      const k = daySeed % pool.length
+      qs.push(pool[k])
+      if (pool.length > 1) qs.push(pool[(k + 1) % pool.length])
+      if (qs.length >= 6) break
+    }
+    return qs.slice(0, 6)
+  })()
+  function finalizarRevisao() {
+    setRevResult(true)
+    const acertouTudo = revAcertos >= Math.ceil(revisaoQuestions.length * 0.6)
+    // Promove/reagenda todas as lições que estavam devidas conforme o desempenho geral.
+    revisoesDevidas.forEach(t => agendarRevisao(t, acertouTudo))
+    const novoXp = xp + revAcertos * 3
+    setXp(novoXp)
+  }
+
   function resumoPerfil(): string {
     const p = perfilIa || {}
     const partes: string[] = [`Aluno: ${userName || 'estudante'} (nível ${level}, ${xp} XP, sequência de ${streak} dias).`]
@@ -1764,6 +1843,13 @@ export default function AppPage() {
             })()}
           </div>
           <div style={{ padding: '16px', marginTop: 8 }}>
+            {revisoesDevidas.length > 0 && (
+              <div onClick={() => { setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao') }} style={{ background: 'linear-gradient(135deg, #16A34A, #0F7A38)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <IcBadge e="🧠" color="#0F7A38" onDark box={44} size={24} />
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Revisão Inteligente</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{revisoesDevidas.length} {revisoesDevidas.length === 1 ? 'lição pronta' : 'lições prontas'} pra fixar de vez</div></div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Revisar <Ic e="→" /></span>
+              </div>
+            )}
             {(() => {
               const proxL = lessons[level]?.find(l => !l.done)
               const tasks = [
@@ -2059,7 +2145,8 @@ export default function AppPage() {
                     <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.5, marginBottom: 8 }}>
                       {palavras.map((w: string, i: number) => {
                         const clean = w.toLowerCase().replace(/[^a-z0-9']/g, '')
-                        const cor = pronScore === null ? 'var(--color-text-primary)' : (heardSet.includes(clean) ? '#16A34A' : '#C0392B')
+                        const sim = pronScore === null ? -1 : melhorSim(clean, heardSet)
+                        const cor = pronScore === null ? 'var(--color-text-primary)' : sim >= 0.75 ? '#16A34A' : sim >= 0.5 ? '#E08A1E' : '#C0392B'
                         return <span key={i} style={{ color: cor }}>{w}{i < palavras.length - 1 ? ' ' : ''}</span>
                       })}
                     </div>
@@ -2076,7 +2163,8 @@ export default function AppPage() {
                         <div style={{ fontSize: 14, fontWeight: 700, color: pronScore >= 80 ? '#16A34A' : pronScore >= 50 ? '#E08A1E' : '#C0392B' }}>{pronScore}%</div>
                       </div>
                       <div style={{ fontSize: 15, fontStyle: 'italic', color: 'var(--color-text-primary)', marginBottom: 12 }}>"{pronHeard || '...'}"</div>
-                      {pronScore === 100 && <div style={{ background: '#E3F3EA', borderRadius: 10, padding: 12, fontSize: 13, color: '#16A34A', fontWeight: 600, textAlign: 'center' }}><Ic e="🎉" /> Perfeito! Pronúncia certeira!</div>}
+                      {pronScore >= 90 && <div style={{ background: '#E3F3EA', borderRadius: 10, padding: 12, fontSize: 13, color: '#16A34A', fontWeight: 600, textAlign: 'center' }}><Ic e="🎉" /> {pronScore === 100 ? 'Perfeito! Pronúncia certeira!' : 'Muito bom! Quase perfeito!'}</div>}
+                      {pronScore >= 70 && pronScore < 90 && <div style={{ background: '#FEF3E2', borderRadius: 10, padding: 12, fontSize: 13, color: '#E08A1E', fontWeight: 600, textAlign: 'center' }}><Ic e="👍" /> Boa! Ajuste as palavras em laranja.</div>}
                       {pronLoadingTip && <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}><Ic e="💡" /> Analisando sua pronúncia...</div>}
                       {pronTip && <div style={{ background: purpleLight, borderRadius: 10, padding: 12, fontSize: 13, color: '#3C3489', lineHeight: 1.5 }}><Ic e="💡" /> {pronTip}</div>}
                     </div>
@@ -2124,6 +2212,50 @@ export default function AppPage() {
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Você acertou {desAcertos}/5</div>
                 <div style={{ fontSize: 16, color: '#E08A1E', fontWeight: 700, marginTop: 6 }}>+{desAcertos * 5} XP <Ic e="🔥" /></div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, margin: '14px auto 0' }}>{desAcertos === 5 ? <>Perfeito! Você está afiado hoje. <Ic e="🌟" /></> : 'Bom trabalho! Volte amanhã para manter seu streak vivo.'}</div>
+                <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'revisao' && (
+        <div>
+          <div style={{ background: 'linear-gradient(135deg, #16A34A, #0F7A38)', padding: '20px 16px 24px' }}>
+            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🧠" color="#0F7A38" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Revisão Inteligente</div></div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>Relembre o que você aprendeu, na hora certa de fixar</div>
+          </div>
+          <div style={{ padding: 16 }}>
+            {revisaoQuestions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 30 }}>
+                <div style={{ fontSize: 48 }}><Ic e="✅" /></div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-text-primary)', marginTop: 10 }}>Nada para revisar agora!</div>
+                <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.5, maxWidth: 300, margin: '6px auto 0' }}>Conclua lições e elas voltam aqui nos dias certos para você não esquecer.</div>
+                <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
+              </div>
+            ) : !revResult ? (
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Revisão {revQ + 1} de {revisaoQuestions.length}</div>
+                <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: '#16A34A', height: '100%', width: `${revQ / revisaoQuestions.length * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
+                {revisaoQuestions[revQ].ctx ? (<div style={{ background: 'var(--color-background-secondary)', borderLeft: '3px solid #16A34A', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>{revisaoQuestions[revQ].ctx}</div>) : null}
+                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{revisaoQuestions[revQ].q}</div>
+                {revisaoQuestions[revQ].opts.map((opt: string, i: number) => {
+                  const correta = revAns && i === revisaoQuestions[revQ].ans
+                  const errada = revAns && i === revSel && i !== revisaoQuestions[revQ].ans
+                  return (
+                    <button key={i} onClick={() => { if (revAns) return; setRevSel(i); setRevAns(true); if (i === revisaoQuestions[revQ].ans) setRevAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : (revSel === i ? '2px solid #16A34A' : '1px solid var(--color-border-tertiary)'), background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: revAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
+                  )
+                })}
+                {revAns && revisaoQuestions[revQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {revisaoQuestions[revQ].exp}</div>)}
+                <button disabled={!revAns} onClick={() => { if (revQ < revisaoQuestions.length - 1) { setRevQ(revQ + 1); setRevSel(-1); setRevAns(false) } else { finalizarRevisao() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !revAns ? 'var(--color-background-secondary)' : '#16A34A', color: !revAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !revAns ? 'default' : 'pointer' }}>{revQ < revisaoQuestions.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver resultado <Ic e="🎯" /></>}</button>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', paddingTop: 12 }}>
+                <div style={{ fontSize: 56 }}><Ic e={revAcertos === revisaoQuestions.length ? '🏆' : revAcertos >= revisaoQuestions.length * 0.6 ? '🎉' : '💪'} /></div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Você acertou {revAcertos}/{revisaoQuestions.length}</div>
+                <div style={{ fontSize: 16, color: '#16A34A', fontWeight: 700, marginTop: 6 }}>+{revAcertos * 3} XP <Ic e="🧠" /></div>
+                <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, margin: '14px auto 0' }}>{revAcertos >= revisaoQuestions.length * 0.6 ? <>Boa! Essas lições vão voltar mais pra frente, mais espaçadas. <Ic e="🌟" /></> : 'Sem problema — vamos revisar isso de novo em breve para fixar de vez.'}</div>
                 <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
               </div>
             )}
@@ -2422,7 +2554,7 @@ export default function AppPage() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios <Ic e="→" /></button>
+                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); licaoErrosRef.current = 0; setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios <Ic e="→" /></button>
               </div>
             )}
             {view === 'quiz' && (
