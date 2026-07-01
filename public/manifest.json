@@ -1,22 +1,35 @@
 {
-  "name": "SpeakUp",
+  "id": "/",
+  "name": "SpeakUp — Aprenda inglês com IA",
   "short_name": "SpeakUp",
-  "description": "Aprenda inglês com IA",
+  "description": "Aprenda inglês de verdade com um professor de IA: lições diárias, trilha do A1 ao C2, conversação, vocabulário e listening. Feito para brasileiros.",
   "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#185FA5",
   "theme_color": "#185FA5",
   "orientation": "portrait",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["education"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
