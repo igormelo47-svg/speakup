@@ -1494,7 +1494,7 @@ export default function AppPage() {
   async function pedirDicaPron(target: string, heard: string) {
     setPronLoadingTip(true); setPronTip('')
     try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: 'Você é um coach de pronúncia de inglês para brasileiros. O aluno leu uma frase em voz alta e um reconhecimento de voz captou o que entendeu. Compare a frase-alvo com o que foi reconhecido e dê UMA dica curta (no máximo 2 frases), específica e encorajadora, em português, sobre o som que provavelmente saiu errado (ex: th, r, h aspirado, vogais curtas/longas, terminação -ed ou -s). Foque na palavra que não bateu. Nunca diga que ouviu o áudio, você só tem o texto reconhecido.', messages: [{ role: 'user', content: `Frase-alvo: "${target}"\nReconhecido pelo microfone: "${heard}"` }] }) })
+      const res = await callChat({ system: 'Você é um coach de pronúncia de inglês para brasileiros. O aluno leu uma frase em voz alta e um reconhecimento de voz captou o que entendeu. Compare a frase-alvo com o que foi reconhecido e dê UMA dica curta (no máximo 2 frases), específica e encorajadora, em português, sobre o som que provavelmente saiu errado (ex: th, r, h aspirado, vogais curtas/longas, terminação -ed ou -s). Foque na palavra que não bateu. Nunca diga que ouviu o áudio, você só tem o texto reconhecido.', messages: [{ role: 'user', content: `Frase-alvo: "${target}"\nReconhecido pelo microfone: "${heard}"` }] })
       const data = await res.json()
       setPronTip((data.content?.[0]?.text || 'Continue praticando!').trim())
     } catch { setPronTip('Não consegui gerar a dica agora. Tente de novo.') }
@@ -1722,6 +1722,13 @@ export default function AppPage() {
     rec.start()
   }
 
+  // Chama /api/chat sempre com o token de login (a rota exige usuário autenticado).
+  async function callChat(payload: any) {
+    let token = ''
+    try { const { data } = await supabase.auth.getSession(); token = data.session?.access_token || '' } catch (e) {}
+    return fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) })
+  }
+
   async function sendChat() {
     if (!chatInput.trim() || loadingChat) return
     if (!isPremium && profHoje >= PROF_LIMIT) {
@@ -1737,7 +1744,7 @@ export default function AppPage() {
     const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] }) })
+      const res = await callChat({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] })
       const data = await res.json()
       setChatMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Erro.' }])
     } catch { setChatMsgs(m => [...m, { role: 'ai', text: 'Erro de conexão. Tente novamente.' }]) }
@@ -1749,7 +1756,7 @@ export default function AppPage() {
     setLoadingReport(true)
     try {
       const history = convMsgs.map(m => `${m.role === 'ai' ? 'Interlocutor' : 'Aluno'}: ${m.text}`).join('\n')
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: 'Você avalia a fluência em inglês de um aluno brasileiro com base em uma conversa. Responda APENAS com um objeto JSON válido, sem markdown, sem crases, sem texto antes ou depois. Formato exato: {"score": número de 0 a 100, "strengths": ["ponto forte 1","ponto forte 2","ponto forte 3"], "improvements": ["o que melhorar 1 com exemplo","o que melhorar 2 com exemplo"], "message": "frase curta de incentivo em português"}. Avalie só as falas do Aluno. Seja encorajador mas honesto.', messages: [{ role: 'user', content: `Avalie esta conversa:\n\n${history}` }] }) })
+      const res = await callChat({ system: 'Você avalia a fluência em inglês de um aluno brasileiro com base em uma conversa. Responda APENAS com um objeto JSON válido, sem markdown, sem crases, sem texto antes ou depois. Formato exato: {"score": número de 0 a 100, "strengths": ["ponto forte 1","ponto forte 2","ponto forte 3"], "improvements": ["o que melhorar 1 com exemplo","o que melhorar 2 com exemplo"], "message": "frase curta de incentivo em português"}. Avalie só as falas do Aluno. Seja encorajador mas honesto.', messages: [{ role: 'user', content: `Avalie esta conversa:\n\n${history}` }] })
       const data = await res.json()
       const txt = (data.content?.[0]?.text || '').replace(/```json/g,'').replace(/```/g,'').trim()
       const rep = JSON.parse(txt)
@@ -1825,7 +1832,7 @@ export default function AppPage() {
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: selectedScenario.systemPrompt + ' ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] }) })
+      const res = await callChat({ system: selectedScenario.systemPrompt + ' ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
       const data = await res.json()
       setConvMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Could not respond.' }])
     } catch { setConvMsgs(m => [...m, { role: 'ai', text: 'Connection error. Please try again.' }]) }
