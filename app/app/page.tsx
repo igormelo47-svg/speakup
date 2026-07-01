@@ -1333,6 +1333,7 @@ export default function AppPage() {
   const licoesHoje = (() => { const p = licaoDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const metaFeitaHoje = licoesHoje >= LIMITE_DIA_LICOES
   const PROF_LIMIT = 10
+  const PROF_LIMIT_PREMIUM = 120 // uso justo (proteção de custo); invisível ao aluno
   const profHoje = (() => { const p = profDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const profBloqueado = !isPremium && profHoje >= PROF_LIMIT
   const [xpInicioDia, setXpInicioDia] = useState(0)
@@ -1727,8 +1728,13 @@ export default function AppPage() {
       setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser!` }])
       return
     }
+    // Teto de uso justo do Premium (proteção de custo) — silencioso, sem expor o número ao aluno.
+    if (isPremium && profHoje >= PROF_LIMIT_PREMIUM) {
+      setChatMsgs(m => [...m, { role: 'ai', text: 'Estou um pouco sobrecarregado agora. 😅 Tente de novo daqui a pouco.' }])
+      return
+    }
     const msg = chatInput; setChatInput('')
-    if (!isPremium) { const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo) }
+    const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] }) })
