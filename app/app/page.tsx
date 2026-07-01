@@ -1880,8 +1880,14 @@ export default function AppPage() {
         <div>
           <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 46px) 16px 32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 22 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: '#fff' }}>V</div>
-              <span style={{ fontSize: 21, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ color: '#FFD98A' }}>ai</span></span>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                <rect x="2" y="3.5" width="20" height="14" rx="4.5" fill="#FFD98A" />
+                <path d="M7 17.5 L7 21.5 L12 17.5 Z" fill="#FFD98A" />
+                <circle cx="8" cy="10.5" r="1.5" fill="#103D77" />
+                <circle cx="12" cy="10.5" r="1.5" fill="#103D77" />
+                <circle cx="16" cy="10.5" r="1.5" fill="#103D77" />
+              </svg>
+              <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ color: '#FFD98A' }}>ai</span></span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div></div>
@@ -2462,9 +2468,11 @@ export default function AppPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {scenarios.map((s, idx) => {
                     const bloqueado = !isPremium && idx >= FREE_LIMIT
+                    const grads = ['linear-gradient(135deg,#6A5ACD,#4B3FBF)', 'linear-gradient(135deg,#2E72D6,#185FA5)', 'linear-gradient(135deg,#16A34A,#0F7A38)', 'linear-gradient(135deg,#E0891E,#C26A0A)', 'linear-gradient(135deg,#DB4A8B,#A83271)', 'linear-gradient(135deg,#0EA5A5,#0B7E7E)', 'linear-gradient(135deg,#EF6C4D,#C74A2E)', 'linear-gradient(135deg,#7C6FE0,#5B43C9)', 'linear-gradient(135deg,#2FA8D6,#1B7FA8)', 'linear-gradient(135deg,#E0A62E,#C2860A)']
+                    const g = grads[idx % grads.length]
                     return (
                       <div key={s.id} onClick={() => !bloqueado ? startScenario(s) : setTab('plans')} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', opacity: bloqueado ? 0.6 : 1 }}>
-                        <div style={{ width: 48, height: 48, background: bloqueado ? '#eee' : purpleLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><Ic e={bloqueado ? '🔒' : s.icon} /></div>
+                        <div style={{ width: 52, height: 52, background: bloqueado ? '#e8e8e8' : g, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: bloqueado ? 'none' : '0 3px 8px rgba(0,0,0,0.16)' }}><Ic e={bloqueado ? '🔒' : s.icon} c={bloqueado ? undefined : '#fff'} /></div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.title}</div>
                           <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{s.description}</div>
@@ -2783,8 +2791,10 @@ export default function AppPage() {
                 const feitasNivel = arr.filter(l => licoesConcluidas.includes(l.title)).length
                 return (
                   <div key={lv} style={{ marginBottom: 16 }}>
-                    <div style={{ textAlign: 'center', margin: '4px 0 20px' }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: info.cor, background: info.bg, padding: '6px 16px', borderRadius: 20 }}>{info.nome} · {feitasNivel}/{arr.length}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 20px' }}>
+                      <div style={{ flex: 1, height: 1, background: 'var(--color-border-tertiary)' }} />
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: info.cor, background: info.bg, padding: '6px 16px', borderRadius: 20, whiteSpace: 'nowrap' }}>{info.nome} · {feitasNivel}/{arr.length}</span>
+                      <div style={{ flex: 1, height: 1, background: 'var(--color-border-tertiary)' }} />
                     </div>
                     {arr.map((l, i) => {
                       const done = licoesConcluidas.includes(l.title)
@@ -2792,13 +2802,14 @@ export default function AppPage() {
                       const liberada = isAtual && !metaFeitaHoje
                       const unlocked = done || liberada
                       const dx = Math.round(Math.sin(i * 0.8) * 58)
-                      const base = done ? '#22C55E' : liberada ? '#2E72D6' : '#E4E7EC'
+                      const base = done ? 'linear-gradient(135deg,#34D06A,#16A34A)' : liberada ? 'linear-gradient(135deg,#3E86E8,#2E72D6)' : '#E4E7EC'
                       const shadow = done ? '#15803D' : liberada ? '#103D77' : '#CBD1DA'
+                      const glow = liberada ? ', 0 0 0 6px rgba(46,114,214,0.18)' : done ? ', 0 0 0 5px rgba(22,163,74,0.14)' : ''
                       return (
                         <div key={i} style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
                           <div style={{ transform: `translateX(${dx}px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', width: 100 }}>
                             {liberada && <div style={{ background: '#fff', border: `2px solid ${blue}`, color: blue, fontSize: 10.5, fontWeight: 700, padding: '3px 11px', borderRadius: 20, marginBottom: 7, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', animation: 'su_bob 1.4s ease-in-out infinite' }}>COMECE!</div>}
-                            <div onClick={() => { if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ position: 'relative', width: 62, height: 62, borderRadius: '50%', background: base, boxShadow: `0 5px 0 ${shadow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: unlocked ? 'pointer' : 'default', animation: liberada ? 'su_bob 1.4s ease-in-out infinite' : 'none' }}>
+                            <div onClick={() => { if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ position: 'relative', width: 62, height: 62, borderRadius: '50%', background: base, boxShadow: `0 5px 0 ${shadow}${glow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: unlocked ? 'pointer' : 'default', animation: liberada ? 'su_bob 1.4s ease-in-out infinite' : 'none' }}>
                               <Ic e={l.icon} c={unlocked ? '#fff' : '#9AA3AF'} s={27} />
                               {done && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}><Ic e="✓" s={12} c="#16A34A" /></span>}
                               {!unlocked && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}><Ic e="🔒" s={11} c="#9AA3AF" /></span>}
@@ -2811,6 +2822,12 @@ export default function AppPage() {
                   </div>
                 )
               })}
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'linear-gradient(135deg,#FFD98A,#E0A62E)', boxShadow: '0 5px 0 #B9861F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="🏆" s={30} /></div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', marginTop: 8 }}>Fluência C2</div>
+                </div>
+              </div>
             </div>
           </div>
         )
@@ -2929,23 +2946,29 @@ export default function AppPage() {
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-background-secondary)' }}>
           <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="👨‍🏫" s={24} c={blue} /></div>
+            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><Ic e="🦜" s={26} /></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Professor de IA</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Vô, seu professor de IA</div>
               <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
             </div>
           </div>
           <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
             {chatMsgs.length <= 1 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-                {['Como me apresentar?', 'Since vs for', 'Present Perfect', 'Phrasal verbs'].map(t => (
-                  <button key={t} onClick={() => setChatInput(t)} style={{ padding: '8px 14px', border: 'none', borderRadius: 20, background: blueLight, color: blueDark, fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>{t}</button>
-                ))}
-              </div>
+              <>
+                <div style={{ textAlign: 'center', padding: '4px 0 2px' }}>
+                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><Ic e="🦜" s={58} /></div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>Toque no <b>Vô</b> pra me ouvir, ou escolha um tema 👇</div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4, justifyContent: 'center' }}>
+                  {['Como me apresentar?', 'Since vs for', 'Present Perfect', 'Phrasal verbs'].map(t => (
+                    <button key={t} onClick={() => setChatInput(t)} style={{ padding: '8px 14px', border: 'none', borderRadius: 20, background: blueLight, color: blueDark, fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>{t}</button>
+                  ))}
+                </div>
+              </>
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="👨‍🏫" s={18} c={blue} /></div>}
+                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Ic e="🦜" s={18} /></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
@@ -2954,7 +2977,7 @@ export default function AppPage() {
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="👨‍🏫" s={18} c={blue} /></div>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Ic e="🦜" s={18} /></div>
                 <div style={{ padding: '14px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 5, alignItems: 'center' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
@@ -2974,7 +2997,7 @@ export default function AppPage() {
       </div>
 
       <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', padding: '8px 4px calc(8px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
-        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => {
+        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '🦜', 'Professor']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
           <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0' }}>
