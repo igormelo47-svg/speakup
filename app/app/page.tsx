@@ -2776,7 +2776,7 @@ export default function AppPage() {
         for (const lv of ordem) { const a = lessons[lv] || []; const idx = a.findIndex(l => !licoesConcluidas.includes(l.title)); if (idx !== -1) { atualLvl = lv; atualIdx = idx; break } }
         const pct = totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0
         return (
-          <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
+          <div style={{ background: 'linear-gradient(180deg, #DFF3D6 0%, #C4E7B6 55%, #AEDDA0 100%)', minHeight: '100vh' }}>
             <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🗺️" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Sua trilha</div></div>
               <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>{doneLessons} de {totalLessons} lições · do A1 ao C2</div>
@@ -2806,15 +2806,16 @@ export default function AppPage() {
                       const shadow = done ? '#15803D' : liberada ? '#103D77' : '#CBD1DA'
                       const glow = liberada ? ', 0 0 0 6px rgba(46,114,214,0.18)' : done ? ', 0 0 0 5px rgba(22,163,74,0.14)' : ''
                       return (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                          <div style={{ transform: `translateX(${dx}px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', width: 100 }}>
+                        <div key={i} style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                          <div aria-hidden style={{ position: 'absolute', top: 2, [dx > 0 ? 'left' : 'right']: 18, fontSize: 30, opacity: 0.7, pointerEvents: 'none', userSelect: 'none' }}>{['🌳', '🌲', '🌿', '🌸'][i % 4]}</div>
+                          <div style={{ transform: `translateX(${dx}px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', width: 100, position: 'relative', zIndex: 1 }}>
                             {liberada && <div style={{ background: '#fff', border: `2px solid ${blue}`, color: blue, fontSize: 10.5, fontWeight: 700, padding: '3px 11px', borderRadius: 20, marginBottom: 7, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', animation: 'su_bob 1.4s ease-in-out infinite' }}>COMECE!</div>}
                             <div onClick={() => { if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ position: 'relative', width: 62, height: 62, borderRadius: '50%', background: base, boxShadow: `0 5px 0 ${shadow}${glow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: unlocked ? 'pointer' : 'default', animation: liberada ? 'su_bob 1.4s ease-in-out infinite' : 'none' }}>
                               <Ic e={l.icon} c={unlocked ? '#fff' : '#9AA3AF'} s={27} />
                               {done && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}><Ic e="✓" s={12} c="#16A34A" /></span>}
                               {!unlocked && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}><Ic e="🔒" s={11} c="#9AA3AF" /></span>}
                             </div>
-                            <div style={{ fontSize: 10.5, color: unlocked ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: isAtual ? 700 : 500, marginTop: 8, textAlign: 'center', lineHeight: 1.15, maxWidth: 96 }}>{l.title}</div>
+                            <div style={{ fontSize: 10.5, color: unlocked ? '#1C3A24' : '#5B6B60', fontWeight: isAtual ? 700 : 600, marginTop: 8, textAlign: 'center', lineHeight: 1.15, maxWidth: 100, background: 'rgba(255,255,255,0.82)', padding: '3px 8px', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}>{l.title}</div>
                           </div>
                         </div>
                       )
