@@ -549,6 +549,10 @@ type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'finish'
 
 const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/YJjrdjl'
 const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/E6lqt5q'
+// ⭐ INTERRUPTOR DA MONETIZAÇÃO:
+// true  = beta grátis (todos Premium, sem paywall) — estado atual
+// false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify)
+const BETA_GRATIS = true
 
 const dictCatList = [
   {id:'casa',label:'🏠 Casa'},{id:'comida',label:'🍎 Comida'},{id:'corpo',label:'🧍 Corpo'},
@@ -1067,7 +1071,7 @@ export default function AppPage() {
   const [conqNova, setConqNova] = useState<{ e: string; nome: string } | null>(null)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
-  const [isPremium, setIsPremium] = useState(true) // BETA: liberado pra todos. Pra voltar a cobrar, troque true por false
+  const [isPremium, setIsPremium] = useState(BETA_GRATIS)
 
   const tocarSom = (tipo: 'acerto' | 'erro') => {
     try {
@@ -1380,7 +1384,7 @@ export default function AppPage() {
         setPerfilIa(prog.perfil_ia || {})
         setStreak(prog.streak || 0)
         setLicoesConcluidas(prog.licoes_concluidas || [])
-        setIsPremium(true) // BETA: sempre Premium. Pra voltar a cobrar, use: prog.is_premium || false
+        setIsPremium(BETA_GRATIS || prog.is_premium || false)
         setWhatsapp(prog.whatsapp || '')
         if (!prog.email && data.user.email) supabase.from('progresso').update({ email: data.user.email }).eq('user_id', data.user.id)
         const hoje = new Date().toISOString().split('T')[0]
