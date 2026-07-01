@@ -2973,14 +2973,15 @@ export default function AppPage() {
 
       </div>
 
-      <div style={{ background: '#2E72D6', borderTop: '0.5px solid rgba(255,255,255,0.28)', display: 'flex', padding: '8px 0 calc(8px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
+      <div style={{ background: `linear-gradient(180deg, ${blueDark}, #0B2B52)`, borderTop: '0.5px solid rgba(255,255,255,0.12)', display: 'flex', padding: '8px 4px calc(8px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
         {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
-          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 0' }}>
-            <span style={{ fontSize: 18 }}><Ic e={icon} c={ativo ? '#ffffff' : '#B5D4F4'} /></span>
-            <span style={{ fontSize: 9, color: ativo ? '#ffffff' : '#B5D4F4', fontWeight: ativo ? 600 : 500 }}>{label}</span>
-            {ativo && <div style={{ width: 20, height: 3, background: '#ffffff', borderRadius: 2 }} />}
+          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '5px 10px', borderRadius: 14, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
+              <span style={{ fontSize: 18 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
+              <span style={{ fontSize: 9, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500 }}>{label}</span>
+            </div>
           </button>
           )
         })}
