@@ -1878,7 +1878,8 @@ export default function AppPage() {
 
       {tab === 'home' && (
         <div>
-          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: '20px 16px 32px' }}>
+          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: '16px 16px 32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 14 }}><span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ color: '#FFD98A' }}>ai</span></span></div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div></div>
               <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 12px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
