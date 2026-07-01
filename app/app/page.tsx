@@ -1161,6 +1161,38 @@ const pronCategorias = [
   ] },
 ]
 
+// Mascote do Vonai ("Vô") — personagem próprio em SVG (fica igual em qualquer aparelho).
+function Mascote({ size = 40 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id="vonaiMasc" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#3E86E8" />
+          <stop offset="1" stopColor="#1E63C7" />
+        </linearGradient>
+      </defs>
+      {/* antena com ponto dourado */}
+      <rect x="30.5" y="4" width="3" height="8" rx="1.5" fill="#FFD98A" />
+      <circle cx="32" cy="4" r="3.4" fill="#FFD98A" />
+      {/* corpo */}
+      <rect x="7" y="11" width="50" height="45" rx="19" fill="url(#vonaiMasc)" />
+      {/* olhos */}
+      <circle cx="24" cy="31" r="8.2" fill="#fff" />
+      <circle cx="40" cy="31" r="8.2" fill="#fff" />
+      <circle cx="25" cy="32" r="3.7" fill="#0F2E5C" />
+      <circle cx="41" cy="32" r="3.7" fill="#0F2E5C" />
+      {/* brilho nos olhos */}
+      <circle cx="23.4" cy="30.4" r="1.2" fill="#fff" />
+      <circle cx="39.4" cy="30.4" r="1.2" fill="#fff" />
+      {/* sorriso */}
+      <path d="M23 43 Q32 50 41 43" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
+      {/* bochechas */}
+      <circle cx="15.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
+      <circle cx="48.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
+    </svg>
+  )
+}
+
 export default function AppPage() {
   const XP_PENDING_KEY = 'speakup_xp_pending'
   const [tab, setTab] = useState('home')
@@ -1949,7 +1981,7 @@ export default function AppPage() {
           </div>
           <div style={{ padding: '16px', marginTop: 8 }}>
             <div onClick={() => setTab('ai')} style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 18, padding: 16, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 6px 18px rgba(75,63,191,0.3)', animation: 'su_risefade 0.5s ease both' }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.2s ease-in-out infinite' }}><span style={{ fontSize: 32, lineHeight: 1 }}>🦜</span></div>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={40} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15.5, fontWeight: 700, color: '#fff' }}>Converse com seu Professor IA</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2, lineHeight: 1.4 }}>Correções em tempo real enquanto você pratica inglês</div>
@@ -2966,7 +2998,7 @@ export default function AppPage() {
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-background-secondary)' }}>
           <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><span style={{ fontSize: 26, lineHeight: 1 }}>🦜</span></div>
+            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={32} /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Vô, seu professor de IA</div>
               <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
@@ -2976,7 +3008,7 @@ export default function AppPage() {
             {chatMsgs.length <= 1 && (
               <>
                 <div style={{ textAlign: 'center', padding: '4px 0 2px' }}>
-                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><span style={{ fontSize: 58, lineHeight: 1 }}>🦜</span></div>
+                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={72} /></div>
                   <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>Toque no <b>Vô</b> pra me ouvir, ou escolha um tema 👇</div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4, justifyContent: 'center' }}>
@@ -2988,7 +3020,7 @@ export default function AppPage() {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><span style={{ fontSize: 18, lineHeight: 1 }}>🦜</span></div>}
+                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Mascote size={22} /></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
@@ -2997,7 +3029,7 @@ export default function AppPage() {
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><span style={{ fontSize: 18, lineHeight: 1 }}>🦜</span></div>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Mascote size={22} /></div>
                 <div style={{ padding: '14px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 5, alignItems: 'center' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
