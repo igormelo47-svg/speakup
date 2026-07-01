@@ -1181,7 +1181,7 @@ export default function AppPage() {
   }, [])
 
   const desafioPool = Object.values(lessons).flat().flatMap(l => l.q || [])
-  const daySeed = new Date().toISOString().split('T')[0].split('-').reduce((a, b) => a + parseInt(b), 0)
+  const daySeed = Math.floor(Date.now() / 86400000)
   const desafioQuestions: Question[] = (() => {
     if (desafioPool.length < 5) return []
     const idxs: number[] = []
