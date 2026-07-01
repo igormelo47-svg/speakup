@@ -15,7 +15,7 @@ import {
   Lightbulb, Sparkles, TrendingUp, BicepsFlexed, PartyPopper, LockOpen, Lock, Search,
   Flag, X, Heart, Rocket, Folder, Home, Apple, Shirt, Goal, ChefHat, Cat, Map as MapIcon,
   Image as ImageIcon, ArrowRight, ArrowLeft, Check, CircleCheck, BookText, Pause, Square,
-  Volume2, MessageCircle, Settings, HelpingHand, Bell,
+  Volume2, MessageCircle, Settings, HelpingHand, Bell, Bird,
 } from 'lucide-react'
 
 // Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
@@ -45,7 +45,7 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
   '📝': NotebookPen, '🎤': Mic, '⏹️': Square, '⏸️': Pause, '🔊': Volume2, '💡': Lightbulb,
   '✨': Sparkles, '📈': TrendingUp, '💪': BicepsFlexed, '🎉': PartyPopper, '🔓': LockOpen,
   '🔒': Lock, '🔍': Search, '🏁': Flag, '💜': Heart, '🚀': Rocket, '🗂️': Folder,
-  '🏆': Trophy, '🌱': Sprout, '🔔': Bell,
+  '🏆': Trophy, '🌱': Sprout, '🔔': Bell, '🦜': Bird,
   // Símbolos de interface
   '→': ArrowRight, '←': ArrowLeft, '✓': Check, '✗': X, '✅': CircleCheck, '✕': X,
   '🎙️': Mic, '🤲': HelpingHand,
@@ -2947,7 +2947,7 @@ export default function AppPage() {
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-background-secondary)' }}>
           <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><Ic e="🦜" s={26} /></div>
+            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><span style={{ fontSize: 26, lineHeight: 1 }}>🦜</span></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Vô, seu professor de IA</div>
               <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
@@ -2957,7 +2957,7 @@ export default function AppPage() {
             {chatMsgs.length <= 1 && (
               <>
                 <div style={{ textAlign: 'center', padding: '4px 0 2px' }}>
-                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><Ic e="🦜" s={58} /></div>
+                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><span style={{ fontSize: 58, lineHeight: 1 }}>🦜</span></div>
                   <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>Toque no <b>Vô</b> pra me ouvir, ou escolha um tema 👇</div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4, justifyContent: 'center' }}>
@@ -2969,7 +2969,7 @@ export default function AppPage() {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Ic e="🦜" s={18} /></div>}
+                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><span style={{ fontSize: 18, lineHeight: 1 }}>🦜</span></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
@@ -2978,7 +2978,7 @@ export default function AppPage() {
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Ic e="🦜" s={18} /></div>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><span style={{ fontSize: 18, lineHeight: 1 }}>🦜</span></div>
                 <div style={{ padding: '14px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 5, alignItems: 'center' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
