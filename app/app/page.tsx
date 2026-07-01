@@ -1190,7 +1190,18 @@ export default function AppPage() {
       audio.volume = 0.5
       audio.play().catch(() => {})
     } catch (e) {}
+    try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(tipo === 'acerto' ? [0, 30, 40, 30] : 60) } catch (e) {}
   }
+  // Torcida de XP: número da home "sobe" animado até o valor real
+  const [xpShown, setXpShown] = useState(0)
+  useEffect(() => {
+    const start = xpShown, end = xp
+    if (start === end) return
+    let raf = 0; const dur = 700, t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now())
+    const tick = (t: number) => { const p = Math.min(1, (t - t0) / dur); const eased = 1 - Math.pow(1 - p, 3); setXpShown(Math.round(start + (end - start) * eased)); if (p < 1) raf = requestAnimationFrame(tick) }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [xp])
   const [flipped, setFlipped] = useState<Record<number, boolean>>({})
   const [vocabCat, setVocabCat] = useState('all')
   const [vocabSrs, setVocabSrs] = useState<Record<string, string>>({})
@@ -1915,7 +1926,7 @@ export default function AppPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, color: '#BCD6F2', marginBottom: 9 }}>Seu progresso no nível {level}</div>
                     <div style={{ display: 'flex', gap: 16 }}>
-                      <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{xp}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>XP</div></div>
+                      <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{xpShown}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>XP</div></div>
                       <div><div style={{ fontSize: 18, fontWeight: 700, color: xpHoje > 0 ? '#4ADE80' : '#fff', lineHeight: 1 }}>+{xpHoje}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>hoje</div></div>
                       <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{doneLessons}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>lições</div></div>
                     </div>
@@ -1937,6 +1948,14 @@ export default function AppPage() {
             })()}
           </div>
           <div style={{ padding: '16px', marginTop: 8 }}>
+            <div onClick={() => setTab('ai')} style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 18, padding: 16, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 6px 18px rgba(75,63,191,0.3)', animation: 'su_risefade 0.5s ease both' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.2s ease-in-out infinite' }}><span style={{ fontSize: 32, lineHeight: 1 }}>🦜</span></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 700, color: '#fff' }}>Converse com seu Professor IA</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2, lineHeight: 1.4 }}>Correções em tempo real enquanto você pratica inglês</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 9, background: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '6px 14px', borderRadius: 20 }}>▶ Conversar agora</div>
+              </div>
+            </div>
             {revisoesDevidas.length > 0 && (
               <div onClick={() => { setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao') }} style={{ background: 'linear-gradient(135deg, #16A34A, #0F7A38)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e="🧠" color="#0F7A38" onDark box={44} size={24} />
@@ -1947,10 +1966,10 @@ export default function AppPage() {
             {(() => {
               const proxL = lessons[level]?.find(l => !l.done)
               const tasks = [
-                { icon: '📖', titulo: 'Faça sua lição de hoje', sub: proxL ? proxL.title : 'Revisar lições do nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
-                { icon: '🧠', titulo: 'Revisar vocabulário', sub: `${vocabRevisar} palavras para fixar`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
-                { icon: '🎭', titulo: 'Conversar no Simulador', sub: 'Pratique falando com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
-                { icon: '🔥', titulo: 'Desafio do dia', sub: '5 perguntas rápidas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
+                { icon: '📖', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
+                { icon: '🧠', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
+                { icon: '🎭', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
+                { icon: '🔥', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
               ]
               const feitos = tasks.filter(t => t.feito).length
               const tudo = feitos === tasks.length
@@ -1961,12 +1980,12 @@ export default function AppPage() {
                     <div style={{ fontSize: 12, fontWeight: 600, color: tudo ? '#4ADE80' : '#BCD6F2' }}>{feitos}/{tasks.length}</div>
                   </div>
                   <div style={{ fontSize: 11.5, color: tudo ? '#4ADE80' : (streak > 0 && feitos === 0) ? '#FFD98A' : '#9DBBDD', marginBottom: 12, fontWeight: (streak > 0 && feitos === 0) ? 600 : 400 }}>{tudo ? 'Mandou bem! Plano de hoje completo 🎉' : (streak > 0 && feitos === 0) ? `🔥 Não perca sua sequência de ${streak} ${streak === 1 ? 'dia' : 'dias'} — faça 1 tarefa!` : `Meta: ${perfilIa.objetivo || OBJETIVO_PADRAO}`}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {tasks.map((t, i) => (
-                      <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 11, background: t.feito ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', cursor: t.feito ? 'default' : 'pointer' }}>
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: t.feito ? '#16A34A' : 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{t.feito ? <Ic e="✓" s={15} c="#fff" /> : <Ic e={t.icon} s={16} c="#fff" />}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff', textDecoration: t.feito ? 'line-through' : 'none', opacity: t.feito ? 0.7 : 1 }}>{t.titulo}</div><div style={{ fontSize: 11, color: '#9DBBDD', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.sub}</div></div>
-                        {!t.feito && <span style={{ flexShrink: 0 }}><Ic e="→" s={16} c="#9DBBDD" /></span>}
+                      <div key={i} onClick={t.feito ? undefined : t.acao} style={{ background: t.feito ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12, cursor: t.feito ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', gap: 7, minHeight: 92 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: t.feito ? '#16A34A' : 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.feito ? <Ic e="✓" s={17} c="#fff" /> : <Ic e={t.icon} s={18} c="#fff" />}</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', lineHeight: 1.2, textDecoration: t.feito ? 'line-through' : 'none', opacity: t.feito ? 0.75 : 1 }}>{t.titulo}</div>
+                        <div style={{ fontSize: 10.5, color: '#9DBBDD', lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{t.sub}</div>
                       </div>
                     ))}
                   </div>
