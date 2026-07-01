@@ -1082,6 +1082,10 @@ export default function AppPage() {
   const [vocabModo, setVocabModo] = useState('all')
   const [vocabDiaData, setVocabDiaData] = useState('')
   const [perfilIa, setPerfilIa] = useState<any>({})
+  const [onboarded, setOnboarded] = useState(false)
+  const [onbStep, setOnbStep] = useState(0)
+  const [onbObj, setOnbObj] = useState('')
+  const [onbMeta, setOnbMeta] = useState(50)
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?' }])
   const [chatInput, setChatInput] = useState('')
   const [loadingChat, setLoadingChat] = useState(false)
@@ -1194,6 +1198,7 @@ export default function AppPage() {
     try { const d = localStorage.getItem('speakup_licao_dia'); if (d) setLicaoDiaData(d) } catch (e) {}
     try { const sv = localStorage.getItem('speakup_vocab_srs'); if (sv) setVocabSrs(JSON.parse(sv)) } catch (e) {}
     try { const vd = localStorage.getItem('speakup_vocab_dia'); if (vd) setVocabDiaData(vd) } catch (e) {}
+    try { if (localStorage.getItem('speakup_onboarded')) setOnboarded(true) } catch (e) {}
     try { const r = localStorage.getItem('speakup_recorde'); if (r) setRecorde(parseInt(r) || 0) } catch (e) {}
   }, [])
 
@@ -1229,6 +1234,15 @@ export default function AppPage() {
       return [{ role: 'ai', text: txt }]
     })
   }, [xpHydrated, perfilIa, userName, streak])
+
+  useEffect(() => {
+    if (!xpHydrated) return
+    const completo = licoesHoje > 0 && (vocabDiaData === hojeStr) && simulacoesHoje > 0 && desafioFeito
+    if (!completo) return
+    try { if (localStorage.getItem('speakup_plano_bonus') === hojeStr) return; localStorage.setItem('speakup_plano_bonus', hojeStr) } catch (e) {}
+    setXp(x => x + 20)
+    setConqNova({ e: '🎉', nome: 'Plano do dia completo! +20 XP' })
+  }, [xpHydrated, licoesHoje, vocabDiaData, simulacoesHoje, desafioFeito])
 
   function finalizarDesafio() {
     const hoje = new Date().toISOString().split('T')[0]
@@ -1630,6 +1644,17 @@ export default function AppPage() {
     partes.push('Use esse histórico para personalizar, mencionar o progresso quando fizer sentido e focar nos pontos fracos. Não invente dados que não estão aqui.')
     return partes.join(' ')
   }
+  const metaDiaria = perfilIa.meta_diaria || 50
+  function concluirOnboarding(nivel?: string, irNivelamento?: boolean) {
+    salvarPerfil({ ...perfilIa, objetivo: onbObj || OBJETIVO_PADRAO, meta_diaria: onbMeta })
+    if (nivel) { setLevel(nivel); try { localStorage.setItem('speakup_nivel', nivel) } catch (e) {} }
+    try { localStorage.setItem('speakup_onboarded', '1') } catch (e) {}
+    setOnboarded(true)
+    if (irNivelamento) { setNivIdx(0); setNivScore([0, 0, 0, 0, 0, 0]); setNivSel(-1); setNivResult(null); setTab('nivelamento') }
+  }
+  const onbOpt: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 14, padding: '14px 16px', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }
+  const onbBack: CSSProperties = { background: 'none', border: 'none', color: '#BCD6F2', fontSize: 14, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit' }
+  const mostrarOnboarding = xpHydrated && isNovo && !perfilIa.objetivo && !onboarded
   const currentLesson = lessons[level][lessonIdx]
 
   return (
@@ -1692,9 +1717,9 @@ export default function AppPage() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
-                  <div style={{ fontSize: 11, color: xpHoje >= 50 ? '#4ADE80' : '#BCD6F2', fontWeight: 600 }}>{xpHoje}/50 XP {xpHoje >= 50 && <Ic e="✓" />}</div>
+                  <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : '#BCD6F2', fontWeight: 600 }}>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= 50 ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / 50 * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+                <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= metaDiaria ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / metaDiaria * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
                 {isNovo && <button onClick={() => setTab('lessons')} style={{ width: '100%', marginTop: 16, background: '#F5A623', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Começar minha jornada <Ic e="→" /></button>}
               </div>
               )
@@ -1717,7 +1742,7 @@ export default function AppPage() {
                     <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}><Ic e="🎯" /> Seu plano de hoje</div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: tudo ? '#4ADE80' : '#BCD6F2' }}>{feitos}/{tasks.length}</div>
                   </div>
-                  <div style={{ fontSize: 11.5, color: '#9DBBDD', marginBottom: 12 }}>{tudo ? 'Mandou bem! Plano de hoje completo 🎉' : `Meta: ${perfilIa.objetivo || OBJETIVO_PADRAO}`}</div>
+                  <div style={{ fontSize: 11.5, color: tudo ? '#4ADE80' : (streak > 0 && feitos === 0) ? '#FFD98A' : '#9DBBDD', marginBottom: 12, fontWeight: (streak > 0 && feitos === 0) ? 600 : 400 }}>{tudo ? 'Mandou bem! Plano de hoje completo 🎉' : (streak > 0 && feitos === 0) ? `🔥 Não perca sua sequência de ${streak} ${streak === 1 ? 'dia' : 'dias'} — faça 1 tarefa!` : `Meta: ${perfilIa.objetivo || OBJETIVO_PADRAO}`}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {tasks.map((t, i) => (
                       <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 11, background: t.feito ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', cursor: t.feito ? 'default' : 'pointer' }}>
@@ -1755,8 +1780,8 @@ export default function AppPage() {
               let passo
               if (streak === 0) {
                 passo = { icon: '🔥', titulo: 'Comece sua sequência hoje', sub: 'Faça o Desafio do Dia e acenda seu streak', cor: '#F5A623', acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }
-              } else if (xpHoje < 50 && !desafioFeito) {
-                passo = { icon: '🎯', titulo: 'Garanta sua meta de hoje', sub: `Faltam ${50 - xpHoje} XP · o Desafio do Dia rende até 25`, cor: '#F5A623', acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }
+              } else if (xpHoje < metaDiaria && !desafioFeito) {
+                passo = { icon: '🎯', titulo: 'Garanta sua meta de hoje', sub: `Faltam ${metaDiaria - xpHoje} XP · o Desafio do Dia rende até 25`, cor: '#F5A623', acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } }
               } else if (proxLicao) {
                 passo = { icon: proxLicao.icon, titulo: proxLicao.title, sub: `Próxima lição · nível ${level}`, cor: blue, acao: () => setTab('lessons') }
               } else {
@@ -1856,6 +1881,39 @@ export default function AppPage() {
                 </div>
               )
             })()}
+          </div>
+        </div>
+      )}
+
+      {mostrarOnboarding && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, display: 'flex', padding: 24, overflowY: 'auto' }}>
+          <div style={{ maxWidth: 420, margin: 'auto', width: '100%', color: '#fff' }}>
+            {onbStep === 0 && (<>
+              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Bem-vindo ao SpeakUp! <Ic e="🎉" /></div>
+              <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Qual é o seu principal objetivo com o inglês?</div>
+              {[{ e: '✈️', t: 'Me virar em viagens', o: 'Me virar em viagens no exterior' }, { e: '💼', t: 'Trabalho e carreira', o: 'Usar inglês no trabalho e na carreira' }, { e: '💬', t: 'Conversar com fluência', o: 'Conversar com fluência em inglês' }, { e: '🎓', t: 'Estudos e provas', o: 'Passar em provas e estudar em inglês' }].map(op => (
+                <button key={op.t} onClick={() => { setOnbObj(op.o); setOnbStep(1) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span> {op.t}</button>
+              ))}
+            </>)}
+            {onbStep === 1 && (<>
+              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Quanto tempo por dia? <Ic e="⏳" /></div>
+              <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Escolha uma meta diária realista — dá pra mudar depois.</div>
+              {[{ e: '☕', t: 'Casual', d: '~5 min por dia', m: 20 }, { e: '🎯', t: 'Regular', d: '~10 min por dia', m: 50 }, { e: '🔥', t: 'Sério', d: '~15 min por dia', m: 80 }, { e: '🚀', t: 'Intenso', d: '20+ min por dia', m: 120 }].map(op => (
+                <button key={op.t} onClick={() => { setOnbMeta(op.m); setOnbStep(2) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span><span style={{ flex: 1, textAlign: 'left' }}>{op.t}<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>{op.d}</span></span></button>
+              ))}
+              <button onClick={() => setOnbStep(0)} style={onbBack}>← Voltar</button>
+            </>)}
+            {onbStep === 2 && (<>
+              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Qual é o seu nível? <Ic e="📊" /></div>
+              <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Assim começamos você no ponto certo da trilha.</div>
+              <button onClick={() => concluirOnboarding('A1')} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
+              <button onClick={() => concluirOnboarding('A2')} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
+              <button onClick={() => concluirOnboarding(undefined, true)} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span> Fazer teste de nível (2 min)</button>
+              <button onClick={() => setOnbStep(1)} style={onbBack}>← Voltar</button>
+            </>)}
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 24 }}>
+              {[0, 1, 2].map(s => <div key={s} style={{ width: 8, height: 8, borderRadius: '50%', background: s === onbStep ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
+            </div>
           </div>
         </div>
       )}
