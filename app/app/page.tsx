@@ -1532,6 +1532,16 @@ export default function AppPage() {
       setUserName(nome.split(' ')[0])
       setUserId(data.user.id)
       setUserEmail(data.user.email || '')
+      // Troca de conta no mesmo aparelho: o estado local (onboarding, plano do dia, etc.)
+      // fica no localStorage do dispositivo. Se o usuário mudou, zera tudo para começar limpo.
+      try {
+        const prevUid = localStorage.getItem('speakup_uid')
+        if (prevUid && prevUid !== data.user.id) {
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setXpInicioDia(0); setLevel('A1'); setSimulacoesHoje(0)
+        }
+        localStorage.setItem('speakup_uid', data.user.id)
+      } catch (e) {}
       const { data: progRows, error: progReadError } = await supabase
         .from('progresso')
         .select('*')
