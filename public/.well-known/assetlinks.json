@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.speakup_dusky.twa",
+    "sha256_cert_fingerprints": ["E2:71:F4:86:64:03:78:E8:D2:EA:22:35:A3:65:8F:4D:D4:AC:86:DD:E6:23:31:8A:67:67:9B:B8:A9:17:DE:E7"]
+  }
+}]
