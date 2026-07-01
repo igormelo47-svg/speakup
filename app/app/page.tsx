@@ -1084,6 +1084,9 @@ export default function AppPage() {
   const [perfilIa, setPerfilIa] = useState<any>({})
   const [onboarded, setOnboarded] = useState(false)
   const [hist, setHist] = useState<Record<string, number>>({})
+  const [feedbackModal, setFeedbackModal] = useState(false)
+  const [feedbackTxt, setFeedbackTxt] = useState('')
+  const [feedbackEnviado, setFeedbackEnviado] = useState(false)
   const [onbStep, setOnbStep] = useState(0)
   const [onbObj, setOnbObj] = useState('')
   const [onbMeta, setOnbMeta] = useState(50)
@@ -1092,6 +1095,7 @@ export default function AppPage() {
   const [loadingChat, setLoadingChat] = useState(false)
   const [userName, setUserName] = useState('Aluno')
   const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState('')
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null)
   const [convMsgs, setConvMsgs] = useState<ConvMsg[]>([])
   const [convInput, setConvInput] = useState('')
@@ -1352,6 +1356,7 @@ export default function AppPage() {
       const nome = data.user.user_metadata?.nome || data.user.email?.split('@')[0] || 'Aluno'
       setUserName(nome.split(' ')[0])
       setUserId(data.user.id)
+      setUserEmail(data.user.email || '')
       const { data: progRows, error: progReadError } = await supabase
         .from('progresso')
         .select('*')
@@ -1458,6 +1463,13 @@ export default function AppPage() {
   }
 
   async function logout() { await supabase.auth.signOut(); router.push('/login') }
+
+  async function enviarFeedback() {
+    const msg = feedbackTxt.trim()
+    if (msg.length < 3) { alert('Escreva um pouco mais para enviar. 🙂'); return }
+    try { await supabase.from('feedback').insert({ user_id: userId, email: userEmail, mensagem: msg }) } catch (e) {}
+    setFeedbackEnviado(true); setFeedbackTxt('')
+  }
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
@@ -1863,6 +1875,33 @@ export default function AppPage() {
                 </div>
               )
             })()}
+            <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
+              <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>SpeakUp · enviar feedback <Ic e="💬" /></span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {feedbackModal && (
+        <div onClick={() => setFeedbackModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease' }}>
+            {feedbackEnviado ? (
+              <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
+                <div style={{ fontSize: 44, marginBottom: 10 }}><Ic e="🎉" c="#16A34A" /></div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>Feedback enviado!</div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 18 }}>Obrigado por ajudar a melhorar o SpeakUp. 💙</div>
+                <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 13, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Fechar</button>
+              </div>
+            ) : (<>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 24 }}><Ic e="💬" c={blue} /></span>
+                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)' }}>Enviar feedback</div>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 14 }}>Encontrou um problema ou tem uma sugestão? Conta pra gente — a sua opinião ajuda demais.</div>
+              <textarea value={feedbackTxt} onChange={e => setFeedbackTxt(e.target.value)} placeholder="Escreva aqui seu feedback, sugestão ou problema..." rows={5} style={{ width: '100%', padding: '12px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, fontSize: 14, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+              <button onClick={enviarFeedback} style={{ width: '100%', padding: 14, marginTop: 12, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Enviar <Ic e="→" /></button>
+              <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+            </>)}
           </div>
         </div>
       )}
