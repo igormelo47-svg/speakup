@@ -1642,6 +1642,7 @@ export default function AppPage() {
         @keyframes su_dot { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0) } 30% { opacity: 1; transform: translateY(-4px) } }
         @keyframes su_pulse { 0% { box-shadow: 0 0 0 0 rgba(226,75,74,0.5) } 70% { box-shadow: 0 0 0 9px rgba(226,75,74,0) } 100% { box-shadow: 0 0 0 0 rgba(226,75,74,0) } }
         @keyframes su_bounce { 0% { transform: scale(0) rotate(-15deg); opacity: 0 } 50% { transform: scale(1.3) rotate(8deg) } 70% { transform: scale(0.9) rotate(-4deg) } 100% { transform: scale(1) rotate(0); opacity: 1 } }
+        @keyframes su_bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
         @keyframes su_xppop { 0% { transform: scale(0) translateY(20px); opacity: 0 } 60% { transform: scale(1.2) translateY(0) } 100% { transform: scale(1); opacity: 1 } }
         @keyframes su_confetti { 0% { transform: translateY(-20px) rotate(0); opacity: 1 } 100% { transform: translateY(320px) rotate(420deg); opacity: 0 } }
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
@@ -2479,30 +2480,27 @@ export default function AppPage() {
                 const feitasNivel = arr.filter(l => licoesConcluidas.includes(l.title)).length
                 return (
                   <div key={lv} style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: info.cor, background: info.bg, padding: '4px 10px', borderRadius: 20 }}>{info.nome}</span>
-                      <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{feitasNivel}/{arr.length}</span>
+                    <div style={{ textAlign: 'center', margin: '4px 0 20px' }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: info.cor, background: info.bg, padding: '6px 16px', borderRadius: 20 }}>{info.nome} · {feitasNivel}/{arr.length}</span>
                     </div>
                     {arr.map((l, i) => {
                       const done = licoesConcluidas.includes(l.title)
                       const isAtual = lv === atualLvl && i === atualIdx
                       const liberada = isAtual && !metaFeitaHoje
                       const unlocked = done || liberada
-                      const isLast = i === arr.length - 1
-                      const nodeColor = done ? '#16A34A' : liberada ? blue : '#C2C7CE'
+                      const dx = Math.round(Math.sin(i * 0.8) * 58)
+                      const base = done ? '#22C55E' : liberada ? '#2E72D6' : '#E4E7EC'
+                      const shadow = done ? '#15803D' : liberada ? '#103D77' : '#CBD1DA'
                       return (
-                        <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 34, flexShrink: 0 }}>
-                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: done ? greenLight : liberada ? blueLight : 'var(--color-background-secondary)', border: `2px solid ${nodeColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: nodeColor, fontWeight: 700 }}>{done ? <Ic e="✓" /> : unlocked ? (i + 1) : <Ic e="🔒" />}</div>
-                            {!isLast && <div style={{ flex: 1, width: 2, background: done ? '#16A34A' : '#E2E5E9', minHeight: 12 }} />}
-                          </div>
-                          <div onClick={() => { if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ flex: 1, minWidth: 0, marginBottom: 10, background: 'var(--color-background-primary)', border: isAtual ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: unlocked ? 'pointer' : 'default', opacity: unlocked ? 1 : 0.55 }}>
-                            <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={l.icon} /></span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-text-primary)' }}>{l.title}</div>
-                              {isAtual ? <div style={{ fontSize: 11, color: blue, fontWeight: 600, marginTop: 1 }}>← Você está aqui</div> : done ? <div style={{ fontSize: 11, color: '#16A34A', marginTop: 1 }}>Concluída</div> : null}
+                        <div key={i} style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                          <div style={{ transform: `translateX(${dx}px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', width: 100 }}>
+                            {liberada && <div style={{ background: '#fff', border: `2px solid ${blue}`, color: blue, fontSize: 10.5, fontWeight: 700, padding: '3px 11px', borderRadius: 20, marginBottom: 7, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', animation: 'su_bob 1.4s ease-in-out infinite' }}>COMECE!</div>}
+                            <div onClick={() => { if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ position: 'relative', width: 62, height: 62, borderRadius: '50%', background: base, boxShadow: `0 5px 0 ${shadow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: unlocked ? 'pointer' : 'default', animation: liberada ? 'su_bob 1.4s ease-in-out infinite' : 'none' }}>
+                              <Ic e={l.icon} c={unlocked ? '#fff' : '#9AA3AF'} s={27} />
+                              {done && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}><Ic e="✓" s={12} c="#16A34A" /></span>}
+                              {!unlocked && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}><Ic e="🔒" s={11} c="#9AA3AF" /></span>}
                             </div>
-                            {done ? <span style={{ fontSize: 16 }}><Ic e="✅" /></span> : liberada ? <span style={{ background: blue, color: '#fff', fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0 }}>Começar</span> : <span style={{ color: '#C2C7CE', fontSize: 14, flexShrink: 0 }}><Ic e="🔒" /></span>}
+                            <div style={{ fontSize: 10.5, color: unlocked ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: isAtual ? 700 : 500, marginTop: 8, textAlign: 'center', lineHeight: 1.15, maxWidth: 96 }}>{l.title}</div>
                           </div>
                         </div>
                       )
