@@ -1878,8 +1878,8 @@ export default function AppPage() {
 
       {tab === 'home' && (
         <div>
-          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 26px) 16px 32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 20 }}>
+          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 46px) 16px 32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 22 }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: '#fff' }}>V</div>
               <span style={{ fontSize: 21, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ color: '#FFD98A' }}>ai</span></span>
             </div>
