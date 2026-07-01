@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const { data: prog } = await admin.from('progresso').select('user_id, ultima_atividade')
   const estudouHoje = new Set((prog || []).filter((p: any) => p.ultima_atividade === hoje).map((p: any) => p.user_id))
 
-  const payload = JSON.stringify({ title: 'SpeakUp 🔥', body: 'Mantenha sua sequência! Faça sua lição de hoje.', url: '/app' })
+  const payload = JSON.stringify({ title: 'Vonai 🔥', body: 'Mantenha sua sequência! Faça sua lição de hoje.', url: '/app' })
   let enviados = 0, removidos = 0
   for (const s of subs || []) {
     if (estudouHoje.has(s.user_id)) continue

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Política de Privacidade — SpeakUp' }
+export const metadata = { title: 'Política de Privacidade — Vonai' }
 
 export default function Privacidade() {
   const box: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '32px 20px 64px', fontFamily: 'system-ui, sans-serif', color: '#1f2937', lineHeight: 1.7 }

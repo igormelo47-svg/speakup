@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'SpeakUp — Aprenda inglês conversando com IA',
+  title: 'Vonai — Aprenda inglês conversando com IA',
   description: 'Um professor de inglês com IA que lembra de você, monta seu plano diário e te leva à fluência. Comece grátis.',
 }
 
@@ -26,7 +26,7 @@ export default function Home() {
       {/* Nav */}
       <div style={{ borderBottom: '1px solid #EEF1F6' }}>
         <div style={{ ...container, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>Speak<span style={{ color: AZUL }}>Up</span></div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>Von<span style={{ color: AZUL }}>ai</span></div>
           <Link href="/login" style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function Home() {
 
       {/* Benefícios */}
       <div style={{ ...container, padding: '56px 20px 20px' }}>
-        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Por que o SpeakUp é diferente</h2>
+        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Por que o Vonai é diferente</h2>
         <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>Não é uma lista de exercícios. É um professor que te acompanha.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
           <Beneficio e="🧠" t="IA com memória" d="Ela lembra dos seus erros e acertos e adapta cada aula ao seu histórico." />
@@ -114,7 +114,7 @@ export default function Home() {
       {/* Footer */}
       <div style={{ borderTop: '1px solid #EEF1F6', background: '#F6F8FB' }}>
         <div style={{ ...container, padding: '24px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#7C8AA0' }}>
-          <div>© {new Date().getFullYear()} SpeakUp</div>
+          <div>© {new Date().getFullYear()} Vonai</div>
           <div style={{ display: 'flex', gap: 18 }}>
             <Link href="/termos" style={{ color: '#7C8AA0' }}>Termos</Link>
             <Link href="/privacidade" style={{ color: '#7C8AA0' }}>Privacidade</Link>

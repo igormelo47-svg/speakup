@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "SpeakUp — Aprenda inglês com IA",
-  "short_name": "SpeakUp",
+  "name": "Vonai — Aprenda inglês com IA",
+  "short_name": "Vonai",
   "description": "Aprenda inglês de verdade com um professor de IA: lições diárias, trilha do A1 ao C2, conversação, vocabulário e listening. Feito para brasileiros.",
   "start_url": "/app",
   "scope": "/",

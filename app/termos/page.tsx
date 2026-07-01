@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Termos de Uso — SpeakUp' }
+export const metadata = { title: 'Termos de Uso — Vonai' }
 
 export default function Termos() {
   const box: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '32px 20px 64px', fontFamily: 'system-ui, sans-serif', color: '#1f2937', lineHeight: 1.7 }
@@ -11,14 +11,14 @@ export default function Termos() {
       <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 16, color: '#103D77' }}>Termos de Uso</h1>
       <p style={{ color: '#6b7280', fontSize: 13 }}>Última atualização: 30/06/2026</p>
 
-      <h2 style={h2}>1. Sobre o SpeakUp</h2>
-      <p>O SpeakUp é uma plataforma online de ensino de inglês que oferece lições, vocabulário, exercícios de áudio, simulador de conversação e um professor com inteligência artificial. Ao criar uma conta e usar o aplicativo, você concorda com estes Termos.</p>
+      <h2 style={h2}>1. Sobre o Vonai</h2>
+      <p>O Vonai é uma plataforma online de ensino de inglês que oferece lições, vocabulário, exercícios de áudio, simulador de conversação e um professor com inteligência artificial. Ao criar uma conta e usar o aplicativo, você concorda com estes Termos.</p>
 
       <h2 style={h2}>2. Cadastro e conta</h2>
-      <p>Para usar o SpeakUp é necessário criar uma conta com e-mail e senha. Você é responsável por manter seus dados de acesso em sigilo e por todas as atividades realizadas na sua conta. Os dados informados devem ser verdadeiros.</p>
+      <p>Para usar o Vonai é necessário criar uma conta com e-mail e senha. Você é responsável por manter seus dados de acesso em sigilo e por todas as atividades realizadas na sua conta. Os dados informados devem ser verdadeiros.</p>
 
       <h2 style={h2}>3. Planos e pagamento</h2>
-      <p>O SpeakUp pode oferecer recursos gratuitos e recursos pagos (Premium). Os pagamentos são processados por plataformas parceiras (ex.: Kiwify). Valores, formas de cobrança e renovação são informados no momento da contratação. Cancelamentos e reembolsos seguem a legislação aplicável e as regras da plataforma de pagamento.</p>
+      <p>O Vonai pode oferecer recursos gratuitos e recursos pagos (Premium). Os pagamentos são processados por plataformas parceiras (ex.: Kiwify). Valores, formas de cobrança e renovação são informados no momento da contratação. Cancelamentos e reembolsos seguem a legislação aplicável e as regras da plataforma de pagamento.</p>
 
       <h2 style={h2}>4. Uso permitido</h2>
       <p>Você se compromete a usar o app apenas para fins pessoais e de aprendizado, sem copiar, revender ou redistribuir o conteúdo, e sem tentar burlar, sobrecarregar ou prejudicar o funcionamento da plataforma.</p>
@@ -27,7 +27,7 @@ export default function Termos() {
       <p>O professor e o simulador usam inteligência artificial. As respostas podem conter imprecisões e têm finalidade educacional, não substituindo orientação profissional. Não envie dados sensíveis nas conversas com a IA.</p>
 
       <h2 style={h2}>6. Propriedade intelectual</h2>
-      <p>Todo o conteúdo, marca, lições e design do SpeakUp pertencem aos seus criadores e são protegidos por lei. O uso do app não transfere nenhum desses direitos a você.</p>
+      <p>Todo o conteúdo, marca, lições e design do Vonai pertencem aos seus criadores e são protegidos por lei. O uso do app não transfere nenhum desses direitos a você.</p>
 
       <h2 style={h2}>7. Encerramento</h2>
       <p>Podemos suspender ou encerrar contas que violem estes Termos. Você pode encerrar sua conta a qualquer momento entrando em contato pelo e-mail de suporte.</p>

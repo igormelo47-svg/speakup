@@ -1610,7 +1610,7 @@ export default function AppPage() {
         alert('Este aparelho/navegador não suporta notificações. No iPhone é preciso iOS 16.4+ e abrir o app pelo ícone da tela inicial.'); return
       }
       const perm = await Notification.requestPermission()
-      if (perm !== 'granted') { alert('Permissão negada (' + perm + '). Vá em Ajustes do aparelho → SpeakUp → Notificações e permita, depois tente de novo.'); return }
+      if (perm !== 'granted') { alert('Permissão negada (' + perm + '). Vá em Ajustes do aparelho → Vonai → Notificações e permita, depois tente de novo.'); return }
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) })
@@ -1702,9 +1702,9 @@ export default function AppPage() {
   function compartilharResultado() {
     if (!fluencyReport) return
     const cenario = selectedScenario?.title || 'uma conversa real'
-    const texto = `🎯 Acabei de tirar ${fluencyReport.score}/100 de fluência em inglês no SpeakUp, praticando "${cenario}" com inteligência artificial! 🇬🇧✨\n\nQuer treinar inglês de verdade — conversando, não decorando? Testa aqui 👇\nhttps://speakup-dusky.vercel.app`
+    const texto = `🎯 Acabei de tirar ${fluencyReport.score}/100 de fluência em inglês no Vonai, praticando "${cenario}" com inteligência artificial! 🇬🇧✨\n\nQuer treinar inglês de verdade — conversando, não decorando? Testa aqui 👇\nhttps://speakup-dusky.vercel.app`
     if (typeof navigator !== 'undefined' && navigator.share) {
-      navigator.share({ title: 'Meu resultado no SpeakUp', text: texto }).catch(() => {})
+      navigator.share({ title: 'Meu resultado no Vonai', text: texto }).catch(() => {})
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
     }
@@ -1890,7 +1890,7 @@ export default function AppPage() {
               const C = 188.5
               return (
               <div style={{ background: blueDark, borderRadius: 20, padding: 18 }}>
-                {isNovo && <div style={{ textAlign: 'center', marginBottom: 16 }}><div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 4 }}>Bem-vindo ao SpeakUp! <Ic e="🎉" /></div><div style={{ fontSize: 12, color: '#BCD6F2', lineHeight: 1.5 }}>Comece sua primeira lição e ganhe seus primeiros 10 XP.</div></div>}
+                {isNovo && <div style={{ textAlign: 'center', marginBottom: 16 }}><div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 4 }}>Bem-vindo ao Vonai! <Ic e="🎉" /></div><div style={{ fontSize: 12, color: '#BCD6F2', lineHeight: 1.5 }}>Comece sua primeira lição e ganhe seus primeiros 10 XP.</div></div>}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                   <div style={{ position: 'relative', width: 76, height: 76, flexShrink: 0 }}>
                     <svg width="76" height="76" viewBox="0 0 76 76">
@@ -2050,7 +2050,7 @@ export default function AppPage() {
               )
             })()}
             <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
-              <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>SpeakUp · enviar feedback <Ic e="💬" /></span>
+              <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Vonai · enviar feedback <Ic e="💬" /></span>
             </div>
           </div>
         </div>
@@ -2063,7 +2063,7 @@ export default function AppPage() {
               <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
                 <div style={{ fontSize: 44, marginBottom: 10 }}><Ic e="🎉" c="#16A34A" /></div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>Feedback enviado!</div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 18 }}>Obrigado por ajudar a melhorar o SpeakUp. 💙</div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 18 }}>Obrigado por ajudar a melhorar o Vonai. 💙</div>
                 <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 13, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Fechar</button>
               </div>
             ) : (<>
@@ -2084,7 +2084,7 @@ export default function AppPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, display: 'flex', padding: 24, overflowY: 'auto' }}>
           <div key={onbStep} style={{ maxWidth: 420, margin: 'auto', width: '100%', color: '#fff', animation: 'su_screen 0.32s ease' }}>
             {onbStep === 0 && (<>
-              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Bem-vindo ao SpeakUp! <Ic e="🎉" /></div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Bem-vindo ao Vonai! <Ic e="🎉" /></div>
               <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Qual é o seu principal objetivo com o inglês?</div>
               {[{ e: '✈️', t: 'Me virar em viagens', o: 'Me virar em viagens no exterior' }, { e: '💼', t: 'Trabalho e carreira', o: 'Usar inglês no trabalho e na carreira' }, { e: '💬', t: 'Conversar com fluência', o: 'Conversar com fluência em inglês' }, { e: '🎓', t: 'Estudos e provas', o: 'Passar em provas e estudar em inglês' }].map(op => (
                 <button key={op.t} onClick={() => { setOnbObj(op.o); setOnbStep(1) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span> {op.t}</button>

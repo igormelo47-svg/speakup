@@ -1,7 +1,7 @@
 self.addEventListener('push', function (event) {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch (e) {}
-  const title = data.title || 'SpeakUp'
+  const title = data.title || 'Vonai'
   const options = {
     body: data.body || 'Hora de praticar seu inglês! 🔥',
     icon: '/icon-192.png',
