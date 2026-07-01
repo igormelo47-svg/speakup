@@ -1902,7 +1902,8 @@ export default function AppPage() {
   const currentLesson = lessons[level][lessonIdx]
 
   return (
-    <div style={{ width: '100%', maxWidth: 430, margin: '0 auto', fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: '#E9EDF2' }}>
+    <div style={{ width: '100%', maxWidth: 430, fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 0 40px rgba(0,0,0,0.10)' }}>
 
       <style>{`
         @keyframes su_fade { from { opacity: 0 } to { opacity: 1 } }
@@ -3061,6 +3062,7 @@ export default function AppPage() {
           )
         })}
       </div>
+    </div>
     </div>
   )
 }
