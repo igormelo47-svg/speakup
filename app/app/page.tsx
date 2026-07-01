@@ -1260,6 +1260,7 @@ export default function AppPage() {
   const [loadingConv, setLoadingConv] = useState(false)
   const [convStarted, setConvStarted] = useState(false)
   const [simulacoesHoje, setSimulacoesHoje] = useState(0)
+  const [profDiaData, setProfDiaData] = useState('')
   const [dictCat, setDictCat] = useState('casa')
   const [fluencyReport, setFluencyReport] = useState<{score:number;strengths:string[];improvements:string[];message:string}|null>(null)
   const [loadingReport, setLoadingReport] = useState(false)
@@ -1331,6 +1332,9 @@ export default function AppPage() {
   const LIMITE_DIA_LICOES = 3
   const licoesHoje = (() => { const p = licaoDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const metaFeitaHoje = licoesHoje >= LIMITE_DIA_LICOES
+  const PROF_LIMIT = 10
+  const profHoje = (() => { const p = profDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
+  const profBloqueado = !isPremium && profHoje >= PROF_LIMIT
   const [xpInicioDia, setXpInicioDia] = useState(0)
   useEffect(() => {
     try {
@@ -1372,6 +1376,7 @@ export default function AppPage() {
     try { if (localStorage.getItem('speakup_onboarded')) setOnboarded(true) } catch (e) {}
     try { const r = localStorage.getItem('speakup_recorde'); if (r) setRecorde(parseInt(r) || 0) } catch (e) {}
     try { const s = localStorage.getItem('speakup_srs'); if (s) setSrsData(JSON.parse(s)) } catch (e) {}
+    try { const pd = localStorage.getItem('speakup_prof_dia'); if (pd) setProfDiaData(pd) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1718,7 +1723,12 @@ export default function AppPage() {
 
   async function sendChat() {
     if (!chatInput.trim() || loadingChat) return
+    if (!isPremium && profHoje >= PROF_LIMIT) {
+      setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser!` }])
+      return
+    }
     const msg = chatInput; setChatInput('')
+    if (!isPremium) { const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo) }
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] }) })
@@ -2997,6 +3007,7 @@ export default function AppPage() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Vô, seu professor de IA</div>
               <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
+              {!isPremium && <div style={{ fontSize: 11, color: profBloqueado ? '#FFD98A' : '#B5D4F4', marginTop: 3, fontWeight: profBloqueado ? 600 : 400 }}>{profBloqueado ? '🌟 Limite de hoje atingido — vire Premium p/ conversar sem limite' : `${PROF_LIMIT - profHoje} de ${PROF_LIMIT} mensagens grátis hoje`}</div>}
             </div>
           </div>
           <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
