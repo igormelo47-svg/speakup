@@ -1259,7 +1259,7 @@ export default function AppPage() {
   const [convInput, setConvInput] = useState('')
   const [loadingConv, setLoadingConv] = useState(false)
   const [convStarted, setConvStarted] = useState(false)
-  const [simulacoesHoje, setSimulacoesHoje] = useState(0)
+  const [simDiaData, setSimDiaData] = useState('')
   const [profDiaData, setProfDiaData] = useState('')
   const [dictCat, setDictCat] = useState('casa')
   const [fluencyReport, setFluencyReport] = useState<{score:number;strengths:string[];improvements:string[];message:string}|null>(null)
@@ -1332,12 +1332,14 @@ export default function AppPage() {
   const LIMITE_DIA_LICOES = 3
   const licoesHoje = (() => { const p = licaoDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const metaFeitaHoje = licoesHoje >= LIMITE_DIA_LICOES
+  const simulacoesHoje = (() => { const p = simDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const PROF_LIMIT = 10
   const PROF_LIMIT_PREMIUM = 120 // uso justo (proteção de custo); invisível ao aluno
   const profHoje = (() => { const p = profDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const profBloqueado = !isPremium && profHoje >= PROF_LIMIT
   const [xpInicioDia, setXpInicioDia] = useState(0)
   useEffect(() => {
+    if (!xpHydrated) return // só define a base do dia depois do XP carregar do banco
     try {
       const raw = localStorage.getItem('speakup_xpdia')
       if (raw) {
@@ -1347,7 +1349,7 @@ export default function AppPage() {
       localStorage.setItem('speakup_xpdia', hojeStr + '|' + xp)
       setXpInicioDia(xp)
     } catch (e) {}
-  }, [xp === 0])
+  }, [xpHydrated])
   const xpHoje = Math.max(0, xp - xpInicioDia)
 
   Object.values(lessons).flat().forEach(l => { l.done = licoesConcluidas.includes(l.title) })
@@ -1378,6 +1380,7 @@ export default function AppPage() {
     try { const r = localStorage.getItem('speakup_recorde'); if (r) setRecorde(parseInt(r) || 0) } catch (e) {}
     try { const s = localStorage.getItem('speakup_srs'); if (s) setSrsData(JSON.parse(s)) } catch (e) {}
     try { const pd = localStorage.getItem('speakup_prof_dia'); if (pd) setProfDiaData(pd) } catch (e) {}
+    try { const sd = localStorage.getItem('speakup_sim_dia'); if (sd) setSimDiaData(sd) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1537,8 +1540,8 @@ export default function AppPage() {
       try {
         const prevUid = localStorage.getItem('speakup_uid')
         if (prevUid && prevUid !== data.user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
-          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setXpInicioDia(0); setLevel('A1'); setSimulacoesHoje(0)
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({})
         }
         localStorage.setItem('speakup_uid', data.user.id)
       } catch (e) {}
@@ -1568,8 +1571,6 @@ export default function AppPage() {
         setIsPremium(BETA_GRATIS || prog.is_premium || false)
         setWhatsapp(prog.whatsapp || '')
         if (!prog.email && data.user.email) supabase.from('progresso').update({ email: data.user.email }).eq('user_id', data.user.id)
-        const hoje = new Date().toISOString().split('T')[0]
-        if (prog.ultima_atividade === hoje) setSimulacoesHoje(prog.simulacoes_hoje || 0)
       } else {
         // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
         // silenciosamente. Cria o profile só se faltar (ignoreDuplicates evita sobrescrever plano/trial de quem já tem).
@@ -1833,7 +1834,9 @@ export default function AppPage() {
   function startScenario(scenario: Scenario) {
     if (!isPremium && simulacoesHoje >= FREE_LIMIT) { setTab('plans'); return }
     setSelectedScenario(scenario); setConvMsgs([{ role: 'ai', text: scenario.opener }]); setConvStarted(true); setConvInput('')
-    setSimulacoesHoje(s => s + 1)
+    const novo = `${hojeStr}:${simulacoesHoje + 1}`
+    try { localStorage.setItem('speakup_sim_dia', novo) } catch (e) {} ; setSimDiaData(novo)
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   }
 
   async function sendConvMsg() {
