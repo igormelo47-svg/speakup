@@ -1923,15 +1923,9 @@ export default function AppPage() {
       {tab === 'home' && (
         <div>
           <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 46px) 16px 32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 22 }}>
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                <rect x="2" y="3.5" width="20" height="14" rx="4.5" fill="#FFD98A" />
-                <path d="M7 17.5 L7 21.5 L12 17.5 Z" fill="#FFD98A" />
-                <circle cx="8" cy="10.5" r="1.5" fill="#103D77" />
-                <circle cx="12" cy="10.5" r="1.5" fill="#103D77" />
-                <circle cx="16" cy="10.5" r="1.5" fill="#103D77" />
-              </svg>
-              <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ color: '#FFD98A' }}>ai</span></span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 22 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={27} /></div>
+              <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 7, padding: '1px 7px', marginLeft: 2 }}>ai</span></span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div></div>
