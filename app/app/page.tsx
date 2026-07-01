@@ -1468,14 +1468,22 @@ export default function AppPage() {
 
   async function ativarLembretes() {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) { alert('Seu navegador não suporta notificações. Tente pelo Chrome no Android ou instale o app na tela inicial.'); return }
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        alert('Este aparelho/navegador não suporta notificações. No iPhone é preciso iOS 16.4+ e abrir o app pelo ícone da tela inicial.'); return
+      }
       const perm = await Notification.requestPermission()
-      if (perm !== 'granted') { alert('Para receber lembretes, permita as notificações nas configurações do navegador.'); return }
+      if (perm !== 'granted') { alert('Permissão negada (' + perm + '). Vá em Ajustes do aparelho → SpeakUp → Notificações e permita, depois tente de novo.'); return }
       const reg = await navigator.serviceWorker.register('/sw.js')
+      await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) })
-      if (userId) await supabase.from('push_subscriptions').upsert({ user_id: userId, subscription: sub as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      if (!userId) { alert('Sessão não identificada. Saia e entre de novo na conta, depois ative os lembretes.'); return }
+      const { error } = await supabase.from('push_subscriptions').upsert({ user_id: userId, subscription: sub as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      if (error) { alert('Erro ao salvar a inscrição no servidor: ' + error.message); return }
       setLembretesAtivos(true)
-    } catch (e) { alert('Não consegui ativar os lembretes agora. Tente novamente.') }
+      alert('Lembretes ativados! 🔔 Você receberá um aviso por dia para não perder a sequência.')
+    } catch (e: any) {
+      alert('Falha ao ativar os lembretes: ' + (e && e.message ? e.message : String(e)))
+    }
   }
 
   function answer(i: number) {
