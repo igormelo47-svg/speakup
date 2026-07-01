@@ -2889,7 +2889,7 @@ export default function AppPage() {
         const fim = lisIdx >= listeningExercises.length
         const ex = fim ? listeningExercises[0] : listeningExercises[lisIdx]
         return (
-          <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
+          <div style={{ background: 'linear-gradient(180deg, #E9F2FB 0%, #D3E7F5 55%, #C1DDF1 100%)', minHeight: '100vh' }}>
             <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🎧" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Listening</div></div>
               <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Ouça o áudio e entenda o que foi dito</div>
@@ -2996,7 +2996,7 @@ export default function AppPage() {
       })()}
 
       {tab === 'ai' && (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-background-secondary)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'linear-gradient(180deg, #F0EEFB 0%, #E6EAFB 60%, #DCE4FA 100%)' }}>
           <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
             <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={32} /></div>
             <div style={{ flex: 1 }}>
