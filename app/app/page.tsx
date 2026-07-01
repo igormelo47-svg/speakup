@@ -2973,7 +2973,7 @@ export default function AppPage() {
 
       </div>
 
-      <div style={{ background: `linear-gradient(180deg, ${blueDark}, #0B2B52)`, borderTop: '0.5px solid rgba(255,255,255,0.12)', display: 'flex', padding: '8px 4px calc(8px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
+      <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', padding: '8px 4px calc(8px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
         {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '👨‍🏫', 'Professor']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
