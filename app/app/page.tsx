@@ -1695,7 +1695,7 @@ export default function AppPage() {
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
       `}</style>
 
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}>
+      <div key={tab} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0, animation: 'su_screen 0.28s ease' }}>
 
       {tab === 'home' && (
         <div>
@@ -1869,7 +1869,7 @@ export default function AppPage() {
 
       {mostrarOnboarding && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, display: 'flex', padding: 24, overflowY: 'auto' }}>
-          <div style={{ maxWidth: 420, margin: 'auto', width: '100%', color: '#fff' }}>
+          <div key={onbStep} style={{ maxWidth: 420, margin: 'auto', width: '100%', color: '#fff', animation: 'su_screen 0.32s ease' }}>
             {onbStep === 0 && (<>
               <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Bem-vindo ao SpeakUp! <Ic e="🎉" /></div>
               <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Qual é o seu principal objetivo com o inglês?</div>

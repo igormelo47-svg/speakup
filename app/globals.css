@@ -35,3 +35,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Microinterações: feedback instantâneo ao tocar em qualquer elemento clicável */
+button { transition: transform 0.08s ease, filter 0.12s ease; -webkit-tap-highlight-color: transparent; }
+button:active { transform: scale(0.95); }
+[style*="cursor: pointer"] { transition: transform 0.1s ease, box-shadow 0.15s ease; -webkit-tap-highlight-color: transparent; }
+[style*="cursor: pointer"]:active { transform: scale(0.975); }
+
+@keyframes su_screen { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
