@@ -1756,6 +1756,7 @@ export default function AppPage() {
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
       const res = await callChat({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] })
+      if (res.status === 429) { setChatMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.' }]); setLoadingChat(false); return }
       const data = await res.json()
       setChatMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Erro.' }])
     } catch { setChatMsgs(m => [...m, { role: 'ai', text: 'Erro de conexão. Tente novamente.' }]) }
@@ -1846,6 +1847,7 @@ export default function AppPage() {
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
       const res = await callChat({ system: selectedScenario.systemPrompt + ' ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
+      if (res.status === 429) { setConvMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. Volte amanhã para continuar praticando. 🌟' }]); setLoadingConv(false); return }
       const data = await res.json()
       setConvMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Could not respond.' }])
     } catch { setConvMsgs(m => [...m, { role: 'ai', text: 'Connection error. Please try again.' }]) }

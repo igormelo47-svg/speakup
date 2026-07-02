@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Analytics } from '@vercel/analytics/react'
 
 export const metadata: Metadata = {
   title: 'Vonai — Aprenda inglês com IA',
@@ -36,6 +37,7 @@ export default function RootLayout({
       </head>
       <body style={{ margin: 0, padding: 0, background: '#f5f5f5' }}>
         {children}
+        <Analytics />
       </body>
     </html>
   )
