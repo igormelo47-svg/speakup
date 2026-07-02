@@ -1276,6 +1276,7 @@ export default function AppPage() {
   const [xpFloat, setXpFloat] = useState(0)
   const [tempoMin, setTempoMin] = useState(0)
   const [missoes, setMissoes] = useState<{ week: number; claimed: string[] }>({ week: 0, claimed: [] })
+  const [conqExpand, setConqExpand] = useState(false)
   const [dictCat, setDictCat] = useState('casa')
   const [fluencyReport, setFluencyReport] = useState<{score:number;strengths:string[];improvements:string[];message:string}|null>(null)
   const [loadingReport, setLoadingReport] = useState(false)
@@ -2116,17 +2117,19 @@ export default function AppPage() {
 
       {tab === 'home' && (
         <div>
-          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 46px) 16px 32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 22 }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={27} /></div>
-              <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 7, padding: '1px 7px', marginLeft: 2 }}>ai</span></span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(245,201,122,0.18)', border: '1px solid rgba(245,201,122,0.5)', borderRadius: 20, padding: '5px 11px', cursor: 'pointer' }}><span style={{ fontSize: 14 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
-                <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 12px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
+          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 26px' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 32, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
+                <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 7, padding: '1px 7px', marginLeft: 2 }}>ai</span></span>
               </div>
+              <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(245,201,122,0.18)', border: '1px solid rgba(245,201,122,0.5)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}><span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
+                <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 11px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div>
             </div>
             {(() => {
               const lvlArr = lessons[level] || []
@@ -3248,7 +3251,7 @@ export default function AppPage() {
               </div>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '2px 2px 12px' }}><Ic e="🏅" /> Conquistas · {ganhas}/{conquistasDef.length}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14 }}>
-                {conquistasDef.map((c, i) => (
+                {(conqExpand ? conquistasDef : conquistasDef.slice(0, 4)).map((c, i) => (
                   <div key={i} style={{ textAlign: 'center' }}>
                     <div style={{ position: 'relative', width: 44, height: 44, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ filter: c.ok ? 'none' : 'grayscale(1)', opacity: c.ok ? 1 : 0.4 }}><Ic e={c.e} s={21} c={c.ok ? gold : undefined} /></span>
@@ -3258,6 +3261,9 @@ export default function AppPage() {
                   </div>
                 ))}
               </div>
+              {conquistasDef.length > 4 && (
+                <button onClick={() => setConqExpand(v => !v)} style={{ width: '100%', marginTop: 10, padding: '10px', background: 'none', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, color: blue, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{conqExpand ? 'Ver menos' : `Ver tudo (${conquistasDef.length})`}</button>
+              )}
             </div>
           </div>
         )

@@ -3,6 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Paleta usada em todo o app (page.tsx). Definida aqui para nao ficar
+     transparente/invisivel (ex.: o painel da Loja sobre fundo escuro). */
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f2f5f8;
+  --color-background-tertiary: #e5eaef;
+  --color-text-primary: #16212c;
+  --color-text-secondary: #5c6b7a;
+  --color-text-tertiary: #93a1b0;
+  --color-border-tertiary: #e4e9ef;
 }
 
 @theme inline {
@@ -12,10 +21,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* O app foi desenhado com tema claro; forcamos claro para consistencia
+   (evita texto claro sobre card branco no modo escuro do sistema). */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f2f5f8;
+    --color-background-tertiary: #e5eaef;
+    --color-text-primary: #16212c;
+    --color-text-secondary: #5c6b7a;
+    --color-text-tertiary: #93a1b0;
+    --color-border-tertiary: #e4e9ef;
   }
 }
 
