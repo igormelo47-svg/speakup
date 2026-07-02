@@ -14,13 +14,14 @@ Em **Vercel → Settings → Environment Variables**, adicione:
 
 | Key | Value |
 |---|---|
-| `VAPID_PRIVATE_KEY` | `5dDdBRIQMCyVAibAFiZLEyPDHJ_fVPzseKPfyz4WFX4` |
+| `VAPID_PRIVATE_KEY` | *(segredo — está salvo só na Vercel; NÃO versionar aqui)* |
 | `VAPID_SUBJECT` | `mailto:igormelo47@gmail.com` |
 | `SUPABASE_SERVICE_ROLE_KEY` | *(Supabase → Settings → API → **service_role** secret)* |
 | `CRON_SECRET` | *(invente uma senha aleatória longa, ex.: `sk_cron_8x9...`)* |
 
-> A chave **pública** do push já está embutida no código (pode ser pública). A **privada** fica só aqui.
+> A chave **pública** do push já está embutida no código (pode ser pública). A **privada** fica **só na Vercel** (nunca neste arquivo/repositório).
 > A `SUPABASE_SERVICE_ROLE_KEY` é **secreta** (acesso total ao banco) — nunca exponha em público.
+> Todas essas variáveis já estão configuradas na Vercel (projeto `speakup`).
 
 ## Passo 3 — Redeploy
 Depois de salvar as variáveis, faça um **Redeploy** na Vercel (ou um novo `git push`).
