@@ -15,7 +15,7 @@ import {
   Lightbulb, Sparkles, TrendingUp, BicepsFlexed, PartyPopper, LockOpen, Lock, Search,
   Flag, X, Heart, Rocket, Folder, Home, Apple, Shirt, Goal, ChefHat, Cat, Map as MapIcon,
   Image as ImageIcon, ArrowRight, ArrowLeft, Check, CircleCheck, BookText, Pause, Square,
-  Volume2, MessageCircle, Settings, HelpingHand, Bell, Bird,
+  Volume2, MessageCircle, Settings, HelpingHand, Bell, Bird, Brain,
 } from 'lucide-react'
 
 // Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
@@ -45,7 +45,7 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
   '📝': NotebookPen, '🎤': Mic, '⏹️': Square, '⏸️': Pause, '🔊': Volume2, '💡': Lightbulb,
   '✨': Sparkles, '📈': TrendingUp, '💪': BicepsFlexed, '🎉': PartyPopper, '🔓': LockOpen,
   '🔒': Lock, '🔍': Search, '🏁': Flag, '💜': Heart, '🚀': Rocket, '🗂️': Folder,
-  '🏆': Trophy, '🌱': Sprout, '🔔': Bell, '🦜': Bird,
+  '🏆': Trophy, '🌱': Sprout, '🔔': Bell, '🦜': Bird, '🧠': Brain,
   // Símbolos de interface
   '→': ArrowRight, '←': ArrowLeft, '✓': Check, '✗': X, '✅': CircleCheck, '✕': X,
   '🎙️': Mic, '🤲': HelpingHand,
@@ -1193,6 +1193,13 @@ function Mascote({ size = 40 }: { size?: number }) {
   )
 }
 
+// Nível numérico a partir do XP total (sobe rápido no começo, dando "level up" frequente).
+function nivelDeXp(xp: number) {
+  let nivel = 1, need = 100, acc = 0
+  while (xp >= acc + need) { acc += need; nivel++; need = 100 + (nivel - 1) * 50 }
+  return { nivel, into: xp - acc, need, pct: Math.round(((xp - acc) / need) * 100) }
+}
+
 export default function AppPage() {
   const XP_PENDING_KEY = 'speakup_xp_pending'
   const [tab, setTab] = useState('home')
@@ -1267,6 +1274,8 @@ export default function AppPage() {
   const [bauReward, setBauReward] = useState<number | null>(null)
   const [lojaModal, setLojaModal] = useState(false)
   const [xpFloat, setXpFloat] = useState(0)
+  const [tempoMin, setTempoMin] = useState(0)
+  const [missoes, setMissoes] = useState<{ week: number; claimed: string[] }>({ week: 0, claimed: [] })
   const [dictCat, setDictCat] = useState('casa')
   const [fluencyReport, setFluencyReport] = useState<{score:number;strengths:string[];improvements:string[];message:string}|null>(null)
   const [loadingReport, setLoadingReport] = useState(false)
@@ -1391,6 +1400,8 @@ export default function AppPage() {
     try { const pd = localStorage.getItem('speakup_prof_dia'); if (pd) setProfDiaData(pd) } catch (e) {}
     try { const sd = localStorage.getItem('speakup_sim_dia'); if (sd) setSimDiaData(sd) } catch (e) {}
     try { const b = localStorage.getItem('speakup_bau_dia'); if (b) setBauDia(b) } catch (e) {}
+    try { const t = localStorage.getItem('speakup_tempo'); if (t) setTempoMin(parseInt(t) || 0) } catch (e) {}
+    try { const m = localStorage.getItem('speakup_missoes'); if (m) setMissoes(JSON.parse(m)) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1436,6 +1447,42 @@ export default function AppPage() {
     setConqNova({ e: '🎉', nome: 'Plano do dia completo! +20 XP e +30 🪙' })
   }, [xpHydrated, licoesHoje, vocabDiaData, simulacoesHoje, desafioFeito])
 
+  // Level up (nível numérico de XP)
+  useEffect(() => {
+    if (!xpHydrated) return
+    const nv = nivelDeXp(xp).nivel
+    let visto = 0
+    try { visto = parseInt(localStorage.getItem('speakup_nivel_visto') || '0') || 0 } catch (e) {}
+    if (visto === 0) { try { localStorage.setItem('speakup_nivel_visto', String(nv)) } catch (e) {} ; return }
+    if (nv > visto) {
+      try { localStorage.setItem('speakup_nivel_visto', String(nv)) } catch (e) {}
+      ganharMoedas(nv * 5)
+      setConqNova({ e: '⭐', nome: `Subiu para o nível ${nv}! +${nv * 5} 🪙` })
+    }
+  }, [xpHydrated, xp])
+
+  // Marcos de sequência (7, 30, 100 dias...)
+  useEffect(() => {
+    if (!xpHydrated || streak <= 0) return
+    const marcos = [7, 14, 30, 60, 100, 180, 365]
+    if (!marcos.includes(streak)) return
+    let vistos: number[] = []
+    try { vistos = JSON.parse(localStorage.getItem('speakup_streak_marcos') || '[]') } catch (e) {}
+    if (vistos.includes(streak)) return
+    vistos.push(streak)
+    try { localStorage.setItem('speakup_streak_marcos', JSON.stringify(vistos)) } catch (e) {}
+    ganharMoedas(streak * 3)
+    setConqNova({ e: '🔥', nome: `${streak} dias de sequência! +${streak * 3} 🪙` })
+  }, [xpHydrated, streak])
+
+  // Tempo de estudo (minutos com o app aberto)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTempoMin(m => { const novo = m + 1; try { localStorage.setItem('speakup_tempo', String(novo)) } catch (e) {} ; return novo })
+    }, 60000)
+    return () => clearInterval(id)
+  }, [])
+
   useEffect(() => {
     if (!xpHydrated) return
     try {
@@ -1474,6 +1521,16 @@ export default function AppPage() {
     const novo = moedas + n
     setMoedas(novo)
     if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  }
+  function claimMissao(id: string, reward: number) {
+    const weekNow = Math.floor(Date.now() / (7 * 86400000))
+    const base = missoes.week === weekNow ? missoes.claimed : []
+    if (base.includes(id)) return
+    const novo = { week: weekNow, claimed: [...base, id] }
+    setMissoes(novo)
+    try { localStorage.setItem('speakup_missoes', JSON.stringify(novo)) } catch (e) {}
+    ganharMoedas(reward)
+    setConqNova({ e: '🎉', nome: `Missão concluída! +${reward} 🪙` })
   }
   function abrirBau() {
     if (bauDia === hojeStr) return
@@ -1589,8 +1646,8 @@ export default function AppPage() {
       try {
         const prevUid = localStorage.getItem('speakup_uid')
         if (prevUid && prevUid !== data.user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
-          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setBauDia('')
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setBauDia(''); setTempoMin(0); setMissoes({ week: 0, claimed: [] })
         }
         localStorage.setItem('speakup_uid', data.user.id)
       } catch (e) {}
@@ -2076,6 +2133,7 @@ export default function AppPage() {
               const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(l.title)).length
               const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
               const C = 188.5
+              const nv = nivelDeXp(xp)
               return (
               <div style={{ background: blueDark, borderRadius: 20, padding: 18 }}>
                 {isNovo && <div style={{ textAlign: 'center', marginBottom: 16 }}><div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 4 }}>Bem-vindo ao Vonai! <Ic e="🎉" /></div><div style={{ fontSize: 12, color: '#BCD6F2', lineHeight: 1.5 }}>Comece sua primeira lição e ganhe seus primeiros 10 XP.</div></div>}
@@ -2103,6 +2161,13 @@ export default function AppPage() {
                   <Ic e="🔥" c="#F5A623" s={22} />
                   <div style={{ flex: 1, fontSize: 13, color: '#fff', fontWeight: 600 }}>{streak} {streak === 1 ? 'dia' : 'dias'} de sequência</div>
                   {recorde > 0 && <div style={{ fontSize: 12, color: '#F5C97A', fontWeight: 600 }}><Ic e="🏆" /> recorde {recorde}</div>}
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="⭐" c="#FFD98A" /> Nível {nv.nivel}</div>
+                    <div style={{ fontSize: 11, color: '#BCD6F2', fontWeight: 600 }}>faltam {nv.need - nv.into} XP</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: 'linear-gradient(90deg,#FFD98A,#F5A623)', height: '100%', width: `${nv.pct}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
@@ -2167,6 +2232,52 @@ export default function AppPage() {
                         <div style={{ fontSize: 10.5, color: '#9DBBDD', lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{t.sub}</div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )
+            })()}
+            {(() => {
+              const weekNow = Math.floor(Date.now() / (7 * 86400000))
+              const claimed = missoes.week === weekNow ? missoes.claimed : []
+              const semXpAtual = Math.max(0, xp - semBaseRef.current)
+              const diasSemana = Object.keys(hist).filter(d => Math.floor(new Date(d + 'T00:00:00').getTime() / (7 * 86400000)) === weekNow && (hist[d] || 0) > 0).length
+              const lista = [
+                { id: 'xp', e: '⚡', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
+                { id: 'dias', e: '📅', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
+                { id: 'streak', e: '🔥', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
+              ]
+              const feitas = lista.filter(m => claimed.includes(m.id)).length
+              return (
+                <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}><Ic e="🎯" c={purple} /> Missões da semana</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: feitas === lista.length ? green : 'var(--color-text-secondary)' }}>{feitas}/{lista.length}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {lista.map(m => {
+                      const pct = Math.round(m.cur / m.alvo * 100)
+                      const completa = m.cur >= m.alvo
+                      const resgatada = claimed.includes(m.id)
+                      return (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: 10, background: resgatada ? 'rgba(22,163,74,0.14)' : 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={19} c={resgatada ? green : '#6A5ACD'} /></div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 5 }}>{m.nome}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 5, height: 7, overflow: 'hidden' }}><div style={{ background: completa ? green : '#6A5ACD', height: '100%', width: `${pct}%`, borderRadius: 5, transition: 'width 0.4s' }} /></div>
+                              <div style={{ fontSize: 10.5, color: 'var(--color-text-secondary)', fontWeight: 600, minWidth: 42, textAlign: 'right' }}>{m.cur}/{m.alvo}</div>
+                            </div>
+                          </div>
+                          {resgatada ? (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: green, flexShrink: 0 }}><Ic e="✓" /> feito</div>
+                          ) : completa ? (
+                            <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'linear-gradient(135deg,#E0A62E,#B9861F)', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>+{m.reward} 🪙</button>
+                          ) : (
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', flexShrink: 0 }}>+{m.reward} 🪙</div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -3082,13 +3193,18 @@ export default function AppPage() {
         const dias = Object.keys(hist).sort().slice(-7)
         const maxXp = Math.max(1, ...dias.map(d => hist[d] || 0))
         const ganhas = conquistasDef.filter(c => c.ok).length
+        const nvE = nivelDeXp(xp)
+        const metaSemanal = metaDiaria * 5
+        const semXpAtual = Math.max(0, xp - semBaseRef.current)
+        const fluencia = totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0
+        const tempoTxt = tempoMin >= 60 ? `${Math.floor(tempoMin / 60)}h${tempoMin % 60 ? ' ' + (tempoMin % 60) + 'min' : ''}` : `${tempoMin}min`
         const metricas = [
-          { e: '⭐', v: xp, l: 'XP total', c: '#B8860B' },
-          { e: '🧠', v: vocabDominadas, l: 'palavras dominadas', c: green },
-          { e: '📚', v: doneLessons, l: 'lições concluídas', c: blue },
-          { e: '🔥', v: streak, l: 'dias de sequência', c: '#E08A1E' },
-          { e: '🏆', v: recorde, l: 'recorde de sequência', c: '#B8860B' },
-          { e: '🏅', v: `${ganhas}/${conquistasDef.length}`, l: 'conquistas', c: purple },
+          { e: '🧠', v: vocabDominadas, l: 'palavras aprendidas', c: green },
+          { e: '⭐', v: nvE.need - nvE.into, l: `XP p/ o nível ${nvE.nivel + 1}`, c: '#B8860B' },
+          { e: '🔥', v: streak, l: 'dias consecutivos', c: '#E08A1E' },
+          { e: '🎯', v: `${semXpAtual}/${metaSemanal}`, l: 'meta semanal (XP)', c: blue },
+          { e: '📈', v: `${fluencia}%`, l: 'fluência estimada', c: purple },
+          { e: '⏰', v: tempoTxt, l: 'tempo estudado', c: '#6A5ACD' },
         ]
         return (
           <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
@@ -3097,8 +3213,13 @@ export default function AppPage() {
               <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Nível {level} · rumo a: {perfilIa.objetivo || OBJETIVO_PADRAO}</div>
             </div>
             <div style={{ padding: 16 }}>
-              <div style={{ background: `linear-gradient(135deg, #16A34A, #15803D)`, borderRadius: 16, padding: 16, marginBottom: 14, color: '#fff' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5 }}>🎉 Você já domina <b>{vocabDominadas}</b> {vocabDominadas === 1 ? 'palavra' : 'palavras'} e concluiu <b>{doneLessons}</b> {doneLessons === 1 ? 'lição' : 'lições'}!</div>
+              <div style={{ background: `linear-gradient(135deg, #4B3FBF, #6A5ACD)`, borderRadius: 16, padding: 16, marginBottom: 14, color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}><Ic e="⭐" c="#FFD98A" /> Nível {nvE.nivel}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>faltam {nvE.need - nvE.into} XP p/ o nível {nvE.nivel + 1}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 9, overflow: 'hidden' }}><div style={{ background: 'linear-gradient(90deg,#FFD98A,#F5A623)', height: '100%', width: `${nvE.pct}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+                <div style={{ fontSize: 12.5, marginTop: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.95)' }}>O cérebro adora progresso. Você já domina <b>{vocabDominadas}</b> {vocabDominadas === 1 ? 'palavra' : 'palavras'} e concluiu <b>{doneLessons}</b> {doneLessons === 1 ? 'lição' : 'lições'}. Continue! <Ic e="🚀" /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
                 {metricas.map((m, i) => (
