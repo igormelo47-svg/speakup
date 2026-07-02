@@ -1277,6 +1277,8 @@ export default function AppPage() {
   const [tempoMin, setTempoMin] = useState(0)
   const [missoes, setMissoes] = useState<{ week: number; claimed: string[] }>({ week: 0, claimed: [] })
   const [conqExpand, setConqExpand] = useState(false)
+  const [ajudaTxt, setAjudaTxt] = useState<string | null>(null)
+  const [ajudaLoading, setAjudaLoading] = useState(false)
   const [dictCat, setDictCat] = useState('casa')
   const [fluencyReport, setFluencyReport] = useState<{score:number;strengths:string[];improvements:string[];message:string}|null>(null)
   const [loadingReport, setLoadingReport] = useState(false)
@@ -1826,7 +1828,7 @@ export default function AppPage() {
       if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val); registrarDominio(titulo) }
       agendarRevisao(titulo, licaoErrosRef.current === 0)
       salvarProgresso(novoXp, novasLicoes); setView('finish')
-    } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1) }
+    } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1); setAjudaTxt(null) }
   }
 
   function micChat() {
@@ -1857,6 +1859,26 @@ export default function AppPage() {
     let token = ''
     try { const { data } = await supabase.auth.getSession(); token = data.session?.access_token || '' } catch (e) {}
     return fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) })
+  }
+
+  // Dica do Professor IA dentro de uma lição — ajuda o aluno a raciocinar SEM entregar a resposta.
+  async function pedirAjuda() {
+    if (answered || ajudaLoading) return
+    if (!isPremium && profHoje >= PROF_LIMIT) { setAjudaTxt(`Você usou suas ${PROF_LIMIT} ajudas de hoje com o Professor. 🌟 Vire Premium para ter ajuda sem limites!`); return }
+    if (isPremium && profHoje >= PROF_LIMIT_PREMIUM) { setAjudaTxt('Estou um pouco sobrecarregado agora. 😅 Tente de novo daqui a pouco.'); return }
+    const q = currentLesson.q[qIdx]
+    const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
+    setAjudaLoading(true); setAjudaTxt(null)
+    try {
+      const res = await callChat({
+        system: 'Você é um professor de inglês paciente ajudando um aluno brasileiro DURANTE um exercício. Dê uma DICA curta (máximo 2 frases, em português) que ajude o aluno a raciocinar e chegar à resposta sozinho. NUNCA diga qual opção é a correta nem revele a resposta final. Foque em relembrar a regra ou dar um exemplo parecido.',
+        messages: [{ role: 'user', content: `Tópico da lição: ${currentLesson.title}. Regra: ${currentLesson.explanation}. Pergunta: ${q.q}. Opções: ${q.opts.join(' / ')}. Me dê uma dica para eu descobrir sozinho, sem revelar a resposta.` }],
+      })
+      if (res.status === 429) { setAjudaTxt('Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.'); setAjudaLoading(false); return }
+      const data = await res.json()
+      setAjudaTxt(data.content?.[0]?.text || 'Tente relembrar a regra da explicação. 💡')
+    } catch { setAjudaTxt('Erro de conexão. Tente de novo. 💡') }
+    setAjudaLoading(false)
   }
 
   async function sendChat() {
@@ -2963,7 +2985,7 @@ export default function AppPage() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); licaoErrosRef.current = 0; setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios <Ic e="→" /></button>
+                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios <Ic e="→" /></button>
               </div>
             )}
             {view === 'quiz' && (
@@ -2991,6 +3013,15 @@ export default function AppPage() {
                     )
                   })}
                 </div>
+                {!answered && (
+                  <button onClick={pedirAjuda} disabled={ajudaLoading} style={{ width: '100%', padding: '11px', background: '#EEEDFE', color: '#4B3FBF', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 600, cursor: ajudaLoading ? 'default' : 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit' }}><Mascote size={20} /> {ajudaLoading ? 'Pensando...' : 'Pedir ajuda ao professor'}</button>
+                )}
+                {ajudaTxt && !answered && (
+                  <div style={{ background: '#EEEDFE', border: '1px solid #D9D6F7', borderRadius: 12, padding: 14, marginBottom: 14, display: 'flex', gap: 10 }}>
+                    <div style={{ flexShrink: 0 }}><Mascote size={26} /></div>
+                    <div style={{ fontSize: 13, color: '#3A3273', lineHeight: 1.55 }}>{ajudaTxt}</div>
+                  </div>
+                )}
                 {answered && (
                   <div style={{ background: selected === currentLesson.q[qIdx].ans ? greenLight : '#FCEBEB', borderRadius: 12, padding: 14, marginBottom: 14, display: 'flex', gap: 10 }}>
                     <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={selected === currentLesson.q[qIdx].ans ? '✅' : '💡'} /></span>
