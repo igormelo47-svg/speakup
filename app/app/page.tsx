@@ -1311,6 +1311,9 @@ export default function AppPage() {
   const recognitionRef = useRef<any>(null)
   const xpSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSyncedXpRef = useRef<number | null>(null)
+  const semNumRef = useRef<number | null>(null)
+  const semBaseRef = useRef(0)
+  const [ligaData, setLigaData] = useState<{ nome: string; sem_xp: number }[]>([])
   const convEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -1488,6 +1491,13 @@ export default function AppPage() {
     setMoedas(novoM); setStreakFreezes(novoF)
     if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novoM, streak_freezes: novoF, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   }
+  async function carregarLiga() {
+    try {
+      const weekNow = Math.floor(Date.now() / (7 * 86400000))
+      const { data } = await supabase.from('ranking_semanal').select('nome, sem_xp').eq('sem_num', weekNow).order('sem_xp', { ascending: false }).limit(30)
+      setLigaData((data as any) || [])
+    } catch (e) { setLigaData([]) }
+  }
 
   async function salvarWhatsapp() {
     const num = whatsappInput.replace(/\D/g, '')
@@ -1611,6 +1621,12 @@ export default function AppPage() {
         setWhatsapp(prog.whatsapp || '')
         setMoedas(prog.moedas || 0)
         setStreakFreezes(prog.streak_freezes || 0)
+        {
+          const weekNow = Math.floor(Date.now() / (7 * 86400000))
+          semNumRef.current = weekNow
+          semBaseRef.current = prog.sem_num === weekNow ? (prog.sem_base_xp || 0) : initialXp
+          supabase.from('progresso').upsert({ user_id: data.user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+        }
         if (!prog.email && data.user.email) supabase.from('progresso').update({ email: data.user.email }).eq('user_id', data.user.id)
       } else {
         // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
@@ -1642,7 +1658,10 @@ export default function AppPage() {
     if (xpSaveTimeoutRef.current) clearTimeout(xpSaveTimeoutRef.current)
     xpSaveTimeoutRef.current = setTimeout(async () => {
       try {
-        await supabase.from('progresso').upsert({ user_id: userId, xp, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+        const weekNow = Math.floor(Date.now() / (7 * 86400000))
+        if (semNumRef.current !== weekNow) { semNumRef.current = weekNow; semBaseRef.current = xp }
+        const semXp = Math.max(0, xp - semBaseRef.current)
+        await supabase.from('progresso').upsert({ user_id: userId, xp, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: semXp, nome: userName, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
         lastSyncedXpRef.current = xp
         try {
           const rawPending = localStorage.getItem(XP_PENDING_KEY)
@@ -2103,6 +2122,11 @@ export default function AppPage() {
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2, lineHeight: 1.4 }}>Correções em tempo real enquanto você pratica inglês</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 9, background: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '6px 14px', borderRadius: 20 }}>▶ Conversar agora</div>
               </div>
+            </div>
+            <div onClick={() => { setTab('liga'); carregarLiga() }} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 30 }}>🏆</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2 }}>Dispute o topo do ranking com outros alunos</div></div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ver <Ic e="→" /></span>
             </div>
             {bauDia !== hojeStr && (
               <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.35)' }}>
@@ -3117,6 +3141,39 @@ export default function AppPage() {
           </div>
         )
       })()}
+
+      {tab === 'liga' && (
+        <div style={{ background: 'var(--color-background-secondary)', minHeight: '100vh' }}>
+          <div style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', padding: '20px 16px 18px' }}>
+            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.9)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontSize: 26 }}>🏆</span><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Liga da semana</div></div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 3 }}>Quem mais ganhou XP nesta semana. Zera toda semana!</div>
+          </div>
+          <div style={{ padding: 16 }}>
+            {ligaData.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ fontSize: 48 }}>🏅</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginTop: 10 }}>O ranking está começando!</div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.5, maxWidth: 300, margin: '6px auto 0' }}>Ganhe XP fazendo lições e desafios para aparecer aqui. Volte em breve!</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {ligaData.map((u, i) => {
+                  const isMe = u.nome === userName
+                  const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : ''
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isMe ? blueLight : 'var(--color-background-primary)', border: isMe ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '11px 14px' }}>
+                      <div style={{ width: 30, textAlign: 'center', fontSize: medal ? 20 : 14, fontWeight: 700, color: isMe ? blue : 'var(--color-text-secondary)' }}>{medal || (i + 1)}</div>
+                      <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: isMe ? 700 : 500, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.nome || 'Aluno'}{isMe ? ' (você)' : ''}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#E0A62E', flexShrink: 0 }}>{u.sem_xp} XP</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: 'linear-gradient(180deg, #F0EEFB 0%, #E6EAFB 60%, #DCE4FA 100%)' }}>
