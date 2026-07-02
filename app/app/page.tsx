@@ -2082,33 +2082,34 @@ export default function AppPage() {
 
       {bauReward !== null && (
         <div onClick={() => setBauReward(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320, textAlign: 'center', boxSizing: 'border-box', animation: 'su_pop 0.4s ease' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320, textAlign: 'center', boxSizing: 'border-box', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', animation: 'su_pop 0.4s ease' }}>
             <div style={{ fontSize: 60, animation: 'su_bounce 0.6s ease' }}>🎁</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 8 }}>Baú aberto!</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#16212c', marginTop: 8 }}>Baú aberto!</div>
             <div style={{ fontSize: 30, fontWeight: 800, color: '#E0A62E', marginTop: 10 }}>+{bauReward} 🪙</div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 8 }}>Volte amanhã para o próximo baú!</div>
+            <div style={{ fontSize: 13, color: '#5c6b7a', marginTop: 8 }}>Volte amanhã para o próximo baú!</div>
             <button onClick={() => setBauReward(null)} style={{ width: '100%', padding: 13, marginTop: 20, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Show! 🎉</button>
           </div>
         </div>
       )}
 
       {lojaModal && (
-        <div onClick={() => setLojaModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease' }}>
+        <div onClick={() => setLojaModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', width: '100%', maxWidth: 430, boxSizing: 'border-box', boxShadow: '0 -8px 30px rgba(0,0,0,0.25)', animation: 'su_slide 0.25s ease' }}>
+            <div style={{ width: 38, height: 4, borderRadius: 2, background: '#d7dde4', margin: '0 auto 14px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)' }}>Loja</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#16212c' }}>Loja</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#E0A62E' }}>{moedas} 🪙</div>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>Use suas moedas para não perder o progresso.</div>
-            <div style={{ background: 'var(--color-background-secondary)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 13, color: '#5c6b7a', marginBottom: 16 }}>Use suas moedas para não perder o progresso.</div>
+            <div style={{ background: '#f2f5f8', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 34 }}>🛡️</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Proteção de sequência</div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Se faltar um dia, sua sequência não zera. Você tem: <b>{streakFreezes}</b></div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#16212c' }}>Proteção de sequência</div>
+                <div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Se faltar um dia, sua sequência não zera. Você tem: <b>{streakFreezes}</b></div>
               </div>
-              <button onClick={comprarStreakFreeze} disabled={moedas < 50} style={{ background: moedas >= 50 ? blue : 'var(--color-background-tertiary)', color: moedas >= 50 ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 20, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: moedas >= 50 ? 'pointer' : 'default', flexShrink: 0 }}>50 🪙</button>
+              <button onClick={comprarStreakFreeze} disabled={moedas < 50} style={{ background: moedas >= 50 ? blue : '#e5eaef', color: moedas >= 50 ? '#fff' : '#8a97a4', border: 'none', borderRadius: 20, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: moedas >= 50 ? 'pointer' : 'default', flexShrink: 0 }}>50 🪙</button>
             </div>
-            <button onClick={() => setLojaModal(false)} style={{ width: '100%', padding: 12, marginTop: 14, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
+            <button onClick={() => setLojaModal(false)} style={{ width: '100%', padding: 12, marginTop: 14, background: 'none', color: '#5c6b7a', border: 'none', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
           </div>
         </div>
       )}
@@ -2437,7 +2438,7 @@ export default function AppPage() {
 
       {conqNova && (
         <div onClick={() => setConqNova(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320, textAlign: 'center', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320, textAlign: 'center', boxSizing: 'border-box', position: 'relative', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
               {['#F5A623', '#534AB7', '#16A34A', '#2E72D6', '#E24B4A', '#DAA520', '#16A34A', '#6A5ACD'].map((cor, i) => (
                 <div key={i} style={{ position: 'absolute', top: 0, left: `${8 + i * 11}%`, width: 9, height: 9, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1.4 + (i % 4) * 0.3}s ease-in ${(i % 5) * 0.12}s forwards` }} />
@@ -2445,8 +2446,8 @@ export default function AppPage() {
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, color: gold, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conquista desbloqueada!</div>
             <div style={{ width: 88, height: 88, margin: '0 auto 16px', borderRadius: '50%', background: goldLight, border: `2px solid ${gold}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, animation: 'su_bounce 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}><Ic e={conqNova.e} /></div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>{conqNova.nome}</div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 22, lineHeight: 1.5 }}>Mais uma medalha na sua coleção. Continue assim! <Ic e="🔥" /></div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#16212c', marginBottom: 6 }}>{conqNova.nome}</div>
+            <div style={{ fontSize: 13, color: '#5c6b7a', marginBottom: 22, lineHeight: 1.5 }}>Mais uma medalha na sua coleção. Continue assim! <Ic e="🔥" /></div>
             <button onClick={() => setConqNova(null)} style={{ width: '100%', padding: 13, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Continuar <Ic e="→" /></button>
           </div>
         </div>
