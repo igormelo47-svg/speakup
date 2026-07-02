@@ -1,3 +1,8 @@
+// Handler mínimo de fetch: necessário para o app ser considerado "instalável"
+// (habilita o evento beforeinstallprompt / botão "Instalar o app"). Não altera o
+// comportamento da rede — deixa cada requisição seguir normalmente.
+self.addEventListener('fetch', function () {})
+
 self.addEventListener('push', function (event) {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch (e) {}

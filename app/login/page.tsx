@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
+import InstallButton from '../InstallButton'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -101,6 +102,8 @@ export default function Login() {
         style={{ width: '100%', padding: 11, background: '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
         {botao}
       </button>
+
+      <InstallButton />
 
       {modo === 'recuperar' ? (
         <p style={{ textAlign: 'center', fontSize: 13, color: '#888', marginTop: 16 }}>
