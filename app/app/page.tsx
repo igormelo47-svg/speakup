@@ -1261,6 +1261,12 @@ export default function AppPage() {
   const [convStarted, setConvStarted] = useState(false)
   const [simDiaData, setSimDiaData] = useState('')
   const [profDiaData, setProfDiaData] = useState('')
+  const [moedas, setMoedas] = useState(0)
+  const [streakFreezes, setStreakFreezes] = useState(0)
+  const [bauDia, setBauDia] = useState('')
+  const [bauReward, setBauReward] = useState<number | null>(null)
+  const [lojaModal, setLojaModal] = useState(false)
+  const [xpFloat, setXpFloat] = useState(0)
   const [dictCat, setDictCat] = useState('casa')
   const [fluencyReport, setFluencyReport] = useState<{score:number;strengths:string[];improvements:string[];message:string}|null>(null)
   const [loadingReport, setLoadingReport] = useState(false)
@@ -1381,6 +1387,7 @@ export default function AppPage() {
     try { const s = localStorage.getItem('speakup_srs'); if (s) setSrsData(JSON.parse(s)) } catch (e) {}
     try { const pd = localStorage.getItem('speakup_prof_dia'); if (pd) setProfDiaData(pd) } catch (e) {}
     try { const sd = localStorage.getItem('speakup_sim_dia'); if (sd) setSimDiaData(sd) } catch (e) {}
+    try { const b = localStorage.getItem('speakup_bau_dia'); if (b) setBauDia(b) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1422,7 +1429,8 @@ export default function AppPage() {
     if (!completo) return
     try { if (localStorage.getItem('speakup_plano_bonus') === hojeStr) return; localStorage.setItem('speakup_plano_bonus', hojeStr) } catch (e) {}
     setXp(x => x + 20)
-    setConqNova({ e: '🎉', nome: 'Plano do dia completo! +20 XP' })
+    ganharMoedas(30)
+    setConqNova({ e: '🎉', nome: 'Plano do dia completo! +20 XP e +30 🪙' })
   }, [xpHydrated, licoesHoje, vocabDiaData, simulacoesHoje, desafioFeito])
 
   useEffect(() => {
@@ -1441,13 +1449,44 @@ export default function AppPage() {
   function finalizarDesafio() {
     const hoje = new Date().toISOString().split('T')[0]
     const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const anteontem = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]
     let last: string | null = null
     try { last = localStorage.getItem('speakup_desafio') } catch (e) {}
-    const novoStreak = last === hoje ? streak : (last === ontem ? streak + 1 : 1)
+    let novoStreak: number, freezesRestantes = streakFreezes, usouFreeze = false
+    if (last === hoje) novoStreak = streak
+    else if (last === ontem) novoStreak = streak + 1
+    else if (last === anteontem && streakFreezes > 0) { novoStreak = streak + 1; freezesRestantes = streakFreezes - 1; usouFreeze = true }
+    else novoStreak = 1
     const novoXp = xp + desAcertos * 5
-    setStreak(novoStreak); setXp(novoXp); setDesafioFeito(true); setDesResult(true)
+    const novasMoedas = moedas + 5 + desAcertos
+    setStreak(novoStreak); setXp(novoXp); setDesafioFeito(true); setDesResult(true); setMoedas(novasMoedas)
+    if (usouFreeze) setStreakFreezes(freezesRestantes)
     try { localStorage.setItem('speakup_desafio', hoje) } catch (e) {}
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: novoStreak, ultima_atividade: hoje, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: novoStreak, moedas: novasMoedas, streak_freezes: freezesRestantes, ultima_atividade: hoje, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (usouFreeze) setConqNova({ e: '🔥', nome: 'Proteção usada — sua sequência continua!' })
+  }
+
+  // ---- Gamificação: moedas, baú do dia e loja ----
+  function ganharMoedas(n: number) {
+    const novo = moedas + n
+    setMoedas(novo)
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  }
+  function abrirBau() {
+    if (bauDia === hojeStr) return
+    const premio = 15 + Math.floor(Math.random() * 26) // 15 a 40 moedas
+    ganharMoedas(premio)
+    setBauReward(premio)
+    try { localStorage.setItem('speakup_bau_dia', hojeStr) } catch (e) {}
+    setBauDia(hojeStr)
+    tocarSom('acerto')
+  }
+  function comprarStreakFreeze() {
+    const custo = 50
+    if (moedas < custo) return
+    const novoM = moedas - custo, novoF = streakFreezes + 1
+    setMoedas(novoM); setStreakFreezes(novoF)
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novoM, streak_freezes: novoF, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   }
 
   async function salvarWhatsapp() {
@@ -1540,8 +1579,8 @@ export default function AppPage() {
       try {
         const prevUid = localStorage.getItem('speakup_uid')
         if (prevUid && prevUid !== data.user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
-          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({})
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setBauDia('')
         }
         localStorage.setItem('speakup_uid', data.user.id)
       } catch (e) {}
@@ -1570,6 +1609,8 @@ export default function AppPage() {
         setLicoesConcluidas(prog.licoes_concluidas || [])
         setIsPremium(BETA_GRATIS || prog.is_premium || false)
         setWhatsapp(prog.whatsapp || '')
+        setMoedas(prog.moedas || 0)
+        setStreakFreezes(prog.streak_freezes || 0)
         if (!prog.email && data.user.email) supabase.from('progresso').update({ email: data.user.email }).eq('user_id', data.user.id)
       } else {
         // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
@@ -1687,7 +1728,7 @@ export default function AppPage() {
   function answer(i: number) {
     if (answered) return
     setAnswered(true); setSelected(i)
-    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title) }
+    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); setXpFloat(10); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title) }
   }
 
   function nextQ() {
@@ -1704,6 +1745,7 @@ export default function AppPage() {
         licao: titulo,
       })
       setLicoesConcluidas(novasLicoes); setXp(novoXp)
+      ganharMoedas(ehNova ? 10 : 5)
       if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val); registrarDominio(titulo) }
       agendarRevisao(titulo, licaoErrosRef.current === 0)
       salvarProgresso(novoXp, novasLicoes); setView('finish')
@@ -1954,7 +1996,45 @@ export default function AppPage() {
         @keyframes su_xppop { 0% { transform: scale(0) translateY(20px); opacity: 0 } 60% { transform: scale(1.2) translateY(0) } 100% { transform: scale(1); opacity: 1 } }
         @keyframes su_confetti { 0% { transform: translateY(-20px) rotate(0); opacity: 1 } 100% { transform: translateY(320px) rotate(420deg); opacity: 0 } }
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
+        @keyframes su_float { 0% { transform: translate(-50%, 0) scale(0.6); opacity: 0 } 25% { transform: translate(-50%, -20px) scale(1.15); opacity: 1 } 100% { transform: translate(-50%, -90px) scale(1); opacity: 0 } }
       `}</style>
+
+      {xpFloat > 0 && (
+        <div style={{ position: 'fixed', top: '38%', left: '50%', zIndex: 250, pointerEvents: 'none', background: '#16A34A', color: '#fff', fontWeight: 800, fontSize: 22, padding: '8px 20px', borderRadius: 24, boxShadow: '0 6px 18px rgba(22,163,74,0.4)', animation: 'su_float 0.85s ease-out forwards' }}>+{xpFloat} XP</div>
+      )}
+
+      {bauReward !== null && (
+        <div onClick={() => setBauReward(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320, textAlign: 'center', boxSizing: 'border-box', animation: 'su_pop 0.4s ease' }}>
+            <div style={{ fontSize: 60, animation: 'su_bounce 0.6s ease' }}>🎁</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 8 }}>Baú aberto!</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: '#E0A62E', marginTop: 10 }}>+{bauReward} 🪙</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 8 }}>Volte amanhã para o próximo baú!</div>
+            <button onClick={() => setBauReward(null)} style={{ width: '100%', padding: 13, marginTop: 20, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Show! 🎉</button>
+          </div>
+        </div>
+      )}
+
+      {lojaModal && (
+        <div onClick={() => setLojaModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)' }}>Loja</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#E0A62E' }}>{moedas} 🪙</div>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>Use suas moedas para não perder o progresso.</div>
+            <div style={{ background: 'var(--color-background-secondary)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 34 }}>🛡️</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Proteção de sequência</div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Se faltar um dia, sua sequência não zera. Você tem: <b>{streakFreezes}</b></div>
+              </div>
+              <button onClick={comprarStreakFreeze} disabled={moedas < 50} style={{ background: moedas >= 50 ? blue : 'var(--color-background-tertiary)', color: moedas >= 50 ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 20, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: moedas >= 50 ? 'pointer' : 'default', flexShrink: 0 }}>50 🪙</button>
+            </div>
+            <button onClick={() => setLojaModal(false)} style={{ width: '100%', padding: 12, marginTop: 14, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
+          </div>
+        </div>
+      )}
 
       <div key={tab} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0, animation: 'su_screen 0.28s ease' }}>
 
@@ -1967,7 +2047,10 @@ export default function AppPage() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div><div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div></div>
-              <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 12px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(245,201,122,0.18)', border: '1px solid rgba(245,201,122,0.5)', borderRadius: 20, padding: '5px 11px', cursor: 'pointer' }}><span style={{ fontSize: 14 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
+                <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 12px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
+              </div>
             </div>
             {(() => {
               const lvlArr = lessons[level] || []
@@ -2021,6 +2104,13 @@ export default function AppPage() {
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 9, background: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '6px 14px', borderRadius: 20 }}>▶ Conversar agora</div>
               </div>
             </div>
+            {bauDia !== hojeStr && (
+              <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.35)' }}>
+                <div style={{ fontSize: 34, animation: 'su_bob 1.6s ease-in-out infinite' }}>🎁</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque para abrir e ganhar moedas 🪙</div></div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
+              </div>
+            )}
             {revisoesDevidas.length > 0 && (
               <div onClick={() => { setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao') }} style={{ background: 'linear-gradient(135deg, #16A34A, #0F7A38)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e="🧠" color="#0F7A38" onDark box={44} size={24} />
