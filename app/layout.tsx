@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     description: 'Um professor de IA que lembra de você e monta seu plano diário. Do A1 ao C2. Comece grátis.',
     images: ['/og.png'],
   },
+  verification: {
+    google: '889dl3fbY28e5dqm4MdDBvIvll22ardXNlYJCag3zuU',
+  },
 }
 
 export const viewport: Viewport = {
