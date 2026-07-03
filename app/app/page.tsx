@@ -591,7 +591,11 @@ const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem',
 const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#0EA5A5', work: '#4B3FBF', food: '#E8590C', home: '#B45309', verbs: '#7C3AED', feelings: '#DB2777', daily: '#0D9488', health: '#DC2626', tech: '#4F46E5', shopping: '#C026D3', weather: '#0284C7', family: '#EA580C', nature: '#16A34A', city: '#475569' }
 
 interface Msg { role: string; text: string }
-type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'finish'
+type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'finish'
+// Exercício "montar a frase": pega exemplos da lição com 3 a 10 palavras (até 3).
+function frasesMontaveis(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
+  return (examples || []).filter(e => { const n = (e.en || '').trim().split(/\s+/).filter(Boolean).length; return n >= 3 && n <= 10 }).slice(0, 3)
+}
 
 const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/JUkXkbf'
 const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/zirnO0x'
@@ -1433,6 +1437,9 @@ export default function AppPage() {
   const [qIdx, setQIdx] = useState(0)
   const [answered, setAnswered] = useState(false)
   const [selected, setSelected] = useState(-1)
+  const [buildIdx, setBuildIdx] = useState(0)
+  const [buildPicked, setBuildPicked] = useState<number[]>([])
+  const [buildChecked, setBuildChecked] = useState(false)
   const [xp, setXp] = useState(0)
   const [xpHydrated, setXpHydrated] = useState(false)
   const [streak, setStreak] = useState(0)
@@ -2054,7 +2061,10 @@ export default function AppPage() {
       ganharMoedas(ehNova ? 10 : 5)
       if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val); registrarDominio(titulo) }
       agendarRevisao(titulo, licaoErrosRef.current === 0)
-      salvarProgresso(novoXp, novasLicoes); setView('finish')
+      salvarProgresso(novoXp, novasLicoes)
+      const monta = frasesMontaveis(lessons[level][lessonIdx].examples)
+      setBuildIdx(0); setBuildPicked([]); setBuildChecked(false)
+      setView(monta.length ? 'build' : 'finish')
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1); setAjudaTxt(null) }
   }
 
@@ -3297,6 +3307,47 @@ export default function AppPage() {
                 {answered && <button onClick={nextQ} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Próxima <Ic e="→" /></button>}
               </div>
             )}
+            {view === 'build' && (() => {
+              const exs = frasesMontaveis(currentLesson?.examples || [])
+              const target = (exs[buildIdx]?.en || '').trim()
+              const toks = target.split(/\s+/).filter(Boolean)
+              const order = (() => { const a = toks.map((_, i) => i); let s = 0; for (let k = 0; k < target.length; k++) s = (s * 31 + target.charCodeAt(k)) >>> 0; for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t } return a })()
+              const answer = buildPicked.map(i => toks[i]).join(' ')
+              const correto = answer === toks.join(' ')
+              const cheio = buildPicked.length === toks.length && toks.length > 0
+              const ultima = buildIdx >= exs.length - 1
+              return (
+                <div style={{ animation: 'su_fade 0.3s ease' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: '#6A5ACD', fontWeight: 700, background: '#EEEDFE', padding: '4px 12px', borderRadius: 20 }}><Ic e="🧩" /> Montar a frase · {buildIdx + 1}/{exs.length}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Traduza para o inglês tocando nas palavras na ordem certa:</div>
+                  <div style={{ background: blueLight, borderRadius: 12, padding: '13px 15px', marginBottom: 14 }}><div style={{ fontSize: 16, fontWeight: 600, color: blueDark }}>{exs[buildIdx]?.pt}</div></div>
+                  <div style={{ minHeight: 54, border: `1.5px dashed ${buildChecked ? (correto ? '#16A34A' : '#E24B4A') : 'var(--color-border-tertiary)'}`, borderRadius: 12, padding: 10, marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 8, alignContent: 'flex-start', background: 'var(--color-background-secondary)' }}>
+                    {buildPicked.length === 0 && <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', alignSelf: 'center' }}>Toque nas palavras abaixo…</span>}
+                    {buildPicked.map((i, idx) => (
+                      <button key={idx} onClick={() => { if (!buildChecked) setBuildPicked(p => p.filter(x => x !== i)) }} style={{ background: buildChecked ? (correto ? '#E3F3EA' : '#FCEBEB') : 'var(--color-background-primary)', color: buildChecked ? (correto ? '#27500A' : '#791F1F') : 'var(--color-text-primary)', border: `1px solid ${buildChecked ? (correto ? '#97C459' : '#E24B4A') : 'var(--color-border-tertiary)'}`, borderRadius: 10, padding: '7px 12px', fontSize: 15, cursor: buildChecked ? 'default' : 'pointer', fontFamily: 'inherit' }}>{toks[i]}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                    {order.map((i, k) => { const usado = buildPicked.includes(i); return (
+                      <button key={k} disabled={usado || buildChecked} onClick={() => setBuildPicked(p => [...p, i])} style={{ background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 10, padding: '9px 13px', fontSize: 15, cursor: usado || buildChecked ? 'default' : 'pointer', opacity: usado ? 0.32 : 1, fontFamily: 'inherit', boxShadow: usado ? 'none' : '0 1px 3px rgba(0,0,0,0.06)' }}>{toks[i]}</button>
+                    )})}
+                  </div>
+                  {buildChecked && (
+                    <div style={{ background: correto ? '#E3F3EA' : '#FCEBEB', borderRadius: 12, padding: 13, marginBottom: 14 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: correto ? '#16A34A' : '#C0392B' }}>{correto ? '✅ Perfeito!' : '❌ Quase!'}</div>
+                      {!correto && <div style={{ fontSize: 13.5, color: 'var(--color-text-primary)', marginTop: 5 }}>Resposta: <b>{target}</b></div>}
+                    </div>
+                  )}
+                  {!buildChecked ? (
+                    <button disabled={!cheio} onClick={() => { setBuildChecked(true); if (answer === toks.join(' ')) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: cheio ? '#6A5ACD' : 'var(--color-background-secondary)', color: cheio ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: cheio ? 'pointer' : 'default' }}>Verificar</button>
+                  ) : (
+                    <button onClick={() => { if (!ultima) { setBuildIdx(buildIdx + 1); setBuildPicked([]); setBuildChecked(false) } else { setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Concluir lição <Ic e="🎯" /></> : <>Próxima frase <Ic e="→" /></>}</button>
+                  )}
+                </div>
+              )
+            })()}
             {view === 'finish' && (
               <div style={{ textAlign: 'center', padding: '40px 20px', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
