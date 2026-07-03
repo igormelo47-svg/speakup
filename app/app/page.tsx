@@ -2017,8 +2017,13 @@ export default function AppPage() {
   async function enviarFeedback() {
     const msg = feedbackTxt.trim()
     if (msg.length < 3) { alert('Escreva um pouco mais para enviar. 🙂'); return }
-    try { await supabase.from('feedback').insert({ user_id: userId, email: userEmail, mensagem: msg }) } catch (e) {}
-    setFeedbackEnviado(true); setFeedbackTxt('')
+    try {
+      const r = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, email: userEmail, mensagem: msg }) })
+      if (!r.ok) throw new Error('falhou')
+      setFeedbackEnviado(true); setFeedbackTxt('')
+    } catch (e) {
+      alert('Não consegui enviar agora. Verifique sua conexão e tente de novo. 🙏')
+    }
   }
 
   useEffect(() => {
