@@ -622,6 +622,34 @@ const dictCatList = [
 ]
 // Uma cor por categoria do dicionário (deixa a tela colorida, não só roxa).
 const dictColor: { [k: string]: string } = { casa:'#B45309', comida:'#E8590C', corpo:'#DC2626', animais:'#A16207', transporte:'#2563EB', roupas:'#DB2777', escola:'#4F46E5', natureza:'#16A34A', esportes:'#EA580C', profissoes:'#4B3FBF', emocoes:'#E11D48', cores:'#7C3AED', tempo:'#0284C7', tecnologia:'#6366F1', saude:'#DC2626', financas:'#CA8A04', arte:'#C026D3', cidade:'#475569', culinaria:'#B45309', selva:'#15803D', negocios:'#1E40AF', viagem:'#0EA5A5', lugares:'#0891B2', estacoes:'#0284C7' }
+// Emoji ilustrativo por palavra (renderizado nativo/colorido, carrega na hora — substitui as fotos lentas).
+const wordEmoji: Record<string, string> = {
+  door:'🚪', window:'🪟', roof:'🏠', floor:'🧱', wall:'🧱', kitchen:'🍳', bedroom:'🛏️', bathroom:'🛁',
+  bread:'🍞', cheese:'🧀', rice:'🍚', meat:'🥩', egg:'🥚', fruit:'🍎', coffee:'☕', water:'💧',
+  head:'👤', hand:'✋', arm:'💪', leg:'🦵', foot:'🦶', eye:'👁️', nose:'👃', mouth:'👄',
+  dog:'🐶', cat:'🐱', bird:'🐦', horse:'🐴', cow:'🐮', pig:'🐷', fish:'🐟', rabbit:'🐰',
+  car:'🚗', bus:'🚌', train:'🚆', plane:'✈️', bike:'🚲', boat:'⛵', taxi:'🚕', subway:'🚇',
+  shirt:'👕', pants:'👖', shoes:'👟', dress:'👗', hat:'🎩', coat:'🧥', socks:'🧦', jacket:'🧥',
+  book:'📖', pen:'🖊️', pencil:'✏️', teacher:'👩‍🏫', student:'🧑‍🎓', desk:'🪑', notebook:'📓', test:'📝',
+  tree:'🌳', flower:'🌸', river:'🏞️', mountain:'⛰️', sea:'🌊', sky:'☁️', sun:'☀️', moon:'🌙',
+  soccer:'⚽', ball:'🏀', game:'🎮', team:'👥', run:'🏃', swim:'🏊', tennis:'🎾', goal:'🥅',
+  doctor:'👨‍⚕️', nurse:'👩‍⚕️', driver:'🚕', cook:'👨‍🍳', lawyer:'⚖️', engineer:'👷', farmer:'🧑‍🌾', 'police officer':'👮',
+  medicine:'💊', hospital:'🏥', pain:'🤕', fever:'🤒', health:'❤️', pill:'💊',
+  happy:'😄', sad:'😢', angry:'😠', tired:'😴', scared:'😨', excited:'🤩', calm:'😌', proud:'😎',
+  red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡', black:'⚫', white:'⚪', orange:'🟠', purple:'🟣',
+  monday:'📅', friday:'📅', sunday:'📅', january:'🗓️', july:'🗓️', december:'🗓️', week:'📆', month:'📆',
+  computer:'💻', phone:'📱', internet:'🌐', screen:'🖥️', keyboard:'⌨️', app:'📲', password:'🔒', 'wi-fi':'📶',
+  money:'💰', bank:'🏦', card:'💳', cash:'💵', price:'🏷️', salary:'💸', loan:'🏦', coin:'🪙',
+  music:'🎵', song:'🎶', painting:'🖼️', dance:'💃', movie:'🎬', art:'🎨', theater:'🎭', stage:'🎤',
+  street:'🛣️', building:'🏢', park:'🌳', store:'🏪', market:'🛒', square:'🏛️', bridge:'🌉', corner:'📐',
+  recipe:'📜', oven:'🔥', pan:'🍳', knife:'🔪', spoon:'🥄', fork:'🍴', plate:'🍽️', salt:'🧂',
+  lion:'🦁', tiger:'🐯', monkey:'🐵', snake:'🐍', elephant:'🐘', jaguar:'🐆', parrot:'🦜', frog:'🐸',
+  meeting:'🤝', deal:'🤝', client:'🧑‍💼', profit:'📈', company:'🏢', boss:'👔', report:'📊',
+  trip:'🧳', hotel:'🏨', flight:'✈️', map:'🗺️', beach:'🏖️', luggage:'🧳', passport:'🛂', ticket:'🎫',
+  home:'🏠', school:'🏫', office:'🏢', airport:'🛫', station:'🚉', library:'📚', church:'⛪', museum:'🏛️',
+  summer:'☀️', winter:'❄️', spring:'🌷', autumn:'🍂', rain:'🌧️', snow:'❄️', wind:'💨', hot:'🥵',
+}
+const catDictEmoji: Record<string, string> = { casa:'🏠', comida:'🍽️', corpo:'🧍', animais:'🐾', transporte:'🚗', roupas:'👕', escola:'📚', natureza:'🌿', esportes:'⚽', profissoes:'💼', emocoes:'😊', cores:'🎨', tempo:'📅', tecnologia:'💻', saude:'🏥', financas:'💰', arte:'🎭', cidade:'🏙️', culinaria:'👨‍🍳', selva:'🦁', negocios:'💼', viagem:'✈️', lugares:'🗺️', estacoes:'🌤️' }
 
 const DICT_LOCAL: Record<string, {en:string;pt:string;pron:string}[]> = {
   casa: [{en:'Door',pt:'Porta',pron:'dór'},{en:'Window',pt:'Janela',pron:'uín-dou'},{en:'Roof',pt:'Telhado',pron:'rúf'},{en:'Floor',pt:'Chão / Andar',pron:'flór'},{en:'Wall',pt:'Parede',pron:'uól'},{en:'Kitchen',pt:'Cozinha',pron:'kít-chen'},{en:'Bedroom',pt:'Quarto',pron:'béd-rum'},{en:'Bathroom',pt:'Banheiro',pron:'béth-rum'}],
@@ -650,18 +678,12 @@ const DICT_LOCAL: Record<string, {en:string;pt:string;pron:string}[]> = {
   estacoes: [{en:'Summer',pt:'Verão',pron:'sâ-mer'},{en:'Winter',pt:'Inverno',pron:'uín-ter'},{en:'Spring',pt:'Primavera',pron:'spríng'},{en:'Autumn',pt:'Outono',pron:'ó-tâm'},{en:'Rain',pt:'Chuva',pron:'rêin'},{en:'Snow',pt:'Neve',pron:'snôu'},{en:'Wind',pt:'Vento',pron:'uínd'},{en:'Hot',pt:'Quente',pron:'rót'}],
 }
 
-function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string};color?:string}) {
-  const [img,setImg]=useState<string|null>(null)
-  const [loading,setLoading]=useState(true)
-  useEffect(()=>{
-    fetch(`/api/pixabay?q=${encodeURIComponent(word.en)}`)
-      .then(r=>r.json()).then(d=>{setImg(d.url);setLoading(false)}).catch(()=>setLoading(false))
-  },[word.en])
+function DictCard({word,color='#534AB7',emoji='📘'}:{word:{en:string;pt:string;pron:string};color?:string;emoji?:string}) {
   function speak(){if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(word.en);u.lang='en-US';u.rate=0.85;window.speechSynthesis.speak(u)}}
   return(
     <div onClick={speak} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:14,overflow:'hidden',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
-      <div style={{width:'100%',height:96,background:color+'14',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
-        {loading?<div style={{fontSize:28}}><Ic e="⏳" c={color} /></div>:img?<img src={img} alt={word.en} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{fontSize:32}}><Ic e="🖼️" c={color} /></div>}
+      <div style={{width:'100%',height:96,background:color+'14',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <span style={{fontSize:48,lineHeight:1}}>{emoji}</span>
       </div>
       <div style={{padding:'10px 11px 12px'}}>
         <div style={{fontSize:15.5,fontWeight:700,color:'var(--color-text-primary)'}}>{word.en}</div>
@@ -696,7 +718,7 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
         </div>
         {loading?<div style={{textAlign:'center',padding:40,color:'var(--color-text-secondary)'}}>Carregando...</div>:(
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            {words.map((w,i)=><DictCard key={i} word={w} color={cc}/>)}
+            {words.map((w,i)=><DictCard key={i} word={w} color={cc} emoji={wordEmoji[w.en.toLowerCase().trim()] || catDictEmoji[dictCat] || '📘'}/>)}
           </div>
         )}
       </div>
