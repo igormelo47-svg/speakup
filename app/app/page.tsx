@@ -3254,7 +3254,7 @@ export default function AppPage() {
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 12 }}>{ex.q}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                    {ex.opts.map((o, i) => {
+                    {ex.opts.map((o: string, i: number) => {
                       const correct = lisAns && i === ex.ans
                       const wrong = lisAns && i === lisSel && i !== ex.ans
                       return (
