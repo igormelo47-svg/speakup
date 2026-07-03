@@ -729,19 +729,70 @@ const DICT_LOCAL: Record<string, {en:string;pt:string;pron:string}[]> = {
   estacoes: [{en:'Summer',pt:'Verão',pron:'sâ-mer'},{en:'Winter',pt:'Inverno',pron:'uín-ter'},{en:'Spring',pt:'Primavera',pron:'spríng'},{en:'Autumn',pt:'Outono',pron:'ó-tâm'},{en:'Rain',pt:'Chuva',pron:'rêin'},{en:'Snow',pt:'Neve',pron:'snôu'},{en:'Wind',pt:'Vento',pron:'uínd'},{en:'Hot',pt:'Quente',pron:'rót'},{en:'Cold',pt:'Frio',pron:'kôuld'},{en:'Warm',pt:'Morno',pron:'uórm'},{en:'Storm',pt:'Tempestade',pron:'stórm'},{en:'Cloud',pt:'Nuvem',pron:'kláud'},{en:'Sunny',pt:'Ensolarado',pron:'sâ-ni'},{en:'Fog',pt:'Neblina',pron:'fóg'},{en:'Ice',pt:'Gelo',pron:'áis'},{en:'Rainbow',pt:'Arco-íris',pron:'rêin-bou'}],
 }
 
-function DictCard({word,color='#534AB7',emoji='📘'}:{word:{en:string;pt:string;pron:string};color?:string;emoji?:string}) {
-  function speak(){if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(word.en);u.lang='en-US';u.rate=0.85;window.speechSynthesis.speak(u)}}
+// Falsos cognatos (palavras que enganam o brasileiro).
+const falsosCognatos = [
+  {en:'Actually',parece:'Atualmente',significa:'Na verdade',dica:'"Atualmente" em inglês é currently.'},
+  {en:'Pretend',parece:'Pretender',significa:'Fingir',dica:'"Pretender" é to intend / to plan.'},
+  {en:'Push',parece:'Puxar',significa:'Empurrar',dica:'"Puxar" é to pull.'},
+  {en:'Library',parece:'Livraria',significa:'Biblioteca',dica:'"Livraria" é bookstore.'},
+  {en:'Parents',parece:'Parentes',significa:'Pais (mãe e pai)',dica:'"Parentes" são relatives.'},
+  {en:'Realize',parece:'Realizar',significa:'Perceber, dar-se conta',dica:'"Realizar" é to accomplish.'},
+  {en:'Fabric',parece:'Fábrica',significa:'Tecido',dica:'"Fábrica" é factory.'},
+  {en:'Lunch',parece:'Lanche',significa:'Almoço',dica:'"Lanche" é a snack.'},
+  {en:'Exit',parece:'Êxito',significa:'Saída',dica:'"Êxito" é success.'},
+  {en:'Novel',parece:'Novela',significa:'Romance (livro)',dica:'"Novela" é soap opera.'},
+  {en:'College',parece:'Colégio',significa:'Faculdade',dica:'"Colégio" é high school.'},
+  {en:'Attend',parece:'Atender',significa:'Comparecer, assistir',dica:'"Atender" o telefone é to answer.'},
+  {en:'Sensible',parece:'Sensível',significa:'Sensato',dica:'"Sensível" é sensitive.'},
+  {en:'Eventually',parece:'Eventualmente',significa:'No fim, por fim',dica:'"Eventualmente" é occasionally.'},
+  {en:'Actual',parece:'Atual',significa:'Real, verdadeiro',dica:'"Atual" é current.'},
+  {en:'Costume',parece:'Costume',significa:'Fantasia, traje',dica:'"Costume" (hábito) é habit.'},
+  {en:'Injury',parece:'Injúria',significa:'Lesão, machucado',dica:'"Injúria" (ofensa) é insult.'},
+  {en:'Mayor',parece:'Maior',significa:'Prefeito',dica:'"Maior" é bigger / larger.'},
+  {en:'Policy',parece:'Polícia',significa:'Política, apólice',dica:'"Polícia" é the police.'},
+  {en:'Support',parece:'Suportar',significa:'Apoiar',dica:'"Suportar" (aguentar) é to tolerate.'},
+  {en:'Data',parece:'Data',significa:'Dados, informações',dica:'"Data" do calendário é date.'},
+  {en:'Cigar',parece:'Cigarro',significa:'Charuto',dica:'"Cigarro" é cigarette.'},
+  {en:'Balcony',parece:'Balcão',significa:'Sacada, varanda',dica:'"Balcão" é counter.'},
+  {en:'Notice',parece:'Notícia',significa:'Aviso; perceber',dica:'"Notícia" é news.'},
+]
+// Expressões mais usadas no dia a dia.
+const expressoes = [
+  {en:"How's it going?",pt:'E aí? / Como vai?',ex:"Hey! How's it going today?"},
+  {en:'Never mind',pt:'Deixa pra lá',ex:'Never mind, I already fixed it.'},
+  {en:"It's up to you",pt:'Você que sabe',ex:"We can go now or later — it's up to you."},
+  {en:'No worries',pt:'Sem problema, relaxa',ex:'No worries, take your time.'},
+  {en:"I'm on my way",pt:'Estou a caminho',ex:"I'm on my way, be there in 5."},
+  {en:"What's up?",pt:'E aí? / Beleza?',ex:"Hey man, what's up?"},
+  {en:'Take it easy',pt:'Vai com calma / Se cuida',ex:'Take it easy, we have plenty of time.'},
+  {en:'By the way',pt:'A propósito / Aliás',ex:'By the way, did you call her?'},
+  {en:'Kind of',pt:'Mais ou menos / Meio que',ex:'"Are you tired?" "Kind of."'},
+  {en:'Look forward to',pt:'Estar ansioso por',ex:'I look forward to seeing you.'},
+  {en:'As soon as possible',pt:'O quanto antes',ex:'Please reply as soon as possible.'},
+  {en:'Once in a while',pt:'De vez em quando',ex:'I eat out once in a while.'},
+  {en:'Piece of cake',pt:'Moleza, muito fácil',ex:'The test was a piece of cake.'},
+  {en:'Break a leg',pt:'Boa sorte!',ex:'Show tonight? Break a leg!'},
+  {en:'Get in touch',pt:'Entrar em contato',ex:"I'll get in touch next week."},
+  {en:'Figure out',pt:'Descobrir / Entender',ex:"I can't figure out this problem."},
+  {en:'Show up',pt:'Aparecer, comparecer',ex:"He didn't show up to the meeting."},
+  {en:'Run out of',pt:'Ficar sem',ex:'We ran out of milk.'},
+  {en:'Catch up',pt:'Colocar o papo em dia',ex:"Let's grab a coffee and catch up."},
+  {en:'Hang out',pt:'Passar um tempo, sair',ex:'We hung out at the mall.'},
+  {en:'Make sense',pt:'Fazer sentido',ex:'That explanation makes sense now.'},
+  {en:'Give up',pt:'Desistir',ex:"Don't give up, you're almost there."},
+  {en:'On purpose',pt:'De propósito',ex:"Sorry, I didn't do it on purpose."},
+  {en:'Right away',pt:'Imediatamente / Já já',ex:"I'll send it right away."},
+]
+function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string};color?:string}) {
+  function speak(){if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(word.en);u.lang='en-US';u.rate=0.85;window.speechSynthesis.cancel();window.speechSynthesis.speak(u)}}
   return(
-    <div onClick={speak} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:14,overflow:'hidden',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
-      <div style={{width:'100%',height:96,background:color+'14',display:'flex',alignItems:'center',justifyContent:'center'}}>
-        <span style={{fontSize:48,lineHeight:1}}>{emoji}</span>
+    <div onClick={speak} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:14,padding:'13px 15px',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.05)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+        <div style={{fontSize:18,fontWeight:800,color:'var(--color-text-primary)',lineHeight:1.15}}>{word.en}</div>
+        <button onClick={e=>{e.stopPropagation();speak()}} style={{background:color+'14',color,border:'none',borderRadius:'50%',width:30,height:30,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}><Ic e="🔊" c={color} s={14} /></button>
       </div>
-      <div style={{padding:'10px 11px 12px'}}>
-        <div style={{fontSize:15.5,fontWeight:700,color:'var(--color-text-primary)'}}>{word.en}</div>
-        <div style={{fontSize:12.5,color:color,fontWeight:600,marginTop:2}}>{word.pt}</div>
-        <div style={{fontSize:11,color:'var(--color-text-secondary)',fontStyle:'italic',marginTop:2}}>{word.pron}</div>
-        <button onClick={e=>{e.stopPropagation();speak()}} style={{marginTop:8,background:color+'16',border:'none',borderRadius:20,padding:'4px 11px',fontSize:11,color:color,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}><Ic e="🔊" c={color} /> Ouvir</button>
-      </div>
+      <div style={{fontSize:12.5,color,fontStyle:'italic',fontWeight:600,marginTop:3}}>/{word.pron}/</div>
+      <div style={{fontSize:14,color:'var(--color-text-secondary)',marginTop:6}}>{word.pt}</div>
     </div>
   )
 }
@@ -754,34 +805,71 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
     supabase.from('dicionario').select('en,pt,pron').eq('categoria',dictCat).order('en')
       .then(({data})=>{setWords(data&&data.length?data:(DICT_LOCAL[dictCat]||[]));setLoading(false)})
   },[dictCat])
+  const [dictMode,setDictMode]=useState<'palavras'|'cognatos'|'expressoes'>('palavras')
   const cc = dictColor[dictCat] || '#534AB7'
-  // Rotação semanal: embaralha determinístico pela semana e mostra uma janela — muda toda semana.
+  const headC = dictMode==='cognatos' ? '#C2410C' : dictMode==='expressoes' ? '#0D9488' : cc
   const semanaDict = Math.floor(Date.now() / (7 * 86400000))
-  const weekWords = (() => {
-    const a = [...words]
-    let s = semanaDict * 131 + 7
-    for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t }
-    return a.slice(0, 10)
-  })()
+  const rota = (arr:any[], n:number):any[] => { const a=[...arr]; let s=semanaDict*131+7; for(let i=a.length-1;i>0;i--){s=(s*9301+49297)%233280;const j=Math.floor(s/233280*(i+1));const t=a[i];a[i]=a[j];a[j]=t} return a.slice(0,n) }
+  const weekWords = rota(words, 10)
+  const weekCog = rota(falsosCognatos, 8)
+  const weekExp = rota(expressoes, 8)
+  const falarEN = (t:string) => { if('speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(t); u.lang='en-US'; u.rate=0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } }
+  const subt = dictMode==='cognatos' ? 'Palavras que enganam o brasileiro' : dictMode==='expressoes' ? 'O que os nativos realmente dizem' : 'Toque na palavra para ouvir'
   return(
     <div>
-      <div style={{background:cc,padding:'20px 16px 16px',transition:'background 0.3s'}}>
-        <div style={{fontSize:18,fontWeight:700,color:'#fff'}}>Dicionário ilustrado</div>
-        <div style={{fontSize:13,color:'rgba(255,255,255,0.85)',marginTop:2}}>Toque para ouvir a pronúncia</div>
+      <div style={{background:headC,padding:'20px 16px 16px',transition:'background 0.3s'}}>
+        <div style={{fontSize:18,fontWeight:700,color:'#fff'}}>Dicionário</div>
+        <div style={{fontSize:13,color:'rgba(255,255,255,0.85)',marginTop:2}}>{subt}</div>
         <div style={{display:'inline-flex',alignItems:'center',gap:6,marginTop:12,background:'rgba(255,255,255,0.2)',padding:'6px 13px',borderRadius:20}}>
           <span style={{fontSize:13}}>🔄</span>
-          <span style={{fontSize:12,color:'#fff',fontWeight:600}}>Novas palavras toda semana</span>
+          <span style={{fontSize:12,color:'#fff',fontWeight:600}}>Muda toda semana</span>
         </div>
       </div>
       <div style={{padding:16}}>
-        <div style={{display:'flex',gap:6,marginBottom:16,overflowX:'auto',paddingBottom:4}}>
-          {dictCatList.map(c=>(
-            <button key={c.id} onClick={()=>setDictCat(c.id)} style={{padding:'7px 14px',border:dictCat===c.id?'none':'0.5px solid var(--color-border-tertiary)',borderRadius:20,background:dictCat===c.id?(dictColor[c.id]||'#534AB7'):'var(--color-background-primary)',color:dictCat===c.id?'#fff':'var(--color-text-secondary)',fontSize:13,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}><IcLabel label={c.label} /></button>
+        <div style={{display:'flex',gap:5,marginBottom:14,background:'var(--color-background-secondary)',padding:4,borderRadius:12}}>
+          {([['palavras','Palavras'],['cognatos','Falsos amigos'],['expressoes','Expressões']] as const).map(([m,l])=>(
+            <button key={m} onClick={()=>setDictMode(m)} style={{flex:1,padding:'8px 0',borderRadius:9,border:'none',background:dictMode===m?headC:'transparent',color:dictMode===m?'#fff':'var(--color-text-secondary)',fontSize:12.5,fontWeight:dictMode===m?700:500,cursor:'pointer',fontFamily:'inherit',transition:'background 0.2s'}}>{l}</button>
           ))}
         </div>
-        {loading?<div style={{textAlign:'center',padding:40,color:'var(--color-text-secondary)'}}>Carregando...</div>:(
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            {weekWords.map((w,i)=><DictCard key={i} word={w} color={cc} emoji={dictEmojiFor(w.en, dictCat)}/>)}
+        {dictMode==='palavras' && (<>
+          <div style={{display:'flex',gap:6,marginBottom:14,overflowX:'auto',paddingBottom:4}}>
+            {dictCatList.map(c=>(
+              <button key={c.id} onClick={()=>setDictCat(c.id)} style={{padding:'7px 14px',border:dictCat===c.id?'none':'0.5px solid var(--color-border-tertiary)',borderRadius:20,background:dictCat===c.id?(dictColor[c.id]||'#534AB7'):'var(--color-background-primary)',color:dictCat===c.id?'#fff':'var(--color-text-secondary)',fontSize:13,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}><IcLabel label={c.label} /></button>
+            ))}
+          </div>
+          {loading?<div style={{textAlign:'center',padding:40,color:'var(--color-text-secondary)'}}>Carregando...</div>:(
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              {weekWords.map((w,i)=><DictCard key={i} word={w} color={cc}/>)}
+            </div>
+          )}
+        </>)}
+        {dictMode==='cognatos' && (
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {weekCog.map((c,i)=>(
+              <div key={i} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderLeft:'4px solid #C2410C',borderRadius:14,padding:'14px 15px',boxShadow:'0 2px 8px rgba(0,0,0,0.05)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:9}}>
+                  <div style={{fontSize:18,fontWeight:800,color:'var(--color-text-primary)'}}>{c.en}</div>
+                  <span style={{fontSize:10,background:'#C2410C1A',color:'#C2410C',padding:'2px 9px',borderRadius:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.03em'}}>falso amigo</span>
+                </div>
+                <div style={{fontSize:13.5,color:'#C0392B',marginBottom:4}}>❌ Não é "{c.parece}"</div>
+                <div style={{fontSize:13.5,color:'#16A34A',fontWeight:600}}>✅ Significa "{c.significa}"</div>
+                <div style={{fontSize:12,color:'var(--color-text-secondary)',marginTop:9,background:'var(--color-background-secondary)',borderRadius:9,padding:'8px 11px',lineHeight:1.5}}>💡 {c.dica}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {dictMode==='expressoes' && (
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {weekExp.map((x,i)=>(
+              <div key={i} onClick={()=>falarEN(x.en)} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderLeft:'4px solid #0D9488',borderRadius:14,padding:'14px 15px',boxShadow:'0 2px 8px rgba(0,0,0,0.05)',cursor:'pointer'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                  <div style={{fontSize:16.5,fontWeight:800,color:'var(--color-text-primary)',lineHeight:1.2}}>"{x.en}"</div>
+                  <span style={{flexShrink:0}}><Ic e="🔊" c="#0D9488" s={16} /></span>
+                </div>
+                <div style={{fontSize:14,color:'#0D9488',fontWeight:600,marginTop:4}}>{x.pt}</div>
+                <div style={{fontSize:12.5,color:'var(--color-text-secondary)',fontStyle:'italic',marginTop:6}}>Ex: "{x.ex}"</div>
+              </div>
+            ))}
           </div>
         )}
       </div>
