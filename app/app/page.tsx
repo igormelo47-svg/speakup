@@ -589,9 +589,9 @@ type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'finish'
 const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/JUkXkbf'
 const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/zirnO0x'
 // ⭐ INTERRUPTOR DA MONETIZAÇÃO:
-// true  = beta grátis (todos Premium, sem paywall) — estado atual
-// false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify)
-const BETA_GRATIS = true
+// true  = beta grátis (todos Premium, sem paywall)
+// false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify) — estado atual
+const BETA_GRATIS = false
 
 const dictCatList = [
   {id:'casa',label:'🏠 Casa'},{id:'comida',label:'🍎 Comida'},{id:'corpo',label:'🧍 Corpo'},
