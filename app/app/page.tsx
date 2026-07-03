@@ -2685,22 +2685,22 @@ export default function AppPage() {
       )}
 
       {feedbackModal && (
-        <div onClick={() => setFeedbackModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease' }}>
+        <div onClick={() => setFeedbackModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}>
             {feedbackEnviado ? (
               <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
                 <div style={{ fontSize: 44, marginBottom: 10 }}><Ic e="🎉" c="#16A34A" /></div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>Feedback enviado!</div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 18 }}>Obrigado por ajudar a melhorar o Vonai. 💙</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c', marginBottom: 6 }}>Feedback enviado!</div>
+                <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.5, marginBottom: 18 }}>Obrigado por ajudar a melhorar o Vonai. 💙</div>
                 <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 13, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Fechar</button>
               </div>
             ) : (<>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 <span style={{ fontSize: 24 }}><Ic e="💬" c={blue} /></span>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)' }}>Enviar feedback</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c' }}>Enviar feedback</div>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 14 }}>Encontrou um problema ou tem uma sugestão? Conta pra gente — a sua opinião ajuda demais.</div>
-              <textarea value={feedbackTxt} onChange={e => setFeedbackTxt(e.target.value)} placeholder="Escreva aqui seu feedback, sugestão ou problema..." rows={5} style={{ width: '100%', padding: '12px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, fontSize: 14, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+              <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.5, marginBottom: 14 }}>Encontrou um problema ou tem uma sugestão? Conta pra gente — a sua opinião ajuda demais.</div>
+              <textarea value={feedbackTxt} onChange={e => setFeedbackTxt(e.target.value)} placeholder="Escreva aqui seu feedback, sugestão ou problema..." rows={5} style={{ width: '100%', padding: '12px 14px', border: '1px solid #e4e9ef', borderRadius: 12, fontSize: 14, background: '#f2f5f8', color: '#16212c', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
               <button onClick={enviarFeedback} style={{ width: '100%', padding: 14, marginTop: 12, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Enviar <Ic e="→" /></button>
               <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
             </>)}
