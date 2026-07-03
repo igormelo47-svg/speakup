@@ -586,8 +586,8 @@ const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem',
 interface Msg { role: string; text: string }
 type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'finish'
 
-const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/YJjrdjl'
-const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/E6lqt5q'
+const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/JUkXkbf'
+const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/zirnO0x'
 // ⭐ INTERRUPTOR DA MONETIZAÇÃO:
 // true  = beta grátis (todos Premium, sem paywall) — estado atual
 // false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify)
@@ -2779,8 +2779,8 @@ export default function AppPage() {
             <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> MELHOR OFERTA</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>20% de desconto · economize R$72/ano</div></div>
-                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>R$286,80</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · R$23,90/mês</div></div>
+                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>Economize R$69/ano</div></div>
+                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>R$289,80</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · R$24,15/mês</div></div>
               </div>
               <button onClick={() => window.open(KIWIFY_ANUAL, '_blank')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
             </div>
