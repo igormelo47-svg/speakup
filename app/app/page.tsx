@@ -2245,6 +2245,9 @@ export default function AppPage() {
   const gold = '#B8860B'; const goldLight = '#FFF8E1'
   const semanaVocab = Math.floor(Date.now() / (7 * 86400000))
   const embaralharSemana = (arr: any[]) => { const a = [...arr]; let s = semanaVocab + 1; for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t } return a }
+  // Rotação DIÁRIA determinística: mesma seleção para todos os alunos, muda à meia-noite. off = deslocamento por categoria.
+  const diaAtual = Math.floor(Date.now() / 86400000)
+  const rotaDia = (arr: any[], n: number, off = 0) => { const a = [...arr]; let s = (diaAtual + off) * 131 + 7; for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t } return n > 0 ? a.slice(0, n) : a }
   const vocabBaseCat = vocabCat === 'all' ? vocab : vocab.filter(v => v.cat === vocabCat)
   const filteredVocab = embaralharSemana(vocabModo === 'revisar' ? vocabBaseCat.filter(v => vocabSrs[v.en] !== 'sabe') : vocabBaseCat)
   const vocabDominadas = vocab.filter(v => vocabSrs[v.en] === 'sabe').length
@@ -2833,6 +2836,7 @@ export default function AppPage() {
           <div style={{ padding: 16 }}>
             {!pronCat ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', background: purpleLight, borderRadius: 20, padding: '5px 12px', marginBottom: 2 }}><Ic e="🔄" c={purple} s={14} /><span style={{ fontSize: 12, color: purple, fontWeight: 600 }}>Frases novas todo dia em cada som</span></div>
                 {pronCategorias.map((c, idx) => { const pc = ['#2E72D6','#7C3AED','#0EA5A5','#E8590C','#DB2777','#16A34A','#4F46E5','#CA8A04','#0284C7','#DC2626','#C026D3','#0D9488','#EA580C','#4B3FBF','#059669','#B45309'][idx % 16]; return (
                   <div key={c.id} onClick={() => { setPronCat(c.id); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip('') }} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', borderLeft: `4px solid ${pc}`, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                     <div style={{ width: 48, height: 48, background: pc + '1A', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={c.icon} c={pc} s={24} /></div>
@@ -2846,12 +2850,14 @@ export default function AppPage() {
               </div>
             ) : (() => {
               const cat = pronCategorias.find(c => c.id === pronCat)!
-              const frase = cat.frases[pronIdx]
+              // 5 frases do dia sorteadas dentro do som escolhido; o offset por categoria evita que todos os sons rodem igual.
+              const fdia = rotaDia(cat.frases, 5, cat.id.split('').reduce((a: number, ch: string) => a + ch.charCodeAt(0), 0))
+              const frase = fdia[pronIdx]
               const palavras = frase.en.split(' ')
               const heardSet = pronHeard.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean)
               return (
                 <div>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 14 }}><Ic e={cat.icon} /> {cat.label} · Frase {pronIdx + 1} de {cat.frases.length}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 14 }}><Ic e={cat.icon} /> {cat.label} · Frase {pronIdx + 1} de {fdia.length} <span style={{ color: purple, fontWeight: 600 }}>· 🔄 muda todo dia</span></div>
                   <div style={{ background: 'var(--color-background-primary)', borderRadius: 16, border: '0.5px solid var(--color-border-tertiary)', padding: 20, textAlign: 'center', marginBottom: 16 }}>
                     <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.5, marginBottom: 8 }}>
                       {palavras.map((w: string, i: number) => {
@@ -2882,7 +2888,7 @@ export default function AppPage() {
                   )}
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button disabled={pronIdx === 0} onClick={() => { setPronIdx(pronIdx - 1); setPronHeard(''); setPronScore(null); setPronTip('') }} style={{ flex: 1, padding: 13, background: 'var(--color-background-secondary)', color: pronIdx === 0 ? 'var(--color-text-secondary)' : 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: pronIdx === 0 ? 'default' : 'pointer' }}><Ic e="←" /> Anterior</button>
-                    <button onClick={() => { if (pronIdx < cat.frases.length - 1) { setPronIdx(pronIdx + 1); setPronHeard(''); setPronScore(null); setPronTip('') } else { setPronCat(null) } }} style={{ flex: 1, padding: 13, background: purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{pronIdx < cat.frases.length - 1 ? <>Próxima <Ic e="→" /></> : <>Concluir <Ic e="✓" /></>}</button>
+                    <button onClick={() => { if (pronIdx < fdia.length - 1) { setPronIdx(pronIdx + 1); setPronHeard(''); setPronScore(null); setPronTip('') } else { setPronCat(null) } }} style={{ flex: 1, padding: 13, background: purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{pronIdx < fdia.length - 1 ? <>Próxima <Ic e="→" /></> : <>Concluir <Ic e="✓" /></>}</button>
                   </div>
                 </div>
               )
@@ -3085,7 +3091,8 @@ export default function AppPage() {
               <div style={{ background: purple, padding: '20px 16px 16px' }}>
                 <div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>Simulador de Conversas</div>
                 <div style={{ fontSize: 13, color: '#AFA9EC', marginTop: 2 }}>Pratique situações reais em inglês</div>
-                {!isPremium && <div style={{ fontSize: 12, color: '#AFA9EC', marginTop: 4 }}>{simulacoesHoje}/{FREE_LIMIT} simulações usadas hoje</div>}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.16)', borderRadius: 20, padding: '4px 12px', marginTop: 8 }}><Ic e="🔄" c="#fff" s={13} /><span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Cenários em destaque mudam todo dia</span></div>
+                {!isPremium && <div style={{ fontSize: 12, color: '#AFA9EC', marginTop: 6 }}>{simulacoesHoje}/{FREE_LIMIT} simulações usadas hoje</div>}
               </div>
               {!isPremium && simulacoesHoje >= FREE_LIMIT && (
                 <div onClick={() => setTab('plans')} style={{ margin: 16, background: `linear-gradient(135deg, ${gold}, #DAA520)`, borderRadius: 16, padding: 18, cursor: 'pointer', textAlign: 'center' }}>
@@ -3098,7 +3105,7 @@ export default function AppPage() {
               <div style={{ padding: 16, flex: 1 }}>
                 <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>Escolha um cenário e converse com IA. Você receberá feedback imediato sobre seu inglês.</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {scenarios.map((s, idx) => {
+                  {rotaDia(scenarios, 0, 3).map((s, idx) => {
                     const bloqueado = !isPremium && idx >= FREE_LIMIT
                     const grads = ['linear-gradient(135deg,#6A5ACD,#4B3FBF)', 'linear-gradient(135deg,#2E72D6,#185FA5)', 'linear-gradient(135deg,#16A34A,#0F7A38)', 'linear-gradient(135deg,#E0891E,#C26A0A)', 'linear-gradient(135deg,#DB4A8B,#A83271)', 'linear-gradient(135deg,#0EA5A5,#0B7E7E)', 'linear-gradient(135deg,#EF6C4D,#C74A2E)', 'linear-gradient(135deg,#7C6FE0,#5B43C9)', 'linear-gradient(135deg,#2FA8D6,#1B7FA8)', 'linear-gradient(135deg,#E0A62E,#C2860A)']
                     const g = grads[idx % grads.length]
@@ -3522,30 +3529,33 @@ export default function AppPage() {
       })()}
 
       {tab === 'listening' && (() => {
-        const fim = lisIdx >= listeningExercises.length
+        // Seleção diária: 12 áudios sorteados por dia (muda à meia-noite), variados entre os níveis.
+        const lisDia = rotaDia(listeningExercises, 12)
+        const fim = lisIdx >= lisDia.length
         // embaralharQ é determinístico (semente = texto da pergunta), então a alternativa
         // certa varia mas fica estável entre renders — antes a resposta era sempre a "A" (ans:0).
-        const ex = embaralharQ(fim ? listeningExercises[0] : listeningExercises[lisIdx])
+        const ex = embaralharQ(fim ? lisDia[0] : lisDia[lisIdx])
         return (
           <div style={{ background: 'linear-gradient(180deg, #E9F2FB 0%, #D3E7F5 55%, #C1DDF1 100%)', minHeight: '100vh' }}>
             <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🎧" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Listening</div></div>
               <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Ouça o áudio e entenda o que foi dito</div>
-              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 7, overflow: 'hidden', marginTop: 12 }}><div style={{ background: '#4ADE80', height: '100%', width: `${Math.round(Math.min(lisIdx, listeningExercises.length) / listeningExercises.length * 100)}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.16)', borderRadius: 20, padding: '4px 12px', marginTop: 10 }}><Ic e="🔄" c="#fff" s={13} /><span style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Novos áudios todo dia</span></div>
+              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 7, overflow: 'hidden', marginTop: 12 }}><div style={{ background: '#4ADE80', height: '100%', width: `${Math.round(Math.min(lisIdx, lisDia.length) / lisDia.length * 100)}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
             </div>
             <div style={{ padding: 16 }}>
               {fim ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                   <div style={{ fontSize: 56, marginBottom: 14 }}><Ic e="🎧" /></div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>Treino concluído!</div>
-                  <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Você acertou <b style={{ color: green }}>{lisScore}</b> de {listeningExercises.length}.</div>
+                  <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Você acertou <b style={{ color: green }}>{lisScore}</b> de {lisDia.length}.</div>
                   <button onClick={() => { setLisIdx(0); setLisSel(-1); setLisAns(false); setLisScore(0) }} style={{ padding: '12px 28px', background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Treinar de novo <Ic e="🔁" /></button>
                 </div>
               ) : (
                 <>
                   {(() => { const playing = speakingId === 7000 + lisIdx; const lc = String(ex.nivel).startsWith('A') ? '#16A34A' : String(ex.nivel).startsWith('B') ? '#2E72D6' : '#7C3AED'; return (<>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, color: blue, fontWeight: 700, background: blueLight, padding: '4px 12px', borderRadius: 20 }}>{lisIdx + 1}/{listeningExercises.length}</div>
+                    <div style={{ fontSize: 12, color: blue, fontWeight: 700, background: blueLight, padding: '4px 12px', borderRadius: 20 }}>{lisIdx + 1}/{lisDia.length}</div>
                     <div style={{ fontSize: 11, color: lc, fontWeight: 700, background: lc + '1A', padding: '4px 12px', borderRadius: 20 }}>Nível {ex.nivel}</div>
                   </div>
                   <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 18, padding: '26px 24px', textAlign: 'center', marginBottom: 16, boxShadow: '0 4px 16px rgba(46,114,214,0.12)' }}>
@@ -3566,7 +3576,7 @@ export default function AppPage() {
                       )
                     })}
                   </div>
-                  {lisAns && <button onClick={() => { setLisIdx(i => i + 1); setLisSel(-1); setLisAns(false) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{lisIdx + 1 >= listeningExercises.length ? 'Ver resultado' : 'Próxima'} <Ic e="→" /></button>}
+                  {lisAns && <button onClick={() => { setLisIdx(i => i + 1); setLisSel(-1); setLisAns(false) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{lisIdx + 1 >= lisDia.length ? 'Ver resultado' : 'Próxima'} <Ic e="→" /></button>}
                 </>
               )}
             </div>
