@@ -592,9 +592,18 @@ const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#0EA5A5',
 
 interface Msg { role: string; text: string }
 type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'finish'
-// Exercício "montar a frase": pega exemplos da lição com 3 a 10 palavras (até 3).
+// Exercício "montar a frase": só usa exemplos de UMA frase só (3 a 10 palavras).
+// Frases com "." "?" "!" no meio costumam ter tradução PT incompleta -> descartadas.
 function frasesMontaveis(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
-  return (examples || []).filter(e => { const n = (e.en || '').trim().split(/\s+/).filter(Boolean).length; return n >= 3 && n <= 10 }).slice(0, 3)
+  return (examples || []).filter(e => {
+    const en = (e.en || '').trim(); const pt = (e.pt || '').trim()
+    if (!en || !pt) return false
+    const n = en.split(/\s+/).filter(Boolean).length
+    if (n < 3 || n > 10) return false
+    const miolo = en.replace(/[.!?]+$/, '')
+    if (/[.!?]/.test(miolo)) return false
+    return true
+  }).slice(0, 3)
 }
 
 const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/JUkXkbf'
