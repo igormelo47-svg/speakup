@@ -38,7 +38,7 @@ export default function Login() {
       if (data.user) {
         await supabase.from('profiles').insert({
           id: data.user.id, email, nome, plano: 'free', ativo: true,
-          trial_expira: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
         })
       }
       // Se a confirmação de e-mail estiver ligada no Supabase, não vem sessão: avisa o aluno.
@@ -66,7 +66,13 @@ export default function Login() {
       <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
         Von<span style={{ color: '#185FA5' }}>ai</span>
       </h1>
-      <p style={{ color: '#888', fontSize: 14, marginBottom: 24 }}>{titulo}</p>
+      <p style={{ color: '#888', fontSize: 14, marginBottom: modo === 'cadastro' ? 14 : 24 }}>{titulo}</p>
+
+      {modo === 'cadastro' && (
+        <p style={{ fontSize: 13, color: '#166534', background: '#E3F3EA', padding: '9px 12px', borderRadius: 8, marginBottom: 20, fontWeight: 600, textAlign: 'center' }}>
+          ✨ 2 dias de acesso Premium grátis — sem cartão
+        </p>
+      )}
 
       {modo === 'cadastro' && (
         <div style={{ marginBottom: 12 }}>

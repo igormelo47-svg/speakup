@@ -41,7 +41,7 @@ export default function Home() {
             <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Um professor particular 24h que monta seu plano de estudo todo dia, corrige sua pronúncia e te acompanha rumo à fluência — do zero ao avançado.</p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
               <Link href="/login" style={cta}>Começar grátis →</Link>
-              <span style={{ fontSize: 14, color: '#B5D4F4' }}>Sem cartão de crédito</span>
+              <span style={{ fontSize: 14, color: '#B5D4F4' }}>✨ 2 dias grátis · sem cartão de crédito</span>
             </div>
             <div style={{ maxWidth: 320 }}><InstallButton dark /></div>
           </div>
@@ -109,7 +109,7 @@ export default function Home() {
       {/* CTA final */}
       <div style={{ ...container, padding: '60px 20px', textAlign: 'center' }}>
         <h2 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 12px' }}>Comece sua jornada hoje</h2>
-        <p style={{ fontSize: 17, color: '#5B6B82', margin: '0 0 28px' }}>Crie sua conta grátis e faça sua primeira lição em minutos.</p>
+        <p style={{ fontSize: 17, color: '#5B6B82', margin: '0 0 28px' }}>Comece com 2 dias de Premium grátis — sem cartão. Crie sua conta e faça sua primeira lição em minutos.</p>
         <Link href="/login" style={cta}>Começar grátis →</Link>
       </div>
 
