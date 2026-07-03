@@ -2976,25 +2976,31 @@ export default function AppPage() {
 
       {tab === 'nivelamento' && (
         <div>
-          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: '20px 16px 24px' }}>
-            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Teste de Nivelamento</div>
-            <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 4 }}>Descubra onde começar — leva 2 minutos</div>
+          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: '20px 16px 22px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', right: -12, top: 4, opacity: 0.13, pointerEvents: 'none' }}><Ic e="📊" c="#fff" s={108} /></div>
+            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12, position: 'relative' }}><Ic e="←" /></button>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', position: 'relative' }}>Teste de Nivelamento</div>
+            <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 4, position: 'relative' }}>Descubra onde começar — leva 2 minutos</div>
+            {nivResult === null && <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 7, overflow: 'hidden', marginTop: 14, position: 'relative' }}><div style={{ background: '#4ADE80', height: '100%', width: `${Math.round(nivIdx / placementQuestions.length * 100)}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>}
           </div>
           <div style={{ padding: 16 }}>
-            {nivResult === null ? (
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Pergunta {nivIdx + 1} de {placementQuestions.length}</div>
-                <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: blue, height: '100%', width: `${Math.round((nivIdx) / placementQuestions.length * 100)}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
-                {placementQuestions[nivIdx].ctx && (
-                  <div style={{ background: 'var(--color-background-secondary)', borderLeft: `3px solid ${blue}`, borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 14, color: 'var(--color-text-primary)', lineHeight: 1.5, fontStyle: 'italic' }}>{placementQuestions[nivIdx].ctx}</div>
+            {nivResult === null ? (() => {
+              const q = placementQuestions[nivIdx]
+              const ti: [string, string] = ({ G: ['Gramática', '#2E72D6'], V: ['Vocabulário', '#7C3AED'], L: ['Compreensão', '#0D9488'] } as Record<string, [string, string]>)[q.tipo] || ['Questão', '#2E72D6']
+              return (
+              <div style={{ animation: 'su_fade 0.3s ease' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, color: blue, fontWeight: 700, background: blueLight, padding: '4px 12px', borderRadius: 20 }}>Pergunta {nivIdx + 1} de {placementQuestions.length}</span>
+                  <span style={{ fontSize: 11, color: ti[1], fontWeight: 700, background: ti[1] + '1A', padding: '4px 11px', borderRadius: 20 }}>{ti[0]}</span>
+                </div>
+                {q.ctx && (
+                  <div style={{ background: blueLight, borderLeft: `3px solid ${blue}`, borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 14, color: blueDark, lineHeight: 1.5, fontStyle: 'italic' }}>{q.ctx}</div>
                 )}
-                <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{placementQuestions[nivIdx].q}</div>
-                {placementQuestions[nivIdx].opts.map((opt: string, i: number) => (
-                  <button key={i} onClick={() => setNivSel(i)} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: nivSel === i ? `2px solid ${blue}` : '1px solid var(--color-border-tertiary)', background: nivSel === i ? blueLight : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: 'pointer', fontWeight: nivSel === i ? 600 : 400 }}>{opt}</button>
+                <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{q.q}</div>
+                {q.opts.map((opt: string, i: number) => (
+                  <button key={i} onClick={() => setNivSel(i)} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: nivSel === i ? `2px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', background: nivSel === i ? blueLight : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: 'pointer', fontWeight: nivSel === i ? 600 : 400, boxShadow: nivSel === i ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>{opt}</button>
                 ))}
                 <button disabled={nivSel < 0} onClick={() => {
-                  const q = placementQuestions[nivIdx]
                   const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
                   const newScore = [...nivScore]
                   if (nivSel === q.ans) newScore[levels.indexOf(q.lvl)] += 1
@@ -3008,16 +3014,25 @@ export default function AppPage() {
                   }
                 }} style={{ width: '100%', padding: 15, marginTop: 8, background: nivSel < 0 ? 'var(--color-background-secondary)' : blue, color: nivSel < 0 ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: nivSel < 0 ? 'default' : 'pointer' }}>{nivIdx < placementQuestions.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
               </div>
-            ) : (
-              <div style={{ textAlign: 'center', paddingTop: 12 }}>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Seu nível recomendado é</div>
-                <div style={{ fontSize: 56, fontWeight: 800, color: blue, lineHeight: 1 }}>{nivResult}</div>
-                <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-primary)', marginTop: 8 }}>{({ A1: 'Iniciante', A2: 'Básico', B1: 'Intermediário', B2: 'Intermediário+', C1: 'Avançado', C2: 'Domínio' } as Record<string, string>)[nivResult]}</div>
-                <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>Vamos te colocar no ponto certo para evoluir mais rápido. Você pode mudar de nível quando quiser na aba Lições.</div>
-                <button onClick={() => setTab('lessons')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Começar no nível {nivResult} <Ic e="→" /></button>
+              ) })() : (() => {
+              const lc = ['A1', 'A2'].includes(nivResult) ? '#16A34A' : ['B1', 'B2'].includes(nivResult) ? '#2E72D6' : '#7C3AED'
+              const nome = ({ A1: 'Iniciante', A2: 'Básico', B1: 'Intermediário', B2: 'Intermediário+', C1: 'Avançado', C2: 'Domínio' } as Record<string, string>)[nivResult]
+              return (
+              <div style={{ textAlign: 'center', paddingTop: 8, animation: 'su_fade 0.4s ease' }}>
+                <div style={{ fontSize: 54, marginBottom: 4, animation: 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' }}><Ic e="🎯" c={lc} /></div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Seu nível recomendado é</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 96, height: 96, borderRadius: '50%', background: lc + '18', border: `3px solid ${lc}`, margin: '12px 0 6px', animation: 'su_pop 0.5s ease' }}><span style={{ fontSize: 38, fontWeight: 800, color: lc }}>{nivResult}</span></div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)' }}>{nome}</div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 16, flexWrap: 'wrap' }}>
+                  {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(lv => { const on = lv === nivResult; const c = ['A1', 'A2'].includes(lv) ? '#16A34A' : ['B1', 'B2'].includes(lv) ? '#2E72D6' : '#7C3AED'; return (
+                    <span key={lv} style={{ fontSize: 12.5, fontWeight: on ? 800 : 600, color: on ? '#fff' : 'var(--color-text-secondary)', background: on ? c : 'var(--color-background-secondary)', border: on ? 'none' : '0.5px solid var(--color-border-tertiary)', padding: '7px 11px', borderRadius: 10, transform: on ? 'scale(1.12)' : 'none' }}>{lv}</span>
+                  )})}
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 18, lineHeight: 1.5, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>Vamos te colocar no ponto certo para evoluir mais rápido. Você pode mudar de nível quando quiser na aba Lições.</div>
+                <button onClick={() => setTab('lessons')} style={{ width: '100%', padding: 15, marginTop: 24, background: lc, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: `0 6px 18px ${lc}44` }}>Começar no nível {nivResult} <Ic e="→" /></button>
                 <button onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null) }} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 12, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
               </div>
-            )}
+              ) })()}
           </div>
         </div>
       )}
