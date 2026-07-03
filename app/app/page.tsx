@@ -1523,6 +1523,7 @@ export default function AppPage() {
   const [nivIdx, setNivIdx] = useState(0)
   const [nivScore, setNivScore] = useState<number[]>([0,0,0,0,0,0])
   const [nivSel, setNivSel] = useState(-1)
+  const [nivAns, setNivAns] = useState(false)
   const [nivResult, setNivResult] = useState<string | null>(null)
   const [desafioFeito, setDesafioFeito] = useState(false)
   const [desQ, setDesQ] = useState(0)
@@ -2320,7 +2321,7 @@ export default function AppPage() {
     if (nivel) { setLevel(nivel); try { localStorage.setItem('speakup_nivel', nivel) } catch (e) {} }
     try { localStorage.setItem('speakup_onboarded', '1') } catch (e) {}
     setOnboarded(true)
-    if (irNivelamento) { setNivIdx(0); setNivScore([0, 0, 0, 0, 0, 0]); setNivSel(-1); setNivResult(null); setTab('nivelamento') }
+    if (irNivelamento) { setNivIdx(0); setNivScore([0, 0, 0, 0, 0, 0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') }
   }
   const onbOpt: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 14, padding: '14px 16px', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }
   const onbBack: CSSProperties = { background: 'none', border: 'none', color: '#BCD6F2', fontSize: 14, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit' }
@@ -2629,7 +2630,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#9B2D2D' }}>Prova Semanal</div>
                 <div style={{ fontSize: 11, color: '#C0392B' }}>{provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões'}</div>
               </div>
-              <div onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null); setTab('nivelamento') }} style={{ background: '#E8F4FB', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
+              <div onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') }} style={{ background: '#E8F4FB', borderRadius: 12, padding: 14, cursor: 'pointer' }}>
                 <IcBadge e="📊" color="#0F6FA8" style={{ marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#0B3A52' }}>Teste de nível</div>
                 <div style={{ fontSize: 11, color: '#0F6FA8' }}>Descubra seu nível</div>
@@ -3002,23 +3003,45 @@ export default function AppPage() {
                 {q.ctx && (
                   <div style={{ background: blueLight, borderLeft: `3px solid ${blue}`, borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 14, color: blueDark, lineHeight: 1.5, fontStyle: 'italic' }}>{q.ctx}</div>
                 )}
-                <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{q.q}</div>
-                {q.opts.map((opt: string, i: number) => (
-                  <button key={i} onClick={() => setNivSel(i)} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: nivSel === i ? `2px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', background: nivSel === i ? blueLight : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: 'pointer', fontWeight: nivSel === i ? 600 : 400, boxShadow: nivSel === i ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>{opt}</button>
-                ))}
-                <button disabled={nivSel < 0} onClick={() => {
+                <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4, position: 'relative' }}>
+                  {q.q}
+                  {nivAns && nivSel === q.ans && (
+                    <div style={{ position: 'absolute', top: -10, right: -4, display: 'flex', gap: 3, pointerEvents: 'none' }}>
+                      {['#16A34A', '#4ADE80', '#F5A623', '#2E72D6', '#DB2777', '#7C3AED'].map((cor, i) => (
+                        <span key={i} style={{ position: 'absolute', top: 0, right: i * 10, width: 8, height: 8, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1 + (i % 3) * 0.25}s ease-in ${(i % 4) * 0.05}s forwards` }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {nivAns && (
+                  <div style={{ textAlign: 'center', marginBottom: 12, animation: 'su_pop 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
+                    {nivSel === q.ans ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: greenLight, color: '#16A34A', fontSize: 15, fontWeight: 700, padding: '8px 18px', borderRadius: 24 }}><span style={{ animation: 'su_bounce 0.6s ease' }}>🎉</span> Acertou! <Ic e="✓" c={green} /></span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#FCEBEB', color: '#C0392B', fontSize: 14, fontWeight: 600, padding: '8px 16px', borderRadius: 24 }}>Quase! Veja a resposta certa em verde 👇</span>
+                    )}
+                  </div>
+                )}
+                {q.opts.map((opt: string, i: number) => {
+                  const acertou = nivAns && i === q.ans
+                  const errou = nivAns && i === nivSel && i !== q.ans
+                  return (
+                  <button key={i} disabled={nivAns} onClick={() => { if (nivAns) return; setNivSel(i); setNivAns(true); tocarSom(i === q.ans ? 'acerto' : 'erro') }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: acertou ? '2px solid #16A34A' : errou ? '2px solid #C0392B' : nivSel === i ? `2px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', background: acertou ? greenLight : errou ? '#FCEBEB' : nivSel === i ? blueLight : 'var(--color-background-primary)', color: acertou ? '#27500A' : errou ? '#791F1F' : 'var(--color-text-primary)', fontSize: 15, cursor: nivAns ? 'default' : 'pointer', fontWeight: (acertou || errou || nivSel === i) ? 600 : 400, boxShadow: (nivAns || nivSel === i) ? 'none' : '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.2s, border 0.2s' }}><span>{opt}</span>{acertou && <span style={{ flexShrink: 0, animation: 'su_pop 0.4s cubic-bezier(0.16,1,0.3,1)' }}><Ic e="✓" c={green} /></span>}{errou && <span style={{ flexShrink: 0 }}><Ic e="✗" c="#C0392B" /></span>}</button>
+                  )
+                })}
+                <button disabled={!nivAns} onClick={() => {
                   const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
                   const newScore = [...nivScore]
                   if (nivSel === q.ans) newScore[levels.indexOf(q.lvl)] += 1
                   setNivScore(newScore)
-                  if (nivIdx < placementQuestions.length - 1) { setNivIdx(nivIdx + 1); setNivSel(-1) }
+                  if (nivIdx < placementQuestions.length - 1) { setNivIdx(nivIdx + 1); setNivSel(-1); setNivAns(false) }
                   else {
                     let rec = 'C2'
                     for (let i = 0; i < 6; i++) { if (newScore[i] < 3) { rec = levels[i]; break } }
                     setNivResult(rec); setLevel(rec)
                     try { localStorage.setItem('speakup_nivel', rec) } catch (e) {}
                   }
-                }} style={{ width: '100%', padding: 15, marginTop: 8, background: nivSel < 0 ? 'var(--color-background-secondary)' : blue, color: nivSel < 0 ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: nivSel < 0 ? 'default' : 'pointer' }}>{nivIdx < placementQuestions.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
+                }} style={{ width: '100%', padding: 15, marginTop: 8, background: !nivAns ? 'var(--color-background-secondary)' : blue, color: !nivAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !nivAns ? 'default' : 'pointer' }}>{nivIdx < placementQuestions.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
               </div>
               ) })() : (() => {
               const lc = ['A1', 'A2'].includes(nivResult) ? '#16A34A' : ['B1', 'B2'].includes(nivResult) ? '#2E72D6' : '#7C3AED'
@@ -3036,7 +3059,7 @@ export default function AppPage() {
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 18, lineHeight: 1.5, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>Vamos te colocar no ponto certo para evoluir mais rápido. Você pode mudar de nível quando quiser na aba Lições.</div>
                 <button onClick={() => setTab('lessons')} style={{ width: '100%', padding: 15, marginTop: 24, background: lc, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: `0 6px 18px ${lc}44` }}>Começar no nível {nivResult} <Ic e="→" /></button>
-                <button onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivResult(null) }} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 12, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
+                <button onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null) }} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 12, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
               </div>
               ) })()}
           </div>
