@@ -16,6 +16,7 @@ import {
   Flag, X, Heart, Rocket, Folder, Home, Apple, Shirt, Goal, ChefHat, Cat, Map as MapIcon,
   Image as ImageIcon, ArrowRight, ArrowLeft, Check, CircleCheck, BookText, Pause, Square,
   Volume2, MessageCircle, Settings, HelpingHand, Bell, Bird, Brain,
+  Landmark, Key, Pill, Puzzle, Feather, Footprints, Moon, Gem,
 } from 'lucide-react'
 
 // Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
@@ -49,6 +50,10 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
   // Símbolos de interface
   '→': ArrowRight, '←': ArrowLeft, '✓': Check, '✗': X, '✅': CircleCheck, '✕': X,
   '🎙️': Mic, '🤲': HelpingHand,
+  // Ícones extras de cenários/lições (evitam o fallback "?")
+  '🏦': Landmark, '🏛️': Landmark, '🔑': Key, '💊': Pill, '🚨': TriangleAlert,
+  '🏋️': BicepsFlexed, '💇': Scissors, '🧩': Puzzle, '🎚️': Settings, '🪞': UserRound,
+  '🧰': Wrench, '🪶': Feather, '👟': Footprints, '🌑': Moon, '🧃': Coffee, '💎': Gem,
 }
 
 // Renderiza um ícone do lucide a partir do emoji equivalente, mantendo tamanho/cor.

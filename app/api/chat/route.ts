@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-// Mantenha igual ao app (page.tsx). Trocar para false quando ligar a cobrança.
-const BETA_GRATIS = true
+// Mantenha igual ao app (page.tsx). false = cobrança ligada.
+const BETA_GRATIS = false
 // Tetos diários de chamadas à IA por usuário (rede de segurança contra abuso/custo).
 const LIMIT_FREE = 60
 const LIMIT_PREMIUM = 300
