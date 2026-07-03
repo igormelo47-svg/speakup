@@ -2088,6 +2088,40 @@ export default function AppPage() {
   const mostrarOnboarding = xpHydrated && isNovo && !perfilIa.objetivo && !onboarded
   const currentLesson = lessons[level][lessonIdx]
 
+  // 🔒 PAYWALL DURO: acabou o trial de 2 dias e não é Premium -> bloqueia o app até assinar.
+  if (xpHydrated && !isPremium) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: '#E9EDF2' }}>
+        <div style={{ width: '100%', maxWidth: 430, fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: `linear-gradient(135deg, ${gold}, #DAA520)`, padding: '44px 20px 30px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
+            <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste grátis terminou</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Assine o <b>Vonai Premium</b> para continuar aprendendo inglês, do zero à fluência.</div>
+          </div>
+          <div style={{ padding: 18, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>Com o Premium você tem:</div>
+              {[['📖', 'Todas as lições, do A1 ao C2'], ['🤖', 'Professor de IA ilimitado'], ['🎭', 'Conversas ilimitadas'], ['📊', 'Relatório de evolução'], ['🎯', 'Trilha personalizada']].map(([ic, t], i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < 4 ? 10 : 0 }}>
+                  <span style={{ fontSize: 17 }}><Ic e={ic} /></span>
+                  <span style={{ fontSize: 13.5, color: '#16212c' }}>{t}</span>
+                  <span style={{ marginLeft: 'auto', color: green }}><Ic e="✓" /></span>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => window.open(KIWIFY_MENSAL, '_blank')} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}>Assinar plano mensal — R$29,90/mês</button>
+            <button onClick={() => window.open(KIWIFY_ANUAL, '_blank')} style={{ width: '100%', padding: 15, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Assinar plano anual — R$289,80/ano 🔥</button>
+            <div style={{ fontSize: 12, color: green, textAlign: 'center', fontWeight: 600, marginTop: 8 }}>No anual você economiza R$69 por ano</div>
+            <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>Pagamento seguro via Kiwify · Pix, cartão ou boleto</div>
+            <div style={{ fontSize: 12, color: '#8a5a00', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>
+            <button onClick={() => window.location.reload()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Já assinei — atualizar</button>
+            <button onClick={logout} style={{ width: '100%', padding: 12, marginTop: 10, background: 'none', color: '#8a97a5', border: 'none', fontSize: 13, cursor: 'pointer' }}>Sair da conta</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: '#E9EDF2' }}>
     <div style={{ width: '100%', maxWidth: 430, fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 0 40px rgba(0,0,0,0.10)' }}>
