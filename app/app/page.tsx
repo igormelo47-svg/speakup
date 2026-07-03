@@ -2913,12 +2913,30 @@ export default function AppPage() {
                 <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Pergunta {desQ + 1} de 5</div>
                 <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: '#F5A623', height: '100%', width: `${desQ / 5 * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
                 {desafioQuestions[desQ].ctx ? (<div style={{ background: 'var(--color-background-secondary)', borderLeft: '3px solid #F5A623', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>{desafioQuestions[desQ].ctx}</div>) : null}
-                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{desafioQuestions[desQ].q}</div>
+                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4, position: 'relative' }}>
+                  {desafioQuestions[desQ].q}
+                  {desAns && desSel === desafioQuestions[desQ].ans && (
+                    <div style={{ position: 'absolute', top: -10, right: -4, pointerEvents: 'none' }}>
+                      {['#16A34A', '#4ADE80', '#F5A623', '#2E72D6', '#DB2777', '#7C3AED'].map((cor, i) => (
+                        <span key={i} style={{ position: 'absolute', top: 0, right: i * 10, width: 8, height: 8, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1 + (i % 3) * 0.25}s ease-in ${(i % 4) * 0.05}s forwards` }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {desAns && (
+                  <div style={{ textAlign: 'center', marginBottom: 12, animation: 'su_pop 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
+                    {desSel === desafioQuestions[desQ].ans ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E3F3EA', color: '#16A34A', fontSize: 15, fontWeight: 700, padding: '8px 18px', borderRadius: 24 }}><span style={{ animation: 'su_bounce 0.6s ease' }}>🎉</span> Acertou! <Ic e="✓" c={green} /></span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#FBEAE8', color: '#C0392B', fontSize: 14, fontWeight: 600, padding: '8px 16px', borderRadius: 24 }}>Quase! A resposta certa está em verde 👇</span>
+                    )}
+                  </div>
+                )}
                 {desafioQuestions[desQ].opts.map((opt: string, i: number) => {
                   const correta = desAns && i === desafioQuestions[desQ].ans
                   const errada = desAns && i === desSel && i !== desafioQuestions[desQ].ans
                   return (
-                    <button key={i} onClick={() => { if (desAns) return; setDesSel(i); setDesAns(true); if (i === desafioQuestions[desQ].ans) setDesAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : (desSel === i ? '2px solid #F5A623' : '1px solid var(--color-border-tertiary)'), background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: desAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
+                    <button key={i} onClick={() => { if (desAns) return; setDesSel(i); setDesAns(true); tocarSom(i === desafioQuestions[desQ].ans ? 'acerto' : 'erro'); if (i === desafioQuestions[desQ].ans) setDesAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : (desSel === i ? '2px solid #F5A623' : '1px solid var(--color-border-tertiary)'), background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: desAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400, display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.2s, border 0.2s' }}><span>{opt}</span>{correta ? <span style={{ flexShrink: 0, animation: 'su_pop 0.4s cubic-bezier(0.16,1,0.3,1)' }}><Ic e="✓" c={green} /></span> : errada ? <span style={{ flexShrink: 0 }}><Ic e="✗" c="#C0392B" /></span> : null}</button>
                   )
                 })}
                 {desAns && desafioQuestions[desQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {desafioQuestions[desQ].exp}</div>)}
