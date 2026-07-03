@@ -3224,7 +3224,9 @@ export default function AppPage() {
 
       {tab === 'listening' && (() => {
         const fim = lisIdx >= listeningExercises.length
-        const ex = fim ? listeningExercises[0] : listeningExercises[lisIdx]
+        // embaralharQ é determinístico (semente = texto da pergunta), então a alternativa
+        // certa varia mas fica estável entre renders — antes a resposta era sempre a "A" (ans:0).
+        const ex = embaralharQ(fim ? listeningExercises[0] : listeningExercises[lisIdx])
         return (
           <div style={{ background: 'linear-gradient(180deg, #E9F2FB 0%, #D3E7F5 55%, #C1DDF1 100%)', minHeight: '100vh' }}>
             <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
