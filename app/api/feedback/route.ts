@@ -9,7 +9,7 @@ const DESTINO = 'moafidem@hotmail.com'
 
 async function avisarPorEmail(mensagem: string, email: string | null, user_id: string | null) {
   const key = process.env.RESEND_API_KEY
-  if (!key) return // sem chave configurada: só grava no banco, não quebra o envio
+  if (!key) return { sent: false, reason: 'sem RESEND_API_KEY na Vercel' }
   // Remetente: usa domínio verificado (RESEND_FROM) se houver; senão o de teste do Resend,
   // que entrega para o e-mail dono da conta Resend.
   const from = process.env.RESEND_FROM || 'Vonai Feedback <onboarding@resend.dev>'
@@ -25,18 +25,16 @@ async function avisarPorEmail(mensagem: string, email: string | null, user_id: s
       </p>
     </div>`
   try {
-    await fetch('https://api.resend.com/emails', {
+    const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from,
-        to: [DESTINO],
-        reply_to: email || undefined,
-        subject: '💬 Novo feedback no Vonai',
-        html,
-      }),
+      body: JSON.stringify({ from, to: [DESTINO], reply_to: email || undefined, subject: '💬 Novo feedback no Vonai', html }),
     })
-  } catch {}
+    const txt = await r.text()
+    return { sent: r.ok, status: r.status, from, resposta: txt.slice(0, 300) }
+  } catch (e: any) {
+    return { sent: false, reason: 'fetch falhou', erro: String(e?.message || e) }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -55,6 +53,7 @@ export async function POST(req: NextRequest) {
   const { error } = await admin.from('feedback').insert({ user_id, email, mensagem })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  await avisarPorEmail(mensagem, email, user_id)
-  return NextResponse.json({ ok: true })
+  const emailDebug = await avisarPorEmail(mensagem, email, user_id)
+  const debug = req.nextUrl.searchParams.get('debug') === '1'
+  return NextResponse.json(debug ? { ok: true, email: emailDebug } : { ok: true })
 }
