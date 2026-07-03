@@ -2201,6 +2201,7 @@ export default function AppPage() {
         @keyframes su_confetti { 0% { transform: translateY(-20px) rotate(0); opacity: 1 } 100% { transform: translateY(320px) rotate(420deg); opacity: 0 } }
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
         @keyframes su_float { 0% { transform: translate(-50%, 0) scale(0.6); opacity: 0 } 25% { transform: translate(-50%, -20px) scale(1.15); opacity: 1 } 100% { transform: translate(-50%, -90px) scale(1); opacity: 0 } }
+        @keyframes su_eq { 0%, 100% { transform: scaleY(0.3) } 50% { transform: scaleY(1) } }
       `}</style>
 
       {xpFloat > 0 && (
@@ -2656,16 +2657,16 @@ export default function AppPage() {
           <div style={{ padding: 16 }}>
             {!pronCat ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {pronCategorias.map(c => (
-                  <div key={c.id} onClick={() => { setPronCat(c.id); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip('') }} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div style={{ width: 48, height: 48, background: purpleLight, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><Ic e={c.icon} /></div>
+                {pronCategorias.map((c, idx) => { const pc = ['#2E72D6','#7C3AED','#0EA5A5','#E8590C','#DB2777','#16A34A','#4F46E5','#CA8A04','#0284C7','#DC2626','#C026D3','#0D9488','#EA580C','#4B3FBF','#059669','#B45309'][idx % 16]; return (
+                  <div key={c.id} onClick={() => { setPronCat(c.id); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip('') }} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', borderLeft: `4px solid ${pc}`, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                    <div style={{ width: 48, height: 48, background: pc + '1A', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={c.icon} c={pc} s={24} /></div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>{c.label}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>{c.label}</div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{c.desc}</div>
                     </div>
-                    <div style={{ fontSize: 18, color: 'var(--color-text-secondary)' }}><Ic e="→" /></div>
+                    <div style={{ fontSize: 18 }}><Ic e="→" c={pc} /></div>
                   </div>
-                ))}
+                )})}
               </div>
             ) : (() => {
               const cat = pronCategorias.find(c => c.id === pronCat)!
@@ -2688,7 +2689,7 @@ export default function AppPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                     <button onClick={() => ouvirPron(frase.en)} style={{ flex: 1, padding: 14, background: purpleLight, color: '#3C3489', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}><Ic e="🔊" /> Ouvir</button>
-                    <button onClick={() => gravarPron(frase.en)} style={{ flex: 1, padding: 14, background: pronListening ? '#C0392B' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{pronListening ? <><Ic e="⏹️" /> Parar e avaliar</> : <><Ic e="🎤" /> Falar</>}</button>
+                    <button onClick={() => gravarPron(frase.en)} style={{ flex: 1, padding: 14, background: pronListening ? '#C0392B' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', animation: pronListening ? 'su_pulse 1.2s infinite' : 'none' }}>{pronListening ? <><Ic e="⏹️" /> Parar e avaliar</> : <><Ic e="🎤" /> Falar</>}</button>
                   </div>
                   {pronScore !== null && (
                     <div style={{ background: 'var(--color-background-secondary)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
@@ -3298,6 +3299,7 @@ export default function AppPage() {
             <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '20px 16px 18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🎧" color={blue} onDark box={36} /><div style={{ fontSize: 21, fontWeight: 700, color: '#fff' }}>Listening</div></div>
               <div style={{ fontSize: 13, color: '#B5D4F4', marginTop: 3 }}>Ouça o áudio e entenda o que foi dito</div>
+              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 7, overflow: 'hidden', marginTop: 12 }}><div style={{ background: '#4ADE80', height: '100%', width: `${Math.round(Math.min(lisIdx, listeningExercises.length) / listeningExercises.length * 100)}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
             </div>
             <div style={{ padding: 16 }}>
               {fim ? (
@@ -3309,15 +3311,19 @@ export default function AppPage() {
                 </div>
               ) : (
                 <>
+                  {(() => { const playing = speakingId === 7000 + lisIdx; const lc = String(ex.nivel).startsWith('A') ? '#16A34A' : String(ex.nivel).startsWith('B') ? '#2E72D6' : '#7C3AED'; return (<>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, color: blue, fontWeight: 600, background: blueLight, padding: '3px 10px', borderRadius: 20 }}>{lisIdx + 1}/{listeningExercises.length}</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', fontWeight: 600 }}>Nível {ex.nivel}</div>
+                    <div style={{ fontSize: 12, color: blue, fontWeight: 700, background: blueLight, padding: '4px 12px', borderRadius: 20 }}>{lisIdx + 1}/{listeningExercises.length}</div>
+                    <div style={{ fontSize: 11, color: lc, fontWeight: 700, background: lc + '1A', padding: '4px 12px', borderRadius: 20 }}>Nível {ex.nivel}</div>
                   </div>
-                  <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 24, textAlign: 'center', marginBottom: 16 }}>
-                    <button onClick={() => speakEN(ex.en, 7000 + lisIdx)} style={{ width: 84, height: 84, borderRadius: '50%', background: blue, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', animation: speakingId === 7000 + lisIdx ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e="🔊" /></button>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 12 }}>{lisAns ? 'Ouça de novo se quiser' : 'Toque para ouvir · quantas vezes precisar'}</div>
-                    {lisAns && <div style={{ marginTop: 14, padding: '12px 14px', background: blueLight, borderRadius: 12, textAlign: 'left' }}><div style={{ fontSize: 14, fontWeight: 600, color: blueDark }}>"{ex.en}"</div><div style={{ fontSize: 13, color: blue, marginTop: 5 }}>{ex.pt}</div></div>}
+                  <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 18, padding: '26px 24px', textAlign: 'center', marginBottom: 16, boxShadow: '0 4px 16px rgba(46,114,214,0.12)' }}>
+                    <div onClick={() => speakEN(ex.en, 7000 + lisIdx)} style={{ width: 96, height: 96, borderRadius: '50%', background: 'linear-gradient(135deg, #2E72D6, #6A5ACD)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', boxShadow: '0 8px 22px rgba(74,63,191,0.35)', animation: playing ? 'su_pulse 1.2s infinite' : 'none' }}>
+                      {playing ? (<div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 38 }}>{[0,1,2,3,4].map(b => <span key={b} style={{ width: 5, height: 34, background: '#fff', borderRadius: 3, animation: `su_eq 0.7s ease-in-out ${b * 0.12}s infinite` }} />)}</div>) : <Ic e="🔊" c="#fff" s={38} />}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 14, fontWeight: 500 }}>{lisAns ? 'Ouça de novo se quiser' : 'Toque para ouvir · quantas vezes precisar'}</div>
+                    {lisAns && <div style={{ marginTop: 16, padding: '13px 15px', background: blueLight, borderRadius: 12, textAlign: 'left', borderLeft: `4px solid ${blue}` }}><div style={{ fontSize: 14.5, fontWeight: 700, color: blueDark }}>"{ex.en}"</div><div style={{ fontSize: 13, color: blue, marginTop: 5 }}>{ex.pt}</div></div>}
                   </div>
+                  </>) })()}
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 12 }}>{ex.q}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                     {ex.opts.map((o: string, i: number) => {
