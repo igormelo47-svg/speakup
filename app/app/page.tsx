@@ -1592,16 +1592,15 @@ export default function AppPage() {
     setPronHeard(''); setPronScore(null); setPronTip('')
     const rec = new SR()
     rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
-    let finalText = ''
+    let lastText = ''
     rec.onresult = (e: any) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript
-        if (e.results[i].isFinal) finalText += t + ' '; else interim += t
-      }
-      setPronHeard((finalText + interim).trim())
+      // Reconstrói a frase inteira a cada evento (evita repetição de palavras no Android).
+      let txt = ''
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
+      lastText = txt.replace(/\s+/g, ' ').trim()
+      setPronHeard(lastText)
     }
-    rec.onend = () => { setPronListening(false); const said = finalText.trim(); if (said) avaliarPron(target, said) }
+    rec.onend = () => { setPronListening(false); if (lastText) avaliarPron(target, lastText) }
     rec.onerror = () => setPronListening(false)
     recognitionRef.current = rec
     setPronListening(true)
@@ -1849,16 +1848,14 @@ export default function AppPage() {
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
     if (listening) { recognitionRef.current?.stop(); return }
     const base = chatInput ? chatInput + ' ' : ''
-    let finalText = ''
     const rec = new SR()
     rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
     rec.onresult = (e: any) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript
-        if (e.results[i].isFinal) finalText += t + ' '; else interim += t
-      }
-      setChatInput((base + finalText + interim).trim())
+      // Reconstrói a frase inteira a cada evento — evita palavras repetidas (bug do Android,
+      // que reenvia resultados já finais com o resultIndex voltando a 0).
+      let txt = ''
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
+      setChatInput((base + txt).replace(/\s+/g, ' ').trim())
     }
     rec.onend = () => setListening(false)
     rec.onerror = () => setListening(false)
