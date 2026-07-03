@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
   const { error } = await admin.from('feedback').insert({ user_id, email, mensagem })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const emailDebug = await avisarPorEmail(mensagem, email, user_id)
-  const debug = req.nextUrl.searchParams.get('debug') === '1'
-  return NextResponse.json(debug ? { ok: true, email: emailDebug } : { ok: true })
+  await avisarPorEmail(mensagem, email, user_id)
+  return NextResponse.json({ ok: true })
 }
