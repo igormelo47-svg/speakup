@@ -587,6 +587,8 @@ const vocab = [
 
 const catEmoji: { [k: string]: string } = { basic: '👋', travel: '✈️', work: '💼', food: '🍽️', home: '🏠', verbs: '⚡', feelings: '😊', daily: '📅', health: '🏥', tech: '💻', shopping: '🛒', weather: '🌤️', family: '👨‍👩‍👧', nature: '🌳', city: '🏙️' }
 const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem', work: 'Trabalho', food: 'Comida', home: 'Casa', verbs: 'Verbo', feelings: 'Sentimento', daily: 'Dia a dia', health: 'Saúde', tech: 'Tecnologia', shopping: 'Compras', weather: 'Clima', family: 'Família', nature: 'Natureza', city: 'Cidade' }
+// Uma cor viva por categoria (dá identidade visual a cada card do vocabulário).
+const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#0EA5A5', work: '#4B3FBF', food: '#E8590C', home: '#B45309', verbs: '#7C3AED', feelings: '#DB2777', daily: '#0D9488', health: '#DC2626', tech: '#4F46E5', shopping: '#C026D3', weather: '#0284C7', family: '#EA580C', nature: '#16A34A', city: '#475569' }
 
 interface Msg { role: string; text: string }
 type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'finish'
@@ -3116,7 +3118,7 @@ export default function AppPage() {
           <div style={{ padding: 16 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
               {[['all', '🗂️ Todos'], ['basic', '👋 Essenciais'], ['travel', '✈️ Viagem'], ['work', '💼 Trabalho'], ['food', '🍽️ Comida'], ['home', '🏠 Casa'], ['verbs', '⚡ Verbos'], ['feelings', '😊 Sentimentos'], ['daily', '📅 Dia a dia'], ['health', '🏥 Saúde'], ['tech', '💻 Tecnologia'], ['shopping', '🛒 Compras'], ['weather', '🌤️ Clima'], ['family', '👨‍👩‍👧 Família'], ['nature', '🌳 Natureza'], ['city', '🏙️ Cidade']].map(([cat, label]) => (
-                <button key={cat} onClick={() => setVocabCat(cat)} style={{ padding: '7px 14px', border: vocabCat === cat ? 'none' : '0.5px solid var(--color-border-tertiary)', borderRadius: 20, background: vocabCat === cat ? blue : 'var(--color-background-primary)', color: vocabCat === cat ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: vocabCat === cat ? 600 : 400 }}><IcLabel label={label} /></button>
+                <button key={cat} onClick={() => setVocabCat(cat)} style={{ padding: '7px 14px', border: vocabCat === cat ? 'none' : '0.5px solid var(--color-border-tertiary)', borderRadius: 20, background: vocabCat === cat ? (catColor[cat] || blue) : 'var(--color-background-primary)', color: vocabCat === cat ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: vocabCat === cat ? 600 : 400 }}><IcLabel label={label} /></button>
               ))}
             </div>
             <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
@@ -3131,20 +3133,25 @@ export default function AppPage() {
               <button onClick={() => setVocabModo('revisar')} style={{ flex: 1, padding: '8px 0', borderRadius: 10, background: vocabModo === 'revisar' ? '#F5A623' : 'var(--color-background-primary)', color: vocabModo === 'revisar' ? '#fff' : 'var(--color-text-secondary)', fontSize: 13, fontWeight: vocabModo === 'revisar' ? 600 : 400, cursor: 'pointer', border: vocabModo === 'revisar' ? 'none' : '0.5px solid var(--color-border-tertiary)' }}><Ic e="🔁" /> Revisar ({vocabRevisar})</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'start' }}>
-              {filteredVocab.map((v, i) => (
-                <div key={i} onClick={() => setFlipped(f => ({ ...f, [i]: !f[i] }))} style={{ background: flipped[i] ? blueLight : 'var(--color-background-primary)', border: vocabSrs[v.en] === 'sabe' ? '1px solid #97C459' : flipped[i] ? '1px solid #85B7EB' : '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 13, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'background 0.2s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
-                    <span style={{ fontSize: 10.5, background: flipped[i] ? 'rgba(255,255,255,0.7)' : 'var(--color-background-secondary)', padding: '3px 8px', borderRadius: 12, color: 'var(--color-text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}><Ic e={catEmoji[v.cat]} /> {catNome[v.cat]}</span>
-                    <button onClick={e => { e.stopPropagation(); speakEN(v.en, 5000 + i) }} style={{ background: speakingId === 5000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 5000 + i ? '#fff' : blue, border: `1px solid ${blueLight}`, borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="🔊" /></button>
+              {filteredVocab.map((v, i) => {
+                const cc = catColor[v.cat] || blue
+                const known = vocabSrs[v.en] === 'sabe'
+                const flip = flipped[i]
+                const spk = speakingId === 5000 + i
+                return (
+                <div key={i} onClick={() => setFlipped(f => ({ ...f, [i]: !f[i] }))} style={{ background: known ? '#F1F8ED' : flip ? cc + '12' : '#fff', border: `1px solid ${known ? '#9BCB6B' : flip ? cc + '4D' : 'var(--color-border-tertiary)'}`, borderLeft: `5px solid ${known ? '#639922' : cc}`, borderRadius: 16, padding: '12px 13px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', transition: 'all 0.2s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 10.5, background: cc + '1A', color: cc, padding: '3px 9px', borderRadius: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Ic e={catEmoji[v.cat]} c={cc} s={12} /> {catNome[v.cat]}</span>
+                    <button onClick={e => { e.stopPropagation(); speakEN(v.en, 5000 + i) }} style={{ background: spk ? cc : cc + '14', color: spk ? '#fff' : cc, border: 'none', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: spk ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e="🔊" s={14} /></button>
                   </div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: flipped[i] ? blueDark : 'var(--color-text-primary)', lineHeight: 1.2 }}>{v.en}</div>
-                  {flipped[i] ? (<><div style={{ color: blue, marginTop: 6, fontSize: 14, fontWeight: 600 }}>{v.pt}</div><div style={{ fontSize: 11, color: '#0C447C', marginTop: 8, fontStyle: 'italic', lineHeight: 1.45, background: 'rgba(255,255,255,0.6)', padding: '7px 9px', borderRadius: 9 }}>"{v.ex}"</div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
-                    <button onClick={e => { e.stopPropagation(); marcarVocab(v.en, 'revisar') }} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: vocabSrs[v.en] === 'revisar' ? '#F5A623' : 'rgba(239,159,39,0.18)', color: vocabSrs[v.en] === 'revisar' ? '#fff' : '#854F0B', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}><Ic e="🔁" /> Revisar</button>
-                    <button onClick={e => { e.stopPropagation(); marcarVocab(v.en, 'sabe') }} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: vocabSrs[v.en] === 'sabe' ? '#639922' : 'rgba(99,153,34,0.18)', color: vocabSrs[v.en] === 'sabe' ? '#fff' : '#27500A', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}><Ic e="✓" /> Já sei</button>
-                  </div></>) : (<div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 6 }}>Toque para ver <Ic e="→" /></div>)}
+                  <div style={{ fontSize: 19, fontWeight: 800, color: 'var(--color-text-primary)', lineHeight: 1.15 }}>{v.en}</div>
+                  {flip ? (<><div style={{ color: cc, marginTop: 5, fontSize: 14.5, fontWeight: 700 }}>{v.pt}</div><div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', marginTop: 8, fontStyle: 'italic', lineHeight: 1.45, background: cc + '0F', padding: '7px 10px', borderRadius: 10, borderLeft: `2px solid ${cc}66` }}>"{v.ex}"</div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                    <button onClick={e => { e.stopPropagation(); marcarVocab(v.en, 'revisar') }} style={{ flex: 1, padding: '7px 0', borderRadius: 9, border: 'none', background: vocabSrs[v.en] === 'revisar' ? '#F5A623' : 'rgba(239,159,39,0.16)', color: vocabSrs[v.en] === 'revisar' ? '#fff' : '#854F0B', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}><Ic e="🔁" /> Revisar</button>
+                    <button onClick={e => { e.stopPropagation(); marcarVocab(v.en, 'sabe') }} style={{ flex: 1, padding: '7px 0', borderRadius: 9, border: 'none', background: known ? '#639922' : 'rgba(99,153,34,0.16)', color: known ? '#fff' : '#27500A', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}><Ic e="✓" /> Já sei</button>
+                  </div></>) : (<div style={{ fontSize: 11, color: cc, marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>Toque para ver <Ic e="→" c={cc} s={12} /></div>)}
                 </div>
-              ))}
+              )})}
             </div>
             {filteredVocab.length === 0 && (
               <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-secondary)' }}>
