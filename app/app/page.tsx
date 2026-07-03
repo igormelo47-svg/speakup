@@ -1660,6 +1660,13 @@ export default function AppPage() {
         .eq('user_id', data.user.id)
         .limit(1)
       const prog = progRows?.[0] || null
+      // Trial de 2 dias: enquanto profiles.trial_expira estiver no futuro, o aluno usa o app como Premium.
+      let emTrial = false
+      try {
+        const { data: profRows } = await supabase.from('profiles').select('trial_expira').eq('id', data.user.id).limit(1)
+        const texp = profRows?.[0]?.trial_expira
+        if (texp) emTrial = new Date(texp).getTime() > Date.now()
+      } catch (e) {}
       if (progReadError) {
         console.log('[XP][Read] Erro ao ler progresso', progReadError)
       }
@@ -1677,7 +1684,7 @@ export default function AppPage() {
         setPerfilIa(prog.perfil_ia || {})
         setStreak(prog.streak || 0)
         setLicoesConcluidas(prog.licoes_concluidas || [])
-        setIsPremium(BETA_GRATIS || prog.is_premium || false)
+        setIsPremium(BETA_GRATIS || prog.is_premium || emTrial)
         setWhatsapp(prog.whatsapp || '')
         setMoedas(prog.moedas || 0)
         setStreakFreezes(prog.streak_freezes || 0)
@@ -1697,8 +1704,9 @@ export default function AppPage() {
           nome: nome,
           plano: 'free',
           ativo: true,
-          trial_expira: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
         }, { onConflict: 'id', ignoreDuplicates: true })
+        setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
         const initialXp = pendingXp > 0 ? pendingXp : 0
         setXp(initialXp)
         const { error: insErr } = await supabase.from('progresso').insert({ user_id: data.user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: data.user.email })
@@ -2312,7 +2320,7 @@ export default function AppPage() {
               <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e="⭐" color={gold} onDark box={44} size={24} />
                 <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Seja Premium <Ic e="✨" /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$19,90/mês <Ic e="→" /></div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$29,90/mês <Ic e="→" /></div>
               </div>
             )}
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '2px 2px 10px' }}>Explorar</div>
@@ -2746,14 +2754,14 @@ export default function AppPage() {
             <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
             <div style={{ textAlign: 'center' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><IcBadge e="⭐" color={gold} onDark box={52} size={28} /></div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>SPEAKUP Premium</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Vonai Premium</div>
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 6 }}>Alcance a fluência sem limites</div>
             </div>
           </div>
           <div style={{ padding: 16 }}>
             <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 12 }}>O que você ganha com o Premium:</div>
-              {[['🎭', 'Simulações ilimitadas', 'Pratique todos os 12 cenários sem limite diário'], ['🤖', 'Professor IA ilimitado', 'Tire dúvidas sem restrições'], ['📖', 'Todas as 47 lições', 'Beginner, Intermediário e Avançado'], ['📊', 'Relatório de evolução', 'Acompanhe seu progresso semanal'], ['🎯', 'Trilha personalizada', 'IA monta seu plano de 90 dias'], ['🔓', 'Novos cenários em breve', 'Acesso antecipado a conteúdo novo']].map(([icon, title, desc], i) => (
+              {[['🎭', 'Simulações ilimitadas', 'Pratique todos os 12 cenários sem limite diário'], ['🤖', 'Professor IA ilimitado', 'Tire dúvidas sem restrições'], ['📖', 'Todas as lições, do A1 ao C2', 'Centenas de lições, do básico ao avançado'], ['📊', 'Relatório de evolução', 'Acompanhe seu progresso semanal'], ['🎯', 'Trilha personalizada', 'IA monta seu plano de 90 dias'], ['🔓', 'Novos cenários em breve', 'Acesso antecipado a conteúdo novo']].map(([icon, title, desc], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < 5 ? 12 : 0 }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={icon} /></span>
                   <div><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{title}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{desc}</div></div>
@@ -2764,15 +2772,15 @@ export default function AppPage() {
             <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: `2px solid ${blue}`, padding: 16, marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Cancele quando quiser</div></div>
-                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$19,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
+                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$29,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
               </div>
               <button onClick={() => window.open(KIWIFY_MENSAL, '_blank')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar mensalmente <Ic e="→" /></button>
             </div>
             <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> MELHOR OFERTA</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>Economize R$141 por ano</div></div>
-                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>R$97</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · R$8,08/mês</div></div>
+                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>20% de desconto · economize R$72/ano</div></div>
+                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>R$286,80</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · R$23,90/mês</div></div>
               </div>
               <button onClick={() => window.open(KIWIFY_ANUAL, '_blank')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
             </div>
