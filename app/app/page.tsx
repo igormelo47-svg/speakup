@@ -620,6 +620,8 @@ const dictCatList = [
   {id:'lugares',label:'🗺️ Lugares'},
   {id:'estacoes',label:'🌤️ Clima'},
 ]
+// Uma cor por categoria do dicionário (deixa a tela colorida, não só roxa).
+const dictColor: { [k: string]: string } = { casa:'#B45309', comida:'#E8590C', corpo:'#DC2626', animais:'#A16207', transporte:'#2563EB', roupas:'#DB2777', escola:'#4F46E5', natureza:'#16A34A', esportes:'#EA580C', profissoes:'#4B3FBF', emocoes:'#E11D48', cores:'#7C3AED', tempo:'#0284C7', tecnologia:'#6366F1', saude:'#DC2626', financas:'#CA8A04', arte:'#C026D3', cidade:'#475569', culinaria:'#B45309', selva:'#15803D', negocios:'#1E40AF', viagem:'#0EA5A5', lugares:'#0891B2', estacoes:'#0284C7' }
 
 const DICT_LOCAL: Record<string, {en:string;pt:string;pron:string}[]> = {
   casa: [{en:'Door',pt:'Porta',pron:'dór'},{en:'Window',pt:'Janela',pron:'uín-dou'},{en:'Roof',pt:'Telhado',pron:'rúf'},{en:'Floor',pt:'Chão / Andar',pron:'flór'},{en:'Wall',pt:'Parede',pron:'uól'},{en:'Kitchen',pt:'Cozinha',pron:'kít-chen'},{en:'Bedroom',pt:'Quarto',pron:'béd-rum'},{en:'Bathroom',pt:'Banheiro',pron:'béth-rum'}],
@@ -648,7 +650,7 @@ const DICT_LOCAL: Record<string, {en:string;pt:string;pron:string}[]> = {
   estacoes: [{en:'Summer',pt:'Verão',pron:'sâ-mer'},{en:'Winter',pt:'Inverno',pron:'uín-ter'},{en:'Spring',pt:'Primavera',pron:'spríng'},{en:'Autumn',pt:'Outono',pron:'ó-tâm'},{en:'Rain',pt:'Chuva',pron:'rêin'},{en:'Snow',pt:'Neve',pron:'snôu'},{en:'Wind',pt:'Vento',pron:'uínd'},{en:'Hot',pt:'Quente',pron:'rót'}],
 }
 
-function DictCard({word}:{word:{en:string;pt:string;pron:string}}) {
+function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string};color?:string}) {
   const [img,setImg]=useState<string|null>(null)
   const [loading,setLoading]=useState(true)
   useEffect(()=>{
@@ -657,15 +659,15 @@ function DictCard({word}:{word:{en:string;pt:string;pron:string}}) {
   },[word.en])
   function speak(){if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(word.en);u.lang='en-US';u.rate=0.85;window.speechSynthesis.speak(u)}}
   return(
-    <div onClick={speak} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderRadius:14,overflow:'hidden',cursor:'pointer'}}>
-      <div style={{width:'100%',height:90,background:'#EEEDFE',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
-        {loading?<div style={{fontSize:28}}><Ic e="⏳" /></div>:img?<img src={img} alt={word.en} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{fontSize:32}}><Ic e="🖼️" /></div>}
+    <div onClick={speak} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:14,overflow:'hidden',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+      <div style={{width:'100%',height:96,background:color+'14',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+        {loading?<div style={{fontSize:28}}><Ic e="⏳" c={color} /></div>:img?<img src={img} alt={word.en} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{fontSize:32}}><Ic e="🖼️" c={color} /></div>}
       </div>
-      <div style={{padding:'10px 10px 12px'}}>
-        <div style={{fontSize:15,fontWeight:500,color:'var(--color-text-primary)'}}>{word.en}</div>
-        <div style={{fontSize:12,color:'#534AB7',fontWeight:500,marginTop:2}}>{word.pt}</div>
+      <div style={{padding:'10px 11px 12px'}}>
+        <div style={{fontSize:15.5,fontWeight:700,color:'var(--color-text-primary)'}}>{word.en}</div>
+        <div style={{fontSize:12.5,color:color,fontWeight:600,marginTop:2}}>{word.pt}</div>
         <div style={{fontSize:11,color:'var(--color-text-secondary)',fontStyle:'italic',marginTop:2}}>{word.pron}</div>
-        <button onClick={e=>{e.stopPropagation();speak()}} style={{marginTop:6,background:'#EEEDFE',border:'none',borderRadius:20,padding:'3px 10px',fontSize:11,color:'#534AB7',cursor:'pointer',fontFamily:'inherit'}}><Ic e="🔊" /> Ouvir</button>
+        <button onClick={e=>{e.stopPropagation();speak()}} style={{marginTop:8,background:color+'16',border:'none',borderRadius:20,padding:'4px 11px',fontSize:11,color:color,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}><Ic e="🔊" c={color} /> Ouvir</button>
       </div>
     </div>
   )
@@ -679,21 +681,22 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
     supabase.from('dicionario').select('en,pt,pron').eq('categoria',dictCat).order('en')
       .then(({data})=>{setWords(data&&data.length?data:(DICT_LOCAL[dictCat]||[]));setLoading(false)})
   },[dictCat])
+  const cc = dictColor[dictCat] || '#534AB7'
   return(
     <div>
-      <div style={{background:'#534AB7',padding:'20px 16px 16px'}}>
-        <div style={{fontSize:18,fontWeight:500,color:'#fff'}}>Dicionário ilustrado</div>
-        <div style={{fontSize:13,color:'#AFA9EC',marginTop:2}}>Toque para ouvir a pronúncia</div>
+      <div style={{background:cc,padding:'20px 16px 16px',transition:'background 0.3s'}}>
+        <div style={{fontSize:18,fontWeight:700,color:'#fff'}}>Dicionário ilustrado</div>
+        <div style={{fontSize:13,color:'rgba(255,255,255,0.85)',marginTop:2}}>Toque para ouvir a pronúncia</div>
       </div>
       <div style={{padding:16}}>
         <div style={{display:'flex',gap:6,marginBottom:16,overflowX:'auto',paddingBottom:4}}>
           {dictCatList.map(c=>(
-            <button key={c.id} onClick={()=>setDictCat(c.id)} style={{padding:'7px 14px',border:dictCat===c.id?'none':'0.5px solid var(--color-border-tertiary)',borderRadius:20,background:dictCat===c.id?'#534AB7':'var(--color-background-primary)',color:dictCat===c.id?'#fff':'var(--color-text-secondary)',fontSize:13,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}><IcLabel label={c.label} /></button>
+            <button key={c.id} onClick={()=>setDictCat(c.id)} style={{padding:'7px 14px',border:dictCat===c.id?'none':'0.5px solid var(--color-border-tertiary)',borderRadius:20,background:dictCat===c.id?(dictColor[c.id]||'#534AB7'):'var(--color-background-primary)',color:dictCat===c.id?'#fff':'var(--color-text-secondary)',fontSize:13,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}><IcLabel label={c.label} /></button>
           ))}
         </div>
         {loading?<div style={{textAlign:'center',padding:40,color:'var(--color-text-secondary)'}}>Carregando...</div>:(
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            {words.map((w,i)=><DictCard key={i} word={w}/>)}
+            {words.map((w,i)=><DictCard key={i} word={w} color={cc}/>)}
           </div>
         )}
       </div>
