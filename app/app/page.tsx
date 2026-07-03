@@ -665,8 +665,37 @@ const catEmojiPool: Record<string, string[]> = {
   negocios:['🤝','🧑‍💼','📈','🏢','👔','📊','💼','📉','🗂️','📌'], viagem:['🧳','🏨','✈️','🗺️','🏖️','🛂','🎫','🧭','🏝️','📸'],
   lugares:['🏠','🏫','🏢','🛫','🚉','📚','⛪','🏛️','🏥','🏟️'], estacoes:['☀️','❄️','🌷','🍂','🌧️','💨','🥵','🌡️','☁️','🌈'],
 }
+// Emoji EXATO por palavra, dentro de cada categoria (desambigua palavras iguais: chicken=frango/galinha).
+const dictWordEmoji: Record<string, Record<string, string>> = {
+  casa:{door:'🚪',window:'🪟',roof:'🏠',floor:'🪵',wall:'🧱',kitchen:'🍳',bedroom:'🛏️',bathroom:'🛁',table:'🍽️',chair:'🪑',bed:'🛌',sofa:'🛋️',lamp:'💡',key:'🔑',garden:'🌷',stairs:'🪜'},
+  comida:{bread:'🍞',cheese:'🧀',rice:'🍚',meat:'🥩',egg:'🥚',fruit:'🍎',coffee:'☕',water:'💧',milk:'🥛',sugar:'🍬',salt:'🧂',apple:'🍏',banana:'🍌',chicken:'🍗',soup:'🍲',cake:'🍰'},
+  corpo:{head:'😀',hand:'✋',arm:'💪',leg:'🦵',foot:'🦶',eye:'👁️',nose:'👃',mouth:'👄',ear:'👂',hair:'💇',finger:'👆',tooth:'🦷',heart:'❤️',knee:'🦿',back:'🧍',neck:'🧣'},
+  animais:{dog:'🐶',cat:'🐱',bird:'🐦',horse:'🐴',cow:'🐮',pig:'🐷',fish:'🐟',rabbit:'🐰',sheep:'🐑',duck:'🦆',chicken:'🐔',mouse:'🐭',bear:'🐻',bee:'🐝',ant:'🐜',spider:'🕷️'},
+  transporte:{car:'🚗',bus:'🚌',train:'🚆',plane:'✈️',bike:'🚲',boat:'⛵',taxi:'🚕',subway:'🚇',truck:'🚚',motorcycle:'🏍️',ship:'🚢',helicopter:'🚁',ambulance:'🚑',ticket:'🎫',road:'🛣️',wheel:'🛞'},
+  roupas:{shirt:'👕',pants:'👖',shoes:'👟',dress:'👗',hat:'🎩',coat:'🧥',socks:'🧦',jacket:'🦺',skirt:'👚',gloves:'🧤',scarf:'🧣',belt:'🎽',tie:'👔',boots:'🥾',sweater:'🧶',shorts:'🩳'},
+  escola:{book:'📖',pen:'🖊️',pencil:'✏️',teacher:'👩‍🏫',student:'🧑‍🎓',desk:'🪑',notebook:'📓',test:'📝',ruler:'📏',eraser:'🧽',backpack:'🎒',board:'📋',lesson:'📔',homework:'✍️',class:'🏫',grade:'💯'},
+  natureza:{tree:'🌳',flower:'🌸',river:'🏞️',mountain:'⛰️',sea:'🌊',sky:'☁️',sun:'☀️',moon:'🌙',star:'⭐',cloud:'🌥️',rain:'🌧️',beach:'🏖️',forest:'🌲',grass:'🌱',rock:'🪨',island:'🏝️'},
+  esportes:{soccer:'⚽',ball:'🏀',game:'🎮',team:'👥',run:'🏃',swim:'🏊',tennis:'🎾',goal:'🥅',basketball:'⛹️',race:'🏁',player:'🏅',win:'🏆',coach:'📣',field:'🏟️',jump:'🤸',score:'🎯'},
+  profissoes:{doctor:'👨‍⚕️',nurse:'👩‍⚕️',driver:'🚕',cook:'👨‍🍳',lawyer:'⚖️',engineer:'👷',farmer:'🧑‍🌾','police officer':'👮',pilot:'🧑‍✈️',dentist:'🦷',waiter:'🍽️',artist:'🧑‍🎨',firefighter:'🧑‍🚒',scientist:'🧑‍🔬',chef:'🧑‍🍳',manager:'🧑‍💼'},
+  emocoes:{happy:'😄',sad:'😢',angry:'😠',tired:'😴',scared:'😨',excited:'🤩',calm:'😌',proud:'😎',bored:'😑',nervous:'😰',surprised:'😲',lonely:'😔',jealous:'😒',grateful:'🙏',worried:'😟',confident:'💪'},
+  cores:{red:'🔴',blue:'🔵',green:'🟢',yellow:'🟡',black:'⚫',white:'⚪',orange:'🟠',purple:'🟣',pink:'💗',brown:'🟤',gray:'🩶',gold:'🥇',silver:'🥈',light:'🔆',dark:'🌑',beige:'🟫'},
+  tempo:{monday:'📅',friday:'📆',sunday:'🗓️',january:'🌨️',july:'🌞',december:'🎄',week:'🗂️',month:'🈷️',today:'📌',tomorrow:'🔜',yesterday:'🔙',morning:'🌅',night:'🌙',year:'🎊',hour:'⏰',minute:'⏱️'},
+  tecnologia:{computer:'💻',phone:'📱',internet:'🌐',screen:'🖥️',keyboard:'⌨️',app:'📲',password:'🔒','wi-fi':'📶',mouse:'🖱️',file:'📁',email:'📧',camera:'📷',battery:'🔋',charger:'🔌',website:'🕸️',button:'🔘'},
+  saude:{doctor:'👨‍⚕️',medicine:'🧴',hospital:'🏥',pain:'🤕',fever:'🤒',health:'💗',nurse:'👩‍⚕️',pill:'💊',headache:'🤯',cough:'🤧',cold:'🥶',blood:'🩸',bandage:'🩹',vaccine:'💉',rest:'😴',sick:'🤢'},
+  financas:{money:'💰',bank:'🏦',card:'💳',cash:'💵',price:'🏷️',salary:'💸',loan:'📄',coin:'🪙',bill:'🧾',debt:'📉',save:'🐷',buy:'🛍️',sell:'🤝',tax:'📑',wallet:'👛',change:'💱'},
+  arte:{music:'🎵',song:'🎶',painting:'🖼️',dance:'💃',movie:'🎬',art:'🎨',theater:'🎭',stage:'🎤',guitar:'🎸',piano:'🎹',actor:'🕴️',drawing:'✏️',concert:'🪩',photo:'📷',poem:'📜',brush:'🖌️'},
+  cidade:{street:'🛣️',building:'🏢',park:'🌳',store:'🏪',market:'🛒',square:'🏛️',bridge:'🌉',corner:'📐',traffic:'🚦',sidewalk:'🚶',station:'🚉',mall:'🏬',sign:'🪧',fountain:'⛲',avenue:'🏙️',crosswalk:'🚸'},
+  culinaria:{recipe:'📜',oven:'🔥',pan:'🍳',knife:'🔪',spoon:'🥄',fork:'🍴',plate:'🍽️',salt:'🧂',cup:'🍵',bowl:'🥣',boil:'♨️',fry:'🍤',bake:'🥐',flour:'🌾',taste:'👅',pepper:'🌶️'},
+  selva:{lion:'🦁',tiger:'🐯',monkey:'🐵',snake:'🐍',elephant:'🐘',jaguar:'🐆',parrot:'🦜',frog:'🐸',gorilla:'🦍',zebra:'🦓',crocodile:'🐊',leopard:'🐅',turtle:'🐢',toucan:'🐦',butterfly:'🦋',hippo:'🦛'},
+  negocios:{meeting:'👥',deal:'🤝',client:'🧑‍💼',profit:'📈',company:'🏢',market:'🏪',boss:'👔',report:'📊',sales:'💹',budget:'🧮',goal:'🎯',contract:'📝',product:'📦',customer:'🙋',invoice:'🧾',strategy:'♟️'},
+  viagem:{trip:'🌍',hotel:'🏨',flight:'✈️',map:'🗺️',beach:'🏖️',luggage:'🧳',passport:'🛂',ticket:'🎫',tourist:'📸',suitcase:'🛄',guide:'🧭',border:'🚧',journey:'🛤️',visa:'🪪',souvenir:'🎁',currency:'💱'},
+  lugares:{home:'🏠',school:'🏫',office:'🏢',airport:'🛫',station:'🚉',library:'📚',church:'⛪',museum:'🏛️',restaurant:'🍽️',gym:'🏋️',farm:'🚜',bakery:'🥐',zoo:'🦁',cinema:'🎦',pharmacy:'💊',bank:'🏦'},
+  estacoes:{summer:'☀️',winter:'❄️',spring:'🌷',autumn:'🍂',rain:'🌧️',snow:'☃️',wind:'💨',hot:'🥵',cold:'🥶',warm:'🌤️',storm:'⛈️',cloud:'☁️',sunny:'🌞',fog:'🌫️',ice:'🧊',rainbow:'🌈'},
+}
 function dictEmojiFor(en: string, cat: string): string {
   const k = (en || '').toLowerCase().trim()
+  const cm = dictWordEmoji[cat]
+  if (cm && cm[k]) return cm[k]
   if (wordEmoji[k]) return wordEmoji[k]
   const pool = catEmojiPool[cat]
   if (pool && pool.length) { let s = 0; for (let i = 0; i < k.length; i++) s = (s * 31 + k.charCodeAt(i)) >>> 0; return pool[s % pool.length] }
