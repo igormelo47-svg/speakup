@@ -755,6 +755,24 @@ const falsosCognatos = [
   {en:'Cigar',parece:'Cigarro',significa:'Charuto',dica:'"Cigarro" é cigarette.'},
   {en:'Balcony',parece:'Balcão',significa:'Sacada, varanda',dica:'"Balcão" é counter.'},
   {en:'Notice',parece:'Notícia',significa:'Aviso; perceber',dica:'"Notícia" é news.'},
+  {en:'Application',parece:'Aplicação (dinheiro)',significa:'Candidatura, inscrição',dica:'Aplicação financeira é investment.'},
+  {en:'Assume',parece:'Assumir',significa:'Supor, presumir',dica:'Assumir um cargo é to take on.'},
+  {en:'Compromise',parece:'Compromisso',significa:'Acordo, meio-termo',dica:'Compromisso é commitment.'},
+  {en:'Discussion',parece:'Discussão (briga)',significa:'Conversa, debate',dica:'Discussão (briga) é an argument.'},
+  {en:'Enroll',parece:'Enrolar',significa:'Matricular-se, inscrever-se',dica:'Enrolar é to roll up.'},
+  {en:'Intend',parece:'Entender',significa:'Pretender, ter a intenção',dica:'Entender é to understand.'},
+  {en:'Journal',parece:'Jornal',significa:'Diário, revista científica',dica:'Jornal é newspaper.'},
+  {en:'Large',parece:'Largo',significa:'Grande',dica:'Largo é wide.'},
+  {en:'Lecture',parece:'Leitura',significa:'Palestra, aula',dica:'Leitura é reading.'},
+  {en:'Pasta',parece:'Pasta (arquivo)',significa:'Massa, macarrão',dica:'Pasta de arquivo é folder.'},
+  {en:'Prejudice',parece:'Prejuízo',significa:'Preconceito',dica:'Prejuízo é loss / damage.'},
+  {en:'Preservative',parece:'Preservativo',significa:'Conservante',dica:'Preservativo é condom.'},
+  {en:'Resume',parece:'Resumo',significa:'Retomar; currículo',dica:'Resumo é summary.'},
+  {en:'Retire',parece:'Retirar',significa:'Aposentar-se',dica:'Retirar é to remove.'},
+  {en:'Terrific',parece:'Terrível',significa:'Ótimo, incrível',dica:'Terrível é terrible.'},
+  {en:'Deception',parece:'Decepção',significa:'Engano, fraude',dica:'Decepção é disappointment.'},
+  {en:'Scholar',parece:'Escolar',significa:'Estudioso, acadêmico',dica:'Escolar é school (adjetivo).'},
+  {en:'Tenant',parece:'Tenente',significa:'Inquilino',dica:'Tenente é lieutenant.'},
 ]
 // Expressões mais usadas no dia a dia.
 const expressoes = [
@@ -782,17 +800,35 @@ const expressoes = [
   {en:'Give up',pt:'Desistir',ex:"Don't give up, you're almost there."},
   {en:'On purpose',pt:'De propósito',ex:"Sorry, I didn't do it on purpose."},
   {en:'Right away',pt:'Imediatamente / Já já',ex:"I'll send it right away."},
+  {en:'Let me know',pt:'Me avisa',ex:'Let me know if you need help.'},
+  {en:"I can't wait",pt:'Mal posso esperar',ex:"I can't wait to see you!"},
+  {en:"It doesn't matter",pt:'Não importa / Tanto faz',ex:"It doesn't matter, choose any."},
+  {en:'Are you kidding?',pt:'Tá brincando?',ex:"Are you kidding? That's amazing!"},
+  {en:"I'm not sure",pt:'Não tenho certeza',ex:"I'm not sure about that."},
+  {en:'Go ahead',pt:'Pode ir / Manda ver',ex:"Go ahead, I'm listening."},
+  {en:'Sounds good',pt:'Parece bom / Fechou',ex:'Dinner at 8? Sounds good!'},
+  {en:'No big deal',pt:'Não é grande coisa',ex:"It's no big deal, don't worry."},
+  {en:'Keep in mind',pt:'Tenha em mente',ex:'Keep in mind it closes at 6.'},
+  {en:'Out of the blue',pt:'Do nada',ex:'She called me out of the blue.'},
+  {en:'Make up your mind',pt:'Se decida',ex:'Come on, make up your mind!'},
+  {en:"It's worth it",pt:'Vale a pena',ex:"It's expensive, but it's worth it."},
+  {en:'Better late than never',pt:'Antes tarde do que nunca',ex:'You did it — better late than never!'},
+  {en:'So far so good',pt:'Até agora tudo bem',ex:'So far so good with the project.'},
+  {en:'Come on',pt:'Vai / Qual é / Anda',ex:"Come on, we're going to be late!"},
+  {en:'You made it!',pt:'Você conseguiu!',ex:'You passed? You made it!'},
+  {en:'In the long run',pt:'A longo prazo',ex:'It pays off in the long run.'},
+  {en:'Take care',pt:'Se cuida',ex:'Bye! Take care!'},
 ]
 function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string};color?:string}) {
   function speak(){if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(word.en);u.lang='en-US';u.rate=0.85;window.speechSynthesis.cancel();window.speechSynthesis.speak(u)}}
   return(
-    <div onClick={speak} style={{background:'var(--color-background-primary)',border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:14,padding:'13px 15px',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.05)'}}>
+    <div onClick={speak} style={{background:`linear-gradient(150deg, ${color}12, var(--color-background-primary) 62%)`,border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:16,padding:'14px 15px',cursor:'pointer',boxShadow:'0 3px 10px rgba(0,0,0,0.06)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-        <div style={{fontSize:18,fontWeight:800,color:'var(--color-text-primary)',lineHeight:1.15}}>{word.en}</div>
-        <button onClick={e=>{e.stopPropagation();speak()}} style={{background:color+'14',color,border:'none',borderRadius:'50%',width:30,height:30,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}><Ic e="🔊" c={color} s={14} /></button>
+        <div style={{fontSize:19,fontWeight:800,color:'var(--color-text-primary)',lineHeight:1.15}}>{word.en}</div>
+        <button onClick={e=>{e.stopPropagation();speak()}} style={{background:color+'1A',color,border:'none',borderRadius:'50%',width:32,height:32,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}><Ic e="🔊" c={color} s={15} /></button>
       </div>
-      <div style={{fontSize:12.5,color,fontStyle:'italic',fontWeight:600,marginTop:3}}>/{word.pron}/</div>
-      <div style={{fontSize:14,color:'var(--color-text-secondary)',marginTop:6}}>{word.pt}</div>
+      <span style={{display:'inline-block',fontSize:11.5,color,fontStyle:'italic',fontWeight:600,marginTop:7,background:color+'14',padding:'2px 9px',borderRadius:10}}>/{word.pron}/</span>
+      <div style={{fontSize:14,color:'var(--color-text-secondary)',marginTop:8}}>{word.pt}</div>
     </div>
   )
 }
@@ -817,9 +853,10 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
   const subt = dictMode==='cognatos' ? 'Palavras que enganam o brasileiro' : dictMode==='expressoes' ? 'O que os nativos realmente dizem' : 'Toque na palavra para ouvir'
   return(
     <div>
-      <div style={{background:headC,padding:'20px 16px 16px',transition:'background 0.3s'}}>
-        <div style={{fontSize:18,fontWeight:700,color:'#fff'}}>Dicionário</div>
-        <div style={{fontSize:13,color:'rgba(255,255,255,0.85)',marginTop:2}}>{subt}</div>
+      <div style={{background:headC,padding:'20px 16px 16px',transition:'background 0.3s',position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',right:-14,top:-8,opacity:0.14,pointerEvents:'none'}}><Ic e={dictMode==='cognatos'?'🪤':dictMode==='expressoes'?'💬':'📖'} c="#fff" s={112} /></div>
+        <div style={{fontSize:18,fontWeight:700,color:'#fff',position:'relative'}}>Dicionário</div>
+        <div style={{fontSize:13,color:'rgba(255,255,255,0.85)',marginTop:2,position:'relative'}}>{subt}</div>
         <div style={{display:'inline-flex',alignItems:'center',gap:6,marginTop:12,background:'rgba(255,255,255,0.2)',padding:'6px 13px',borderRadius:20}}>
           <span style={{fontSize:13}}>🔄</span>
           <span style={{fontSize:12,color:'#fff',fontWeight:600}}>Muda toda semana</span>
@@ -2727,8 +2764,8 @@ export default function AppPage() {
                 <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 6 }}>Qual nível você quer testar?</div>
                 <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 18, lineHeight: 1.5 }}>Escolha o nível da sua prova desta semana. Você pode testar qualquer um.</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {([['A1', 'A1 · Iniciante'], ['A2', 'A2 · Básico'], ['B1', 'B1 · Intermediário'], ['B2', 'B2 · Intermediário+'], ['C1', 'C1 · Avançado'], ['C2', 'C2 · Domínio']] as const).map(([lv, nome]) => (
-                    <button key={lv} onClick={() => { setLevel(lv); setProvaNivelEscolhido(true); setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false) }} style={{ width: '100%', textAlign: 'left', padding: 16, borderRadius: 14, border: level === lv ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)', background: level === lv ? '#FDECEC' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>{nome}<span style={{ color: '#C0392B', fontSize: 18 }}><Ic e="→" /></span></button>
+                  {([['A1', 'Iniciante', '🌱', '#16A34A'], ['A2', 'Básico', '🌿', '#16A34A'], ['B1', 'Intermediário', '💬', '#2E72D6'], ['B2', 'Intermediário+', '🗣️', '#2E72D6'], ['C1', 'Avançado', '🎯', '#7C3AED'], ['C2', 'Domínio', '🏆', '#7C3AED']] as const).map(([lv, nome, ic, col]) => (
+                    <button key={lv} onClick={() => { setLevel(lv); setProvaNivelEscolhido(true); setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false) }} style={{ width: '100%', textAlign: 'left', padding: 14, borderRadius: 14, border: level === lv ? `1.5px solid ${col}` : '0.5px solid var(--color-border-tertiary)', borderLeft: `5px solid ${col}`, background: level === lv ? col + '12' : 'var(--color-background-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}><span style={{ width: 44, height: 44, borderRadius: 12, background: col + '1A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={ic} c={col} s={22} /></span><span style={{ flex: 1 }}><span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>{lv} · {nome}</span><span style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 1 }}>20 questões</span></span><span style={{ color: col }}><Ic e="→" c={col} /></span></button>
                   ))}
                 </div>
               </div>
@@ -2736,8 +2773,11 @@ export default function AppPage() {
               <div style={{ textAlign: 'center', padding: 30, color: 'var(--color-text-secondary)' }}>Sem questões suficientes neste nível ainda.</div>
             ) : !provaResult ? (
               <div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Questão {provaQ + 1} de {provaQuestoes.length}</div>
-                <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: '#C0392B', height: '100%', width: `${provaQ / provaQuestoes.length * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: '#C0392B', fontWeight: 700, background: '#FDECEC', padding: '4px 12px', borderRadius: 20 }}>Questão {provaQ + 1} de {provaQuestoes.length}</span>
+                  <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 700 }}><Ic e="✓" c="#16A34A" /> {provaAcertos} acertos</span>
+                </div>
+                <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 8, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: 'linear-gradient(90deg,#E24B4A,#C0392B)', height: '100%', width: `${provaQ / provaQuestoes.length * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
                 {provaQuestoes[provaQ].ctx ? (<div style={{ background: 'var(--color-background-secondary)', borderLeft: '3px solid #C0392B', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>{provaQuestoes[provaQ].ctx}</div>) : null}
                 <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{provaQuestoes[provaQ].q}</div>
                 {provaQuestoes[provaQ].opts.map((opt: string, i: number) => {
