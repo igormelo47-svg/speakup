@@ -1537,6 +1537,141 @@ const SONS_BR: { id: string; re: RegExp; dica: string }[] = [
   { id: 'oo', re: /oo/i, dica: 'o "oo" muda de palavra pra palavra: "food" é "u" longo (fuud), "book" é "u" curto (buk).' },
 ]
 
+// Histórias interativas (estilo Duolingo Stories): mini-novelas em diálogo, reveladas
+// linha a linha com áudio, tradução ao toque e perguntas de compreensão no meio.
+// who: '' = narrador. after: índice da linha depois da qual a pergunta aparece.
+type HistLinha = { who: string; en: string; pt: string }
+type Historia = { id: string; titulo: string; nivel: string; icon: string; desc: string; linhas: HistLinha[]; qs: { after: number; q: string; opts: string[]; ans: number; exp: string }[] }
+const HISTORIAS: Historia[] = [
+  {
+    id: 'coffee', titulo: 'The Coffee Order', nivel: 'A1', icon: '☕', desc: 'Anna só quer um café. O barista tem outros planos.',
+    linhas: [
+      { who: '', en: 'Anna is at a coffee shop in New York.', pt: 'Anna está numa cafeteria em Nova York.' },
+      { who: 'Barista', en: 'Good morning! What would you like?', pt: 'Bom dia! O que você gostaria?' },
+      { who: 'Anna', en: 'Hi! A large coffee with milk, please.', pt: 'Oi! Um café grande com leite, por favor.' },
+      { who: 'Barista', en: 'Sure! What is your name?', pt: 'Claro! Qual é o seu nome?' },
+      { who: 'Anna', en: 'Anna. A-N-N-A.', pt: 'Anna. A-N-N-A.' },
+      { who: 'Barista', en: 'Got it! Your coffee is coming.', pt: 'Entendi! Seu café está saindo.' },
+      { who: '', en: 'Five minutes later, the barista calls a name.', pt: 'Cinco minutos depois, o barista chama um nome.' },
+      { who: 'Barista', en: 'Large coffee for... Banana?', pt: 'Café grande para... Banana?' },
+      { who: 'Anna', en: 'It is ANNA! Not Banana!', pt: 'É ANNA! Não Banana!' },
+      { who: 'Barista', en: 'Oh, sorry! But look — the coffee is still yours.', pt: 'Ah, desculpa! Mas olha — o café ainda é seu.' },
+      { who: 'Anna', en: 'Fine. But next time, I am "Bob".', pt: 'Tá bom. Mas da próxima vez, eu sou "Bob".' },
+    ],
+    qs: [
+      { after: 2, q: 'O que a Anna pediu?', opts: ['Um chá pequeno', 'Um café grande com leite', 'Um suco de banana'], ans: 1, exp: '"A large coffee with milk" = um café grande com leite.' },
+      { after: 7, q: 'Qual nome o barista escreveu no copo?', opts: ['Anna', 'Bob', 'Banana'], ans: 2, exp: 'Ele entendeu "Banana" — clássico das cafeterias gringas. 😄' },
+      { after: 10, q: 'Por que Anna diz que da próxima vez será "Bob"?', opts: ['Porque ela mudou de nome', 'Porque um nome simples é impossível de errar', 'Porque ela não gosta do barista'], ans: 1, exp: 'Piada dela: com um nome de 3 letras, não tem como o barista errar de novo.' },
+    ],
+  },
+  {
+    id: 'dog', titulo: 'The Lost Dog', nivel: 'A1', icon: '🐕', desc: 'Leo perdeu o cachorro. Ou será que não?',
+    linhas: [
+      { who: '', en: 'Leo opens the door. His dog Max is not in the house.', pt: 'Leo abre a porta. Seu cachorro Max não está em casa.' },
+      { who: 'Leo', en: 'Max? Max! Where are you?', pt: 'Max? Max! Onde você está?' },
+      { who: '', en: 'Leo looks in the garden. No dog.', pt: 'Leo olha no jardim. Nada de cachorro.' },
+      { who: 'Leo', en: 'Excuse me, did you see a small brown dog?', pt: 'Com licença, você viu um cachorro pequeno e marrom?' },
+      { who: 'Neighbor', en: 'Hmm... a dog with a red collar?', pt: 'Hmm... um cachorro com uma coleira vermelha?' },
+      { who: 'Leo', en: 'Yes! That is Max!', pt: 'Sim! Esse é o Max!' },
+      { who: 'Neighbor', en: 'He is at the bakery. He goes there every morning.', pt: 'Ele está na padaria. Ele vai lá toda manhã.' },
+      { who: 'Leo', en: 'Every morning?!', pt: 'Toda manhã?!' },
+      { who: '', en: 'At the bakery, Max is eating a piece of bread. The baker smiles.', pt: 'Na padaria, Max está comendo um pedaço de pão. O padeiro sorri.' },
+      { who: 'Baker', en: 'Ah, you are Max\'s father! He has breakfast here every day.', pt: 'Ah, você é o pai do Max! Ele toma café da manhã aqui todo dia.' },
+      { who: 'Leo', en: 'Max, you have a secret life!', pt: 'Max, você tem uma vida secreta!' },
+    ],
+    qs: [
+      { after: 3, q: 'Como Leo descreve o Max?', opts: ['Um cachorro grande e preto', 'Um cachorro pequeno e marrom', 'Um gato pequeno'], ans: 1, exp: '"A small brown dog" — em inglês o adjetivo vem ANTES do substantivo.' },
+      { after: 6, q: 'Onde o Max está?', opts: ['No jardim', 'Na padaria', 'Na casa do vizinho'], ans: 1, exp: '"He is at the bakery" = ele está na padaria.' },
+      { after: 9, q: 'O que o padeiro conta sobre o Max?', opts: ['Que ele toma café da manhã lá todo dia', 'Que ele mora na padaria', 'Que ele não gosta de pão'], ans: 0, exp: '"He has breakfast here every day" — refeições usam HAVE: have breakfast.' },
+    ],
+  },
+  {
+    id: 'party', titulo: 'The Surprise Party', nivel: 'A2', icon: '🎉', desc: 'Uma festa surpresa para a Marta. Só tem um problema...',
+    linhas: [
+      { who: 'Julia', en: 'Okay, everyone! Marta\'s birthday is on Friday.', pt: 'Ok, pessoal! O aniversário da Marta é na sexta.' },
+      { who: 'Julia', en: 'We are going to have a surprise party at my place.', pt: 'Vamos fazer uma festa surpresa na minha casa.' },
+      { who: 'Tom', en: 'Great idea! I can make a chocolate cake.', pt: 'Ótima ideia! Eu posso fazer um bolo de chocolate.' },
+      { who: 'Julia', en: 'Perfect. And remember: it is a SECRET.', pt: 'Perfeito. E lembrem: é um SEGREDO.' },
+      { who: '', en: 'On Friday, everyone hides in the living room and waits.', pt: 'Na sexta, todos se escondem na sala e esperam.' },
+      { who: '', en: 'The door opens. The lights turn on.', pt: 'A porta se abre. As luzes se acendem.' },
+      { who: 'Everyone', en: 'SURPRISE!!!', pt: 'SURPRESA!!!' },
+      { who: 'Marta', en: 'Oh! Wow! I... had no idea!', pt: 'Oh! Uau! Eu... não fazia ideia!' },
+      { who: 'Tom', en: 'Wait a minute. Why are you wearing a party dress?', pt: 'Espera um pouco. Por que você está usando um vestido de festa?' },
+      { who: 'Marta', en: 'This old thing? I always wear it on Fridays!', pt: 'Esse vestido velho? Eu sempre uso ele às sextas!' },
+      { who: 'Julia', en: 'Marta... who told you?', pt: 'Marta... quem te contou?' },
+      { who: 'Marta', en: 'Tom posted "making a cake for Marta" on Instagram. On Monday.', pt: 'O Tom postou "fazendo um bolo para a Marta" no Instagram. Na segunda.' },
+    ],
+    qs: [
+      { after: 1, q: 'O que a Julia está planejando?', opts: ['Uma viagem com a Marta', 'Uma festa surpresa', 'Um jantar de trabalho'], ans: 1, exp: '"A surprise party at my place" — "my place" é jeito natural de dizer "minha casa".' },
+      { after: 8, q: 'O que deixou o Tom desconfiado?', opts: ['Marta chegou atrasada', 'Marta estava com um vestido de festa', 'Marta trouxe um bolo'], ans: 1, exp: '"Why are you wearing a party dress?" — present continuous para o que acontece agora.' },
+      { after: 11, q: 'Como a Marta descobriu a festa?', opts: ['Julia contou', 'Ela ouviu atrás da porta', 'Tom postou no Instagram'], ans: 2, exp: 'O segredo durou até... segunda-feira. 😄' },
+    ],
+  },
+  {
+    id: 'interview', titulo: 'The Job Interview', nivel: 'A2', icon: '💼', desc: 'Pedro tem uma entrevista importante. E mãos escorregadias.',
+    linhas: [
+      { who: '', en: 'Pedro arrives early for his job interview. He is very nervous.', pt: 'Pedro chega cedo para a entrevista de emprego. Ele está muito nervoso.' },
+      { who: 'Ms. Lee', en: 'Good morning, Pedro. Please, have a seat.', pt: 'Bom dia, Pedro. Por favor, sente-se.' },
+      { who: 'Pedro', en: 'Thank you for this opportunity, Ms. Lee.', pt: 'Obrigado por esta oportunidade, Sra. Lee.' },
+      { who: 'Ms. Lee', en: 'So, tell me about yourself.', pt: 'Então, me fale sobre você.' },
+      { who: 'Pedro', en: 'Well, I am 26 years old and I love solving problems.', pt: 'Bem, tenho 26 anos e adoro resolver problemas.' },
+      { who: '', en: 'Pedro moves his hands... and knocks the coffee onto Ms. Lee\'s laptop.', pt: 'Pedro mexe as mãos... e derruba o café no notebook da Sra. Lee.' },
+      { who: 'Pedro', en: 'Oh no. I am SO sorry!', pt: 'Ah não. Me desculpe MUITO!' },
+      { who: '', en: 'Pedro takes the laptop, turns it off, dries it, and removes the battery — in ten seconds.', pt: 'Pedro pega o notebook, desliga, seca e remove a bateria — em dez segundos.' },
+      { who: 'Ms. Lee', en: 'That was... fast.', pt: 'Isso foi... rápido.' },
+      { who: 'Pedro', en: 'I told you. I love solving problems. Especially the ones I create.', pt: 'Eu disse. Adoro resolver problemas. Principalmente os que eu crio.' },
+      { who: 'Ms. Lee', en: 'You start on Monday, Pedro.', pt: 'Você começa na segunda, Pedro.' },
+    ],
+    qs: [
+      { after: 4, q: 'Como Pedro fala a idade dele?', opts: ['"I have 26 years"', '"I am 26 years old"', '"I do 26 years"'], ans: 1, exp: 'Idade usa BE: I am 26 years old. Nada de "have 26 years"!' },
+      { after: 6, q: 'O que aconteceu com o café?', opts: ['Pedro bebeu tudo', 'Caiu no notebook da entrevistadora', 'Esfriou'], ans: 1, exp: '"Knocks the coffee onto the laptop" — derrubou em cima do notebook. 😬' },
+      { after: 10, q: 'Por que Pedro conseguiu a vaga?', opts: ['Ele pediu desculpas bonito', 'Ele resolveu o problema com rapidez e bom humor', 'Ele pagou um notebook novo'], ans: 1, exp: 'Ele PROVOU a habilidade que tinha citado — resolver problemas — na prática.' },
+    ],
+  },
+  {
+    id: 'suitcase', titulo: 'The Wrong Suitcase', nivel: 'B1', icon: '🧳', desc: 'Duas malas pretas idênticas. Um conteúdo nada idêntico.',
+    linhas: [
+      { who: '', en: 'Carla lands in London after a long flight. She grabs her black suitcase and takes a taxi.', pt: 'Carla aterrissa em Londres após um voo longo. Pega sua mala preta e entra num táxi.' },
+      { who: '', en: 'At the hotel, she opens the suitcase to get her charger.', pt: 'No hotel, ela abre a mala para pegar o carregador.' },
+      { who: 'Carla', en: 'What... is... this?', pt: 'O que... é... isso?' },
+      { who: '', en: 'The suitcase is full of rubber ducks. Hundreds of tiny yellow rubber ducks.', pt: 'A mala está cheia de patinhos de borracha. Centenas de patinhos amarelos.' },
+      { who: 'Carla', en: 'This cannot be happening. I picked up the wrong suitcase!', pt: 'Isso não pode estar acontecendo. Peguei a mala errada!' },
+      { who: '', en: 'There is a phone number on the tag. Carla calls it.', pt: 'Há um número de telefone na etiqueta. Carla liga.' },
+      { who: 'Mr. Duncan', en: 'Hello? Oh, thank goodness! You have my ducks!', pt: 'Alô? Ah, graças a Deus! Você está com meus patos!' },
+      { who: 'Carla', en: 'Yes... about that. WHY do you travel with hundreds of rubber ducks?', pt: 'Sim... sobre isso. POR QUE você viaja com centenas de patinhos de borracha?' },
+      { who: 'Mr. Duncan', en: 'I collect them! Tomorrow is the World Rubber Duck Fair. These are very rare.', pt: 'Eu coleciono! Amanhã é a Feira Mundial do Pato de Borracha. Esses são raríssimos.' },
+      { who: 'Carla', en: 'Of course it is. Meet me at the hotel lobby in one hour?', pt: 'Claro que é. Me encontra no saguão do hotel em uma hora?' },
+      { who: 'Mr. Duncan', en: 'I will be there. And please... be gentle with Gerald. He is the golden one.', pt: 'Estarei lá. E por favor... cuidado com o Gerald. É o dourado.' },
+    ],
+    qs: [
+      { after: 3, q: 'O que havia dentro da mala?', opts: ['Roupas de outra pessoa', 'Centenas de patinhos de borracha', 'Equipamento de fotografia'], ans: 1, exp: '"Full of rubber ducks" = cheia de patinhos de borracha. Sim, isso existe.' },
+      { after: 4, q: '"I picked up the wrong suitcase" significa:', opts: ['Perdi minha mala', 'Peguei a mala errada', 'Minha mala quebrou'], ans: 1, exp: 'Phrasal verb "pick up" = pegar. Wrong = errado(a).' },
+      { after: 8, q: 'Por que o Sr. Duncan viaja com os patinhos?', opts: ['Ele os vende na internet', 'É colecionador e vai a uma feira', 'São presentes para os netos'], ans: 1, exp: '"I collect them" + a Feira Mundial do Pato de Borracha (que, acredite, é plausível).' },
+    ],
+  },
+  {
+    id: 'text', titulo: 'The Midnight Text', nivel: 'B1', icon: '📱', desc: 'Uma mensagem enviada para a pessoa errada. A pessoa MUITO errada.',
+    linhas: [
+      { who: '', en: 'It is almost midnight. Nina is texting her best friend about her day at work.', pt: 'É quase meia-noite. Nina está mandando mensagem para a melhor amiga sobre o dia no trabalho.' },
+      { who: 'Nina', en: 'Ugh, today was ENDLESS. If I hear the word "meeting" again, I will scream.', pt: 'Aff, hoje foi INTERMINÁVEL. Se eu ouvir a palavra "reunião" de novo, eu grito.' },
+      { who: 'Nina', en: 'And my boss? He schedules meetings ABOUT meetings. Send help.', pt: 'E meu chefe? Ele marca reuniões SOBRE reuniões. Socorro.' },
+      { who: '', en: 'Nina presses send... and freezes. She sent it to "Mr. Roberts — BOSS".', pt: 'Nina aperta enviar... e congela. Ela mandou para "Sr. Roberts — CHEFE".' },
+      { who: 'Nina', en: 'No. No, no, no. Please tell me I did not do that.', pt: 'Não. Não, não, não. Por favor me diga que eu não fiz isso.' },
+      { who: '', en: 'The three little dots appear. Mr. Roberts is typing.', pt: 'Os três pontinhos aparecem. O Sr. Roberts está digitando.' },
+      { who: '', en: 'Nina considers moving to another country. Maybe changing her name.', pt: 'Nina considera se mudar de país. Talvez mudar de nome.' },
+      { who: 'Mr. Roberts', en: 'To be honest, I also want to scream in those meetings.', pt: 'Para ser sincero, eu também tenho vontade de gritar nessas reuniões.' },
+      { who: 'Mr. Roberts', en: 'New rule starting tomorrow: no meetings on Fridays. Thanks for the feedback. 😄', pt: 'Nova regra a partir de amanhã: sem reuniões às sextas. Obrigado pelo feedback. 😄' },
+      { who: 'Nina', en: 'I cannot believe this. I got a promotion for complaining.', pt: 'Não acredito nisso. Ganhei uma melhoria por reclamar.' },
+      { who: '', en: 'Nina still triple-checks every message before sending. Every single one.', pt: 'Nina ainda confere três vezes cada mensagem antes de enviar. Todas, sem exceção.' },
+    ],
+    qs: [
+      { after: 3, q: 'Qual foi o erro da Nina?', opts: ['Esqueceu de responder a amiga', 'Mandou a reclamação para o próprio chefe', 'Perdeu o celular'], ans: 1, exp: 'Ela enviou para "Mr. Roberts — BOSS". O pesadelo universal do WhatsApp.' },
+      { after: 5, q: '"Mr. Roberts is typing" — o que os três pontinhos indicam?', opts: ['Que ele está digitando', 'Que ele bloqueou a Nina', 'Que a mensagem falhou'], ans: 0, exp: '"Is typing" = está digitando (present continuous para ação em andamento).' },
+      { after: 8, q: 'Como o chefe reagiu?', opts: ['Demitiu a Nina', 'Concordou e criou a sexta sem reuniões', 'Marcou uma reunião sobre a mensagem'], ans: 1, exp: 'Plot twist do bem: "no meetings on Fridays" + agradeceu o feedback.' },
+    ],
+  },
+]
+
 // Caça-Erros do Brasileiro: as armadilhas clássicas de quem fala português — traduções
 // literais, falsos cognatos, preposições, make/do e pronúncia. Conteúdo curado; 5 por dia.
 const ERROS_BR: { cat: string; q: string; opts: string[]; ans: number; exp: string }[] = [
@@ -1667,6 +1802,7 @@ export default function AppPage() {
   const [onboarded, setOnboarded] = useState(false)
   const [hist, setHist] = useState<Record<string, number>>({})
   const [feedbackModal, setFeedbackModal] = useState(false)
+  const [avalModal, setAvalModal] = useState(false)
   const [feedbackTxt, setFeedbackTxt] = useState('')
   const [feedbackEnviado, setFeedbackEnviado] = useState(false)
   const [onbStep, setOnbStep] = useState(0)
@@ -1715,6 +1851,12 @@ export default function AppPage() {
   const [desAns, setDesAns] = useState(false)
   const [desAcertos, setDesAcertos] = useState(0)
   const [desResult, setDesResult] = useState(false)
+  const [histSel, setHistSel] = useState<string | null>(null)
+  const [histPos, setHistPos] = useState(1)
+  const [histAns, setHistAns] = useState<Record<number, number>>({})
+  const [histPt, setHistPt] = useState<Record<number, boolean>>({})
+  const [histFim, setHistFim] = useState(false)
+  const [histDone, setHistDone] = useState<string[]>([])
   const [errbrFeito, setErrbrFeito] = useState(false)
   const [errQ, setErrQ] = useState(0)
   const [errSel, setErrSel] = useState(-1)
@@ -1751,6 +1893,8 @@ export default function AppPage() {
   const micAtivoRef = useRef(false)
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
   const ttsServidorRef = useRef(true)
+  const mediaRecRef = useRef<MediaRecorder | null>(null)
+  const sttServidorRef = useRef<boolean | null>(null)
   // As vozes do navegador carregam de forma assíncrona — este listener garante que
   // melhorVozEN() encontre a lista completa no primeiro toque em "Ouvir".
   useEffect(() => {
@@ -1838,6 +1982,7 @@ export default function AppPage() {
   useEffect(() => {
     try { const d = localStorage.getItem('speakup_desafio'); setDesafioFeito(d === hojeStr) } catch (e) {}
     try { const d = localStorage.getItem('speakup_errbr'); setErrbrFeito(d === hojeStr) } catch (e) {}
+    try { const h = localStorage.getItem('speakup_hist_done'); if (h) setHistDone(JSON.parse(h)) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1979,6 +2124,25 @@ export default function AppPage() {
     try { track('desafio_concluido', { acertos: desAcertos }) } catch (e) {}
   }
 
+  function abrirHistoria(id: string) {
+    setHistSel(id); setHistPos(1); setHistAns({}); setHistPt({}); setHistFim(false); setTab('historias')
+    const h = HISTORIAS.find(x => x.id === id)
+    if (h) setTimeout(() => speakEN(h.linhas[0].en, 9500), 500)
+    try { track('historia_aberta', { historia: id }) } catch (e) {}
+  }
+  function finalizarHistoria(h: Historia, acertos: number) {
+    setHistFim(true)
+    const st = calcularStreakHoje()
+    const novoXp = xp + 10 + acertos * 5
+    const novasMoedas = moedas + 10
+    aplicarStreak(st); setXp(novoXp); setMoedas(novasMoedas)
+    const novos = Array.from(new Set([...histDone, h.id]))
+    setHistDone(novos)
+    try { localStorage.setItem('speakup_hist_done', JSON.stringify(novos)) } catch (e) {}
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    try { track('historia_concluida', { historia: h.id, acertos }) } catch (e) {}
+  }
+
   function finalizarErrosBr() {
     const st = calcularStreakHoje()
     const novoXp = xp + errAcertos * 5
@@ -2062,10 +2226,71 @@ export default function AppPage() {
     salvarPerfil({ ...perfilIa, sons_dificeis: sons, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO })
   }
 
+  // Sonda única: a rota /api/stt (Whisper) está configurada? 400 = sim (áudio vazio),
+  // 501 = sem chave → usa o reconhecimento do navegador para sempre nesta sessão.
+  async function sttDisponivel(): Promise<boolean> {
+    if (sttServidorRef.current !== null) return sttServidorRef.current
+    try {
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) { sttServidorRef.current = false; return false }
+      const r = await fetch('/api/stt', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      sttServidorRef.current = r.status === 400
+    } catch (e) { sttServidorRef.current = false }
+    return sttServidorRef.current
+  }
+
+  // Grava o áudio REAL do aluno e transcreve com Whisper (bem mais preciso para
+  // sotaque brasileiro que o Web Speech). Só roda quando a rota está configurada.
+  async function gravarPronWhisper(target: string) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
+      const chunks: BlobPart[] = []
+      rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data) }
+      rec.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        mediaRecRef.current = null
+        setPronListening(false)
+        const blob = new Blob(chunks, { type: mime || 'audio/webm' })
+        if (blob.size < 1000) return
+        setPronHeard('… transcrevendo seu áudio …')
+        try {
+          const { data: s } = await supabase.auth.getSession()
+          const token = s.session?.access_token
+          const r = await fetch('/api/stt', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-audio-type': blob.type }, body: blob })
+          if (!r.ok) throw new Error('stt ' + r.status)
+          const data = await r.json()
+          const texto = data.text || ''
+          setPronHeard(texto)
+          if (texto) avaliarPron(target, texto)
+        } catch (e) { setPronHeard(''); alert('Não consegui transcrever agora. Tente de novo. 🎤') }
+      }
+      mediaRecRef.current = rec
+      setPronHeard(''); setPronScore(null); setPronTip('')
+      setPronListening(true)
+      rec.start()
+      // Trava de segurança: para sozinho depois de 15s.
+      setTimeout(() => { try { if (mediaRecRef.current === rec && rec.state === 'recording') rec.stop() } catch (e) {} }, 15000)
+    } catch (e) {
+      sttServidorRef.current = false
+      alert('Preciso da permissão do microfone para avaliar sua pronúncia. 🎤')
+    }
+  }
+
   function gravarPron(target: string) {
+    if (pronListening) {
+      if (mediaRecRef.current) { try { mediaRecRef.current.stop() } catch (e) {} ; return }
+      recognitionRef.current?.stop(); return
+    }
+    // Whisper primeiro (quando configurado); senão, reconhecimento do navegador.
+    sttDisponivel().then(ok => { if (ok) gravarPronWhisper(target); else gravarPronNavegador(target) })
+  }
+
+  function gravarPronNavegador(target: string) {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
-    if (pronListening) { recognitionRef.current?.stop(); return }
     setPronHeard(''); setPronScore(null); setPronTip('')
     const rec = new SR()
     rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
@@ -2278,6 +2503,77 @@ export default function AppPage() {
 
   async function logout() { await supabase.auth.signOut(); router.push('/login') }
 
+  // ---- Indicação: se o aluno chegou por um link ?ref=, credita o bônus (1x, servidor valida).
+  useEffect(() => {
+    if (!xpHydrated || !userId) return
+    let ref: string | null = null
+    try { ref = localStorage.getItem('speakup_ref') } catch (e) {}
+    if (!ref || perfilIa.indicado_por) { if (ref && perfilIa.indicado_por) { try { localStorage.removeItem('speakup_ref') } catch (e) {} } ; return }
+    ;(async () => {
+      try {
+        const { data: s } = await supabase.auth.getSession()
+        const token = s.session?.access_token
+        if (!token) return
+        const r = await fetch('/api/indicacao', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ ref }) })
+        const data = await r.json()
+        // Só descarta o código em resultado definitivo (ok ou recusa). Erro temporário
+        // (500/rede) mantém o código para tentar de novo na próxima abertura.
+        if (data?.ok || data?.motivo) { try { localStorage.removeItem('speakup_ref') } catch (e) {} }
+        if (data?.ok) {
+          setPerfilIa((p: any) => ({ ...p, indicado_por: ref }))
+          setIsPremium(true)
+          setConqNova({ e: '🎁', nome: 'Bônus de indicação: +2 dias de Premium!' })
+          try { track('indicacao_resgatada') } catch (e) {}
+        }
+      } catch (e) {}
+    })()
+  }, [xpHydrated, userId])
+
+  const linkIndicacao = userId ? `https://speakup-dusky.vercel.app/login?ref=${userId}` : ''
+  async function compartilharIndicacao() {
+    const texto = `Estou aprendendo inglês no Vonai, um professor de IA feito para brasileiros 🇧🇷 Entra pelo meu link e a gente ganha bônus Premium: ${linkIndicacao}`
+    try { track('indicacao_compartilhada') } catch (e) {}
+    try { if (navigator.share) { await navigator.share({ text: texto }) } else { await navigator.clipboard.writeText(texto); alert('Link copiado! Manda para os amigos. 📋') } } catch (e) {}
+  }
+
+  // ---- Pedido de avaliação na loja: só no "momento feliz" (5 lições ou 3 dias de fogo),
+  // uma única vez. 👎 vira feedback privado (protege a nota pública).
+  const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.vercel.speakup_dusky.twa'
+  useEffect(() => {
+    if (!xpHydrated) return
+    if (doneLessons < 5 && streak < 3) return
+    try {
+      if (localStorage.getItem('speakup_aval')) return
+      const t = setTimeout(() => { setAvalModal(true); try { track('aval_prompt') } catch (e) {} }, 1600)
+      return () => clearTimeout(t)
+    } catch (e) {}
+  }, [xpHydrated, doneLessons, streak])
+  function fecharAval(acao: 'avaliou' | 'melhorar' | 'depois') {
+    setAvalModal(false)
+    try { track('aval_' + acao) } catch (e) {}
+    if (acao === 'avaliou') {
+      try { localStorage.setItem('speakup_aval', 'avaliou') } catch (e) {}
+      try { window.open(PLAY_URL, '_blank') } catch (e) {}
+    } else if (acao === 'melhorar') {
+      try { localStorage.setItem('speakup_aval', 'feedback') } catch (e) {}
+      setFeedbackEnviado(false); setFeedbackModal(true)
+    } else {
+      // "Agora não": pergunta de novo daqui a alguns dias (marca a data; o efeito só
+      // reaparece se a chave sumir — então guardamos com validade de 7 dias).
+      try { localStorage.setItem('speakup_aval', 'depois:' + hojeStr) } catch (e) {}
+    }
+  }
+  // Reabre o convite ~7 dias depois de um "agora não".
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('speakup_aval')
+      if (v && v.startsWith('depois:')) {
+        const quando = new Date(v.slice(7) + 'T00:00:00').getTime()
+        if (Date.now() - quando > 7 * 86400000) localStorage.removeItem('speakup_aval')
+      }
+    } catch (e) {}
+  }, [])
+
   async function enviarFeedback() {
     const msg = feedbackTxt.trim()
     if (msg.length < 3) { alert('Escreva um pouco mais para enviar. 🙂'); return }
@@ -2360,6 +2656,7 @@ export default function AppPage() {
     const rec = recognitionRef.current
     if (rec) { try { rec.onresult = null; rec.onend = null; rec.onerror = null; rec.stop() } catch (e) {} }
     recognitionRef.current = null
+    if (mediaRecRef.current) { try { mediaRecRef.current.stop() } catch (e) {} mediaRecRef.current = null }
     setListening(false)
   }
 
@@ -2877,6 +3174,18 @@ export default function AppPage() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
               </div>
             )}
+            {histDone.length < HISTORIAS.length && (
+              <div onClick={() => { setHistSel(null); setTab('historias') }} style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 30 }}>📖</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Histórias</div><div style={{ fontSize: 12, color: '#DDD6FE', marginTop: 2 }}>Mini-novelas com áudio e perguntas · {histDone.length}/{HISTORIAS.length} concluídas</div></div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ler <Ic e="→" /></span>
+              </div>
+            )}
+            <div onClick={compartilharIndicacao} style={{ background: 'var(--color-background-primary)', border: '1.5px dashed #B45309', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 28 }}>🎁</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>Convide um amigo</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Ele ganha +2 dias Premium, você ganha 100 🪙{(perfilIa.indicacoes || 0) > 0 ? ` · ${perfilIa.indicacoes} ${perfilIa.indicacoes === 1 ? 'amigo trazido' : 'amigos trazidos'}` : ''}</div></div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#B45309', background: '#FEF3E2', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
+            </div>
             {!errbrFeito && (
               <div onClick={() => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} }} style={{ background: 'linear-gradient(135deg, #059669, #B45309)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ fontSize: 30 }}>🇧🇷</div>
@@ -3079,6 +3388,19 @@ export default function AppPage() {
               <button onClick={enviarFeedback} style={{ width: '100%', padding: 14, marginTop: 12, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Enviar <Ic e="→" /></button>
               <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
             </>)}
+          </div>
+        </div>
+      )}
+
+      {avalModal && (
+        <div onClick={() => fecharAval('depois')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 22, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)', textAlign: 'center' }}>
+            <div style={{ fontSize: 44, marginBottom: 8 }}>⭐</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c', marginBottom: 6 }}>Você está curtindo o Vonai?</div>
+            <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.5, marginBottom: 18 }}>Já são {doneLessons} {doneLessons === 1 ? 'lição' : 'lições'}{streak > 1 ? ` e ${streak} dias de sequência` : ''} — sua avaliação ajuda outros brasileiros a encontrarem o app. 💙</div>
+            <button onClick={() => fecharAval('avaliou')} style={{ width: '100%', padding: 14, background: 'linear-gradient(135deg, #2E72D6, #185FA5)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 8, fontFamily: 'inherit' }}>⭐ Avaliar na Play Store</button>
+            <button onClick={() => fecharAval('melhorar')} style={{ width: '100%', padding: 12, background: '#f2f5f8', color: '#16212c', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 8, fontFamily: 'inherit' }}>Tenho uma sugestão de melhoria</button>
+            <button onClick={() => fecharAval('depois')} style={{ width: '100%', padding: 10, background: 'none', color: '#8896a6', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Agora não</button>
           </div>
         </div>
       )}
@@ -3355,6 +3677,108 @@ export default function AppPage() {
           </div>
         </div>
       )}
+
+      {tab === 'historias' && (() => {
+        const h = HISTORIAS.find(x => x.id === histSel)
+        if (!h) {
+          return (
+            <div>
+              <div style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', padding: '20px 16px 24px' }}>
+                <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="📖" color="#4C1D95" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Histórias</div></div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>Mini-novelas com áudio: leia, ouça e responda · {histDone.length}/{HISTORIAS.length} concluídas</div>
+              </div>
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {HISTORIAS.map(ht => {
+                  const feita = histDone.includes(ht.id)
+                  const nc = ht.nivel.startsWith('A') ? '#16A34A' : '#2E72D6'
+                  return (
+                    <div key={ht.id} onClick={() => abrirHistoria(ht.id)} style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderLeft: `4px solid ${feita ? '#16A34A' : '#7C3AED'}`, borderRadius: 14, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                      <div style={{ fontSize: 30, flexShrink: 0 }}>{ht.icon}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>{ht.titulo}</div>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: nc, background: nc + '1A', padding: '2px 8px', borderRadius: 10, flexShrink: 0 }}>{ht.nivel}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 3 }}>{ht.desc}</div>
+                      </div>
+                      {feita ? <Ic e="✓" c="#16A34A" s={20} /> : <Ic e="→" c="#7C3AED" s={18} />}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        }
+        const reveladas = h.linhas.slice(0, histPos)
+        const qPendIdx = h.qs.findIndex((qq, qi) => qq.after === histPos - 1 && histAns[qi] === undefined)
+        const qPend = qPendIdx >= 0 ? h.qs[qPendIdx] : null
+        const acabou = histPos >= h.linhas.length && h.qs.every((_, qi) => histAns[qi] !== undefined)
+        const acertos = h.qs.filter((qq, qi) => histAns[qi] === qq.ans).length
+        return (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', padding: '16px 16px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button onClick={() => setHistSel(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0 }}><Ic e="←" /></button>
+                <div style={{ fontSize: 24 }}>{h.icon}</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{h.titulo}</div></div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: 12 }}>{h.nivel}</span>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 6, overflow: 'hidden', marginTop: 10 }}><div style={{ background: '#C4B5FD', height: '100%', width: `${Math.round(histPos / h.linhas.length * 100)}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
+            </div>
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', textAlign: 'center' }}>Toque numa frase para ver a tradução · toque no 🔊 para ouvir de novo</div>
+              {reveladas.map((l, i) => (
+                l.who === '' ? (
+                  <div key={i} onClick={() => setHistPt(p => ({ ...p, [i]: !p[i] }))} style={{ textAlign: 'center', padding: '4px 18px', cursor: 'pointer', animation: i === histPos - 1 ? 'su_fade 0.4s ease' : 'none' }}>
+                    <div style={{ fontSize: 13.5, fontStyle: 'italic', color: 'var(--color-text-secondary)', lineHeight: 1.55 }}>{l.en}</div>
+                    {histPt[i] && <div style={{ fontSize: 12, color: '#7C3AED', marginTop: 3 }}>{l.pt}</div>}
+                  </div>
+                ) : (
+                  <div key={i} style={{ maxWidth: '92%', alignSelf: i % 2 === 0 ? 'flex-start' : 'flex-end', animation: i === histPos - 1 ? 'su_fade 0.4s ease' : 'none' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: '#7C3AED', marginBottom: 3, marginLeft: 4 }}>{l.who}</div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, flexDirection: i % 2 === 0 ? 'row' : 'row-reverse' }}>
+                      <div onClick={() => setHistPt(p => ({ ...p, [i]: !p[i] }))} style={{ padding: '10px 14px', borderRadius: i % 2 === 0 ? '14px 14px 14px 4px' : '14px 14px 4px 14px', fontSize: 14.5, lineHeight: 1.55, background: i % 2 === 0 ? 'var(--color-background-primary)' : '#EEEDFE', color: 'var(--color-text-primary)', border: '0.5px solid var(--color-border-tertiary)', cursor: 'pointer' }}>
+                        {l.en}
+                        {histPt[i] && <div style={{ fontSize: 12, color: '#7C3AED', marginTop: 5, borderTop: '0.5px dashed #C4B5FD', paddingTop: 5 }}>{l.pt}</div>}
+                      </div>
+                      <button onClick={() => speakEN(l.en, 9500 + i)} aria-label="Ouvir frase" style={{ width: 28, height: 28, borderRadius: '50%', background: speakingId === 9500 + i ? '#7C3AED' : '#EEEDFE', color: speakingId === 9500 + i ? '#fff' : '#7C3AED', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="🔊" s={13} c={speakingId === 9500 + i ? '#fff' : '#7C3AED'} /></button>
+                    </div>
+                  </div>
+                )
+              ))}
+              {qPend && (
+                <div style={{ background: '#FEF3E2', borderRadius: 14, padding: 14, animation: 'su_fade 0.4s ease' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#B45309', marginBottom: 6 }}>🤔 ENTENDEU A HISTÓRIA?</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#16212c', marginBottom: 10 }}>{qPend.q}</div>
+                  {qPend.opts.map((o, oi) => (
+                    <button key={oi} onClick={() => { setHistAns(a => ({ ...a, [qPendIdx]: oi })); tocarSom(oi === qPend.ans ? 'acerto' : 'erro') }} style={{ width: '100%', textAlign: 'left', padding: 12, marginBottom: 8, borderRadius: 10, border: '1px solid #F5D9A8', background: '#fff', color: '#16212c', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>{o}</button>
+                  ))}
+                </div>
+              )}
+              {!qPend && h.qs.map((qq, qi) => (histAns[qi] !== undefined && qq.after === histPos - 1) ? (
+                <div key={'fb' + qi} style={{ background: histAns[qi] === qq.ans ? '#E3F3EA' : '#FCEBEB', borderRadius: 12, padding: 12, fontSize: 13, lineHeight: 1.5, color: histAns[qi] === qq.ans ? '#27500A' : '#791F1F' }}>
+                  {histAns[qi] === qq.ans ? '✅ Isso!' : `❌ Era: "${qq.opts[qq.ans]}".`} <span style={{ color: '#5c6b7a' }}>{qq.exp}</span>
+                </div>
+              ) : null)}
+              {!qPend && !acabou && (
+                <button onClick={() => { const prox = h.linhas[histPos]; setHistPos(p => p + 1); if (prox) speakEN(prox.en, 9500 + histPos) }} style={{ width: '100%', padding: 14, background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>Continuar <Ic e="→" /></button>
+              )}
+              {acabou && !histFim && (
+                <button onClick={() => finalizarHistoria(h, acertos)} style={{ width: '100%', padding: 14, background: '#16A34A', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>Concluir história <Ic e="🎯" /></button>
+              )}
+              {histFim && (
+                <div style={{ textAlign: 'center', paddingTop: 8 }}>
+                  <div style={{ fontSize: 50 }}>{acertos === h.qs.length ? '🏆' : '🎉'}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 6 }}>Fim! Você entendeu {acertos}/{h.qs.length}</div>
+                  <div style={{ fontSize: 15, color: '#7C3AED', fontWeight: 700, marginTop: 4 }}>+{10 + acertos * 5} XP · +10 🪙</div>
+                  <button onClick={() => setHistSel(null)} style={{ width: '100%', padding: 14, marginTop: 16, background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Outras histórias <Ic e="→" /></button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {tab === 'errbr' && (() => {
         const qs = rotaDia(ERROS_BR, 5, 77).map(e => ({ ...e, ...embaralharQ({ q: e.q, opts: e.opts, ans: e.ans, exp: e.exp }) }))

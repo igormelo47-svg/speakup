@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
@@ -14,6 +14,15 @@ export default function Login() {
   const [aviso, setAviso] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const [indicado, setIndicado] = useState(false)
+
+  // Link de indicação (?ref=<id do amigo>): guarda o código para creditar o bônus após o cadastro.
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref')
+      if (ref) { localStorage.setItem('speakup_ref', ref); setIndicado(true); setModo('cadastro') }
+    } catch (e) {}
+  }, [])
 
   async function handleSubmit() {
     setLoading(true); setErro(''); setAviso('')
@@ -84,7 +93,7 @@ export default function Login() {
 
         {modo === 'cadastro' && (
           <p style={{ fontSize: 13, color: '#166534', background: '#E3F3EA', padding: '10px 12px', borderRadius: 10, marginBottom: 18, fontWeight: 600, textAlign: 'center' }}>
-            ✨ 2 dias de acesso Premium grátis — sem cartão
+            {indicado ? '🎁 Um amigo te indicou: 2 + 2 dias de Premium grátis!' : '✨ 2 dias de acesso Premium grátis — sem cartão'}
           </p>
         )}
 
