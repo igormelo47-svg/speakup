@@ -1996,6 +1996,7 @@ export default function AppPage() {
   const ttsServidorRef = useRef(true)
   const mediaRecRef = useRef<MediaRecorder | null>(null)
   const sttServidorRef = useRef<boolean | null>(null)
+  const ttsPendentesRef = useRef<Set<string>>(new Set())
   // As vozes do navegador carregam de forma assíncrona — este listener garante que
   // melhorVozEN() encontre a lista completa no primeiro toque em "Ouvir".
   useEffect(() => {
@@ -2874,9 +2875,75 @@ export default function AppPage() {
     }
   }
 
-  // Voz do app: tenta a voz neural do servidor (/api/tts, se a chave estiver configurada na
-  // Vercel) com cache local — cada frase só é gerada uma vez. Sem chave ou sem rede, cai
-  // para a melhor voz do navegador. ttsServidorRef evita re-tentar a cada toque.
+  // Busca (ou gera) o áudio neural de uma frase e devolve a Response do cache/rede.
+  // Compartilhado por speakEN (tocar) e prefetchTTS (aquecer o cache antes do toque).
+  async function obterTTS(text: string): Promise<Response | null> {
+    if (!ttsServidorRef.current || text.length > 290) return null
+    const cache = 'caches' in window ? await caches.open('vonai-tts-v1') : null
+    const chave = '/api/tts?t=' + encodeURIComponent(text)
+    const hit = cache ? await cache.match(chave) : undefined
+    if (hit) return hit
+    // dedupe: se a mesma frase já está sendo gerada, não dispara outra chamada
+    if (ttsPendentesRef.current.has(chave)) {
+      for (let i = 0; i < 40; i++) { await new Promise(r => setTimeout(r, 150)); const h2 = cache ? await cache.match(chave) : undefined; if (h2) return h2; if (!ttsPendentesRef.current.has(chave)) break }
+      return cache ? (await cache.match(chave)) || null : null
+    }
+    ttsPendentesRef.current.add(chave)
+    try {
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) return null
+      const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text }) })
+      if (r.ok) { if (cache) { try { await cache.put(chave, r.clone()) } catch (e) {} } return r }
+      if (r.status === 501) ttsServidorRef.current = false
+      return null
+    } finally { ttsPendentesRef.current.delete(chave) }
+  }
+
+  // Aquecimento: gera o áudio em segundo plano ANTES do aluno tocar (a voz sai na hora).
+  // garantido=true pula o filtro de idioma (para conteúdo que já sabemos ser inglês).
+  function prefetchTTS(text: string, garantido = false) {
+    if (typeof window === 'undefined' || !text) return
+    if (!garantido && !textoEmIngles(text)) return
+    try { obterTTS(text).catch(() => {}) } catch (e) {}
+  }
+
+  // ---- Pré-carregamento por tela: quando a pergunta/frase aparece, o áudio já começa
+  // a ser gerado; no toque (ou no acerto) a voz sai instantânea. ----
+  useEffect(() => { // quiz: resposta certa da questão atual
+    if (tab !== 'lessons' || view !== 'quiz') return
+    const q = lessons[level]?.[lessonIdx]?.q?.[qIdx]
+    if (q) prefetchTTS(q.opts[q.ans])
+  }, [tab, view, qIdx, lessonIdx, level])
+  useEffect(() => { // explicação: exemplos da lição
+    if (tab !== 'lessons' || view !== 'explanation') return
+    ;(lessons[level]?.[lessonIdx]?.examples || []).slice(0, 3).forEach(ex => prefetchTTS(ex.en, true))
+  }, [tab, view, lessonIdx, level])
+  useEffect(() => { // ditado: frase atual
+    if (tab !== 'lessons' || view !== 'ditado') return
+    const alvo = frasesDitado(lessons[level]?.[lessonIdx]?.examples || [])[ditIdx]?.en
+    if (alvo) prefetchTTS(alvo, true)
+  }, [tab, view, ditIdx, lessonIdx, level])
+  useEffect(() => { // listening: áudio atual
+    if (tab !== 'listening') return
+    const ex = rotaDia(listeningExercises, 12)[lisIdx]
+    if (ex) prefetchTTS(ex.en, true)
+  }, [tab, lisIdx])
+  useEffect(() => { // histórias: linha atual + a próxima
+    if (tab !== 'historias' || !histSel) return
+    const h = HISTORIAS.find(x => x.id === histSel); if (!h) return
+    ;[h.linhas[histPos - 1], h.linhas[histPos]].forEach(l => { if (l) prefetchTTS(l.en, true) })
+  }, [tab, histSel, histPos])
+  useEffect(() => { // caça-erros: forma certa da armadilha atual
+    if (tab !== 'errbr') return
+    const qs = rotaDia(ERROS_BR, 5, 77).map(e => ({ ...e, ...embaralharQ({ q: e.q, opts: e.opts, ans: e.ans, exp: e.exp }) }))
+    const atual = qs[errQ]
+    if (atual) prefetchTTS(atual.opts[atual.ans])
+  }, [tab, errQ])
+
+  // Voz do app: neural com cache + pré-carregamento. Se a rede demorar mais de 3s,
+  // a voz do navegador assume NA HORA (nada de espera) e o áudio neural fica pronto
+  // no cache para a próxima vez.
   async function speakEN(text: string, id: number) {
     if (typeof window === 'undefined') return
     try { window.speechSynthesis?.cancel() } catch (e) {}
@@ -2885,19 +2952,12 @@ export default function AppPage() {
     setSpeakingId(id)
     const fim = () => setSpeakingId(s => (s === id ? -1 : s))
     if (ttsServidorRef.current && text.length <= 290) {
+      let usouFallback = false
+      const timer = setTimeout(() => { usouFallback = true; falarNavegador(text, 0.95, fim) }, 3000)
       try {
-        const cache = 'caches' in window ? await caches.open('vonai-tts-v1') : null
-        const chave = '/api/tts?t=' + encodeURIComponent(text)
-        let resp = cache ? await cache.match(chave) : undefined
-        if (!resp) {
-          const { data: s } = await supabase.auth.getSession()
-          const token = s.session?.access_token
-          if (token) {
-            const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text }) })
-            if (r.ok) { if (cache) { try { await cache.put(chave, r.clone()) } catch (e) {} } resp = r }
-            else if (r.status === 501) ttsServidorRef.current = false
-          }
-        }
+        const resp = await obterTTS(text)
+        clearTimeout(timer)
+        if (usouFallback) return // navegador já está falando; o neural ficou no cache p/ a próxima
         if (resp) {
           const blob = await resp.blob()
           const audio = new Audio(URL.createObjectURL(blob))
@@ -2906,7 +2966,7 @@ export default function AppPage() {
           await audio.play()
           return
         }
-      } catch (e) {}
+      } catch (e) { clearTimeout(timer); if (usouFallback) return }
     }
     falarNavegador(text, 0.95, fim)
   }
