@@ -8,7 +8,8 @@ import { createClient } from '@supabase/supabase-js'
 // cada frase localmente (Cache API), então cada texto só é gerado uma vez por aparelho.
 
 export async function POST(req: NextRequest) {
-  const key = process.env.OPENAI_API_KEY
+  // trim(): valor com quebra de linha (colado no painel/CLI) invalidaria o header Authorization.
+  const key = (process.env.OPENAI_API_KEY || '').trim()
   if (!key) return NextResponse.json({ error: 'tts_nao_configurado' }, { status: 501 })
 
   // Só usuários logados podem gastar a API (mesmo esquema da rota de chat).
@@ -29,11 +30,16 @@ export async function POST(req: NextRequest) {
   try { text = String((await req.json())?.text || '').trim() } catch {}
   if (!text || text.length > 290) return NextResponse.json({ error: 'texto inválido' }, { status: 400 })
 
-  const r = await fetch('https://api.openai.com/v1/audio/speech', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'nova', input: text, response_format: 'mp3', speed: 0.95 }),
-  })
+  let r: Response
+  try {
+    r = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'nova', input: text, response_format: 'mp3', speed: 0.95 }),
+    })
+  } catch {
+    return NextResponse.json({ error: 'tts_falhou' }, { status: 502 })
+  }
   if (!r.ok || !r.body) return NextResponse.json({ error: 'tts_falhou' }, { status: 502 })
 
   return new NextResponse(r.body, {

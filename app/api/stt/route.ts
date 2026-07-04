@@ -8,7 +8,8 @@ import { createClient } from '@supabase/supabase-js'
 // Corpo da requisição: o áudio cru (webm/mp4), até ~1,5 MB (frases curtas).
 
 export async function POST(req: NextRequest) {
-  const key = process.env.OPENAI_API_KEY
+  // trim(): valor com quebra de linha (colado no painel/CLI) invalidaria o header Authorization.
+  const key = (process.env.OPENAI_API_KEY || '').trim()
   if (!key) return NextResponse.json({ error: 'stt_nao_configurado' }, { status: 501 })
 
   // Só usuários logados (mesmo esquema das rotas de chat/tts).
@@ -37,11 +38,16 @@ export async function POST(req: NextRequest) {
   fd.append('model', 'whisper-1')
   fd.append('language', 'en')
 
-  const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}` },
-    body: fd,
-  })
+  let r: Response
+  try {
+    r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}` },
+      body: fd,
+    })
+  } catch {
+    return NextResponse.json({ error: 'stt_falhou' }, { status: 502 })
+  }
   if (!r.ok) return NextResponse.json({ error: 'stt_falhou' }, { status: 502 })
   const data = await r.json()
   return NextResponse.json({ text: String(data.text || '').trim() })
