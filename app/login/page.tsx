@@ -36,10 +36,11 @@ export default function Login() {
       })
       if (error) { setErro(error.message); setLoading(false); return }
       if (data.user) {
-        await supabase.from('profiles').insert({
+        // O banco pode já ter criado o profile via trigger — upsert evita o erro 409 de chave duplicada.
+        await supabase.from('profiles').upsert({
           id: data.user.id, email, nome, plano: 'free', ativo: true,
           trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-        })
+        }, { onConflict: 'id', ignoreDuplicates: true })
       }
       // Se a confirmação de e-mail estiver ligada no Supabase, não vem sessão: avisa o aluno.
       if (!data.session) {
@@ -61,79 +62,91 @@ export default function Login() {
   const titulo = modo === 'login' ? 'Entre na sua conta' : modo === 'cadastro' ? 'Crie sua conta grátis' : 'Recuperar senha'
   const botao = loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : modo === 'cadastro' ? 'Criar conta grátis' : 'Enviar link de recuperação'
 
+  const inputStyle = {
+    width: '100%', padding: '12px 14px', border: '1px solid #D8E1EC', borderRadius: 12,
+    fontSize: 15, boxSizing: 'border-box' as const, background: '#F7FAFD', color: '#16212C',
+    outline: 'none', fontFamily: 'inherit',
+  }
+  const labelStyle = { fontSize: 12.5, color: '#5B6B82', fontWeight: 600 as const, display: 'block', marginBottom: 6 }
+
   return (
-    <div style={{ maxWidth: 400, margin: '60px auto', padding: '0 20px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-        Von<span style={{ color: '#185FA5' }}>ai</span>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #2E72D6 0%, #185FA5 55%, #103D77 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <h1 style={{ fontSize: 30, fontWeight: 800, marginBottom: 6, color: '#fff', display: 'flex', alignItems: 'center', gap: 3 }}>
+        Von<span style={{ background: '#FFD98A', color: '#7A5A12', padding: '1px 9px', borderRadius: 9 }}>ai</span>
       </h1>
-      <p style={{ color: '#888', fontSize: 14, marginBottom: modo === 'cadastro' ? 14 : 24 }}>{titulo}</p>
+      <p style={{ color: '#B5D4F4', fontSize: 14, marginBottom: 24 }}>Aprenda inglês conversando com IA</p>
 
-      {modo === 'cadastro' && (
-        <p style={{ fontSize: 13, color: '#166534', background: '#E3F3EA', padding: '9px 12px', borderRadius: 8, marginBottom: 20, fontWeight: 600, textAlign: 'center' }}>
-          ✨ 2 dias de acesso Premium grátis — sem cartão
-        </p>
-      )}
+      <div style={{ width: '100%', maxWidth: 400, background: '#fff', borderRadius: 20, padding: '26px 22px', boxShadow: '0 12px 40px rgba(8,30,60,0.35)', boxSizing: 'border-box' }}>
+        <p style={{ color: '#16212C', fontSize: 17, fontWeight: 700, margin: '0 0 16px' }}>{titulo}</p>
 
-      {modo === 'cadastro' && (
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 4 }}>Nome</label>
-          <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo"
-            style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+        {modo === 'cadastro' && (
+          <p style={{ fontSize: 13, color: '#166534', background: '#E3F3EA', padding: '10px 12px', borderRadius: 10, marginBottom: 18, fontWeight: 600, textAlign: 'center' }}>
+            ✨ 2 dias de acesso Premium grátis — sem cartão
+          </p>
+        )}
+
+        {modo === 'cadastro' && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Nome</label>
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo" style={inputStyle} />
+          </div>
+        )}
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>E-mail</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" style={inputStyle} />
         </div>
-      )}
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 4 }}>E-mail</label>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com"
-          style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+        {modo !== 'recuperar' && (
+          <div style={{ marginBottom: 8 }}>
+            <label style={labelStyle}>Senha</label>
+            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres"
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()} style={inputStyle} />
+          </div>
+        )}
+
+        {modo === 'login' && (
+          <p style={{ textAlign: 'right', margin: '0 0 16px' }}>
+            <span onClick={() => { setModo('recuperar'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>Esqueci minha senha</span>
+          </p>
+        )}
+        {modo !== 'login' && <div style={{ marginBottom: 12 }} />}
+
+        {erro && <p style={{ color: '#A32D2D', fontSize: 13, marginBottom: 12, background: '#FBEBEB', padding: '10px 12px', borderRadius: 10 }}>{erro}</p>}
+        {aviso && <p style={{ color: '#166534', fontSize: 13, marginBottom: 12, background: '#E3F3EA', padding: '10px 12px', borderRadius: 10 }}>{aviso}</p>}
+
+        <button onClick={handleSubmit} disabled={loading}
+          style={{ width: '100%', padding: 14, background: loading ? '#7FA6CB' : 'linear-gradient(135deg, #2E72D6, #185FA5)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'default' : 'pointer', boxShadow: '0 4px 12px rgba(24,95,165,0.35)', fontFamily: 'inherit' }}>
+          {botao}
+        </button>
+
+        {modo === 'recuperar' ? (
+          <p style={{ textAlign: 'center', fontSize: 13, color: '#5B6B82', marginTop: 16, marginBottom: 0 }}>
+            <span onClick={() => { setModo('login'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 600 }}>← Voltar para o login</span>
+          </p>
+        ) : (
+          <p style={{ textAlign: 'center', fontSize: 13.5, color: '#5B6B82', marginTop: 16, marginBottom: 0 }}>
+            {modo === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
+            <span onClick={() => { setModo(modo === 'login' ? 'cadastro' : 'login'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 700 }}>
+              {modo === 'login' ? 'Criar grátis' : 'Entrar'}
+            </span>
+          </p>
+        )}
+
+        {modo === 'cadastro' && (
+          <p style={{ textAlign: 'center', fontSize: 11, color: '#8896A6', marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
+            Ao criar a conta, você concorda com os{' '}
+            <a href="/termos" style={{ color: '#5B6B82' }}>Termos de Uso</a> e a{' '}
+            <a href="/privacidade" style={{ color: '#5B6B82' }}>Política de Privacidade</a>.
+          </p>
+        )}
       </div>
-      {modo !== 'recuperar' && (
-        <div style={{ marginBottom: 6 }}>
-          <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 4 }}>Senha</label>
-          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres"
-            style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
-        </div>
-      )}
 
-      {modo === 'login' && (
-        <p style={{ textAlign: 'right', marginBottom: 14 }}>
-          <span onClick={() => { setModo('recuperar'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontSize: 12.5 }}>Esqueci minha senha</span>
-        </p>
-      )}
-      {modo !== 'login' && <div style={{ marginBottom: 10 }} />}
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        <InstallButton dark />
+      </div>
 
-      {erro && <p style={{ color: '#A32D2D', fontSize: 13, marginBottom: 12 }}>{erro}</p>}
-      {aviso && <p style={{ color: '#166534', fontSize: 13, marginBottom: 12, background: '#E3F3EA', padding: '10px 12px', borderRadius: 8 }}>{aviso}</p>}
-
-      <button onClick={handleSubmit} disabled={loading}
-        style={{ width: '100%', padding: 11, background: '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-        {botao}
-      </button>
-
-      <InstallButton />
-
-      {modo === 'recuperar' ? (
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#888', marginTop: 16 }}>
-          <span onClick={() => { setModo('login'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer' }}>← Voltar para o login</span>
-        </p>
-      ) : (
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#888', marginTop: 16 }}>
-          {modo === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
-          <span onClick={() => { setModo(modo === 'login' ? 'cadastro' : 'login'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer' }}>
-            {modo === 'login' ? 'Criar grátis' : 'Entrar'}
-          </span>
-        </p>
-      )}
-
-      {modo === 'cadastro' && (
-        <p style={{ textAlign: 'center', fontSize: 11, color: '#aaa', marginTop: 10, lineHeight: 1.5 }}>
-          Ao criar a conta, você concorda com os{' '}
-          <a href="/termos" style={{ color: '#888' }}>Termos de Uso</a> e a{' '}
-          <a href="/privacidade" style={{ color: '#888' }}>Política de Privacidade</a>.
-        </p>
-      )}
-      <p style={{ textAlign: 'center', fontSize: 11, color: '#bbb', marginTop: 24 }}>
-        <a href="/termos" style={{ color: '#999', marginRight: 14 }}>Termos</a>
-        <a href="/privacidade" style={{ color: '#999' }}>Privacidade</a>
+      <p style={{ textAlign: 'center', fontSize: 12, color: '#9DBBDD', marginTop: 22 }}>
+        <a href="/termos" style={{ color: '#B5D4F4', marginRight: 14 }}>Termos</a>
+        <a href="/privacidade" style={{ color: '#B5D4F4' }}>Privacidade</a>
       </p>
     </div>
   )

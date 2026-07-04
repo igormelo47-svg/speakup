@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:igormelo47@gmail.com', VAPID_PUBLIC, priv)
   const admin = createClient(url, service)
 
-  const hoje = new Date().toISOString().split('T')[0]
+  // Dia no fuso do Brasil, igual ao que o app grava em ultima_atividade.
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   const { data: subs } = await admin.from('push_subscriptions').select('user_id, subscription')
   const { data: prog } = await admin.from('progresso').select('user_id, ultima_atividade, streak')
   const estudouHoje = new Set((prog || []).filter((p: any) => p.ultima_atividade === hoje).map((p: any) => p.user_id))

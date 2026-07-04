@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
         .select("is_premium, chat_dia_data, chat_dia_count")
         .eq("user_id", userId)
         .maybeSingle()
-      const today = new Date().toISOString().split("T")[0]
+      // Dia no fuso do Brasil — com UTC o limite diário viraria às 21h de Brasília.
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })
       const premium = BETA_GRATIS || !!prog?.is_premium
       const limit = premium ? LIMIT_PREMIUM : LIMIT_FREE
       const count = prog && prog.chat_dia_data === today ? (prog.chat_dia_count || 0) : 0

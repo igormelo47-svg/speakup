@@ -834,14 +834,17 @@ const expressoes = [
 ]
 function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string};color?:string}) {
   function speak(){if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(word.en);u.lang='en-US';u.rate=0.85;window.speechSynthesis.cancel();window.speechSynthesis.speak(u)}}
+  // Alguns registros já vêm com as barras (/x/) e outros não — normaliza para exibir /x/ uma única vez.
+  const pron = (word.pron || '').replace(/^\/+|\/+$/g, '')
+  const traducao = word.pt ? word.pt.charAt(0).toUpperCase() + word.pt.slice(1) : ''
   return(
     <div onClick={speak} style={{background:`linear-gradient(150deg, ${color}12, var(--color-background-primary) 62%)`,border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:16,padding:'14px 15px',cursor:'pointer',boxShadow:'0 3px 10px rgba(0,0,0,0.06)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
         <div style={{fontSize:19,fontWeight:800,color:'var(--color-text-primary)',lineHeight:1.15}}>{word.en}</div>
         <button onClick={e=>{e.stopPropagation();speak()}} style={{background:color+'1A',color,border:'none',borderRadius:'50%',width:32,height:32,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}><Ic e="🔊" c={color} s={15} /></button>
       </div>
-      <span style={{display:'inline-block',fontSize:11.5,color,fontStyle:'italic',fontWeight:600,marginTop:7,background:color+'14',padding:'2px 9px',borderRadius:10}}>/{word.pron}/</span>
-      <div style={{fontSize:14,color:'var(--color-text-secondary)',marginTop:8}}>{word.pt}</div>
+      <span style={{display:'inline-block',fontSize:11.5,color,fontStyle:'italic',fontWeight:600,marginTop:7,background:color+'14',padding:'2px 9px',borderRadius:10}}>/{pron}/</span>
+      <div style={{fontSize:14,color:'var(--color-text-secondary)',marginTop:8}}>{traducao}</div>
     </div>
   )
 }
@@ -1426,6 +1429,14 @@ function Mascote({ size = 40 }: { size?: number }) {
   )
 }
 
+// A IA às vezes responde com markdown mesmo sem pedirmos. Renderiza o básico (**negrito**)
+// e remove separadores "---" em vez de mostrar os asteriscos crus na tela.
+function TextoIA({ text }: { text: string }) {
+  const limpo = text.split('\n').filter(l => l.trim() !== '---').join('\n').replace(/\s+---\s+/g, '\n')
+  const partes = limpo.split(/\*\*([^*]+)\*\*/g)
+  return <>{partes.map((p, i) => (i % 2 === 1 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>))}</>
+}
+
 // Nível numérico a partir do XP total (sobe rápido no começo, dando "level up" frequente).
 function nivelDeXp(xp: number) {
   let nivel = 1, need = 100, acc = 0
@@ -1571,7 +1582,10 @@ export default function AppPage() {
 
   const lessons: Record<string, Lesson[]> = { A1: [], A2: [], B1: [], B2: [], C1: [], C2: [] }
   const allForCefr = [...baseLessons.beginner, ...baseLessons.intermediate, ...baseLessons.advanced, ...dbLessons.beginner, ...dbLessons.intermediate, ...dbLessons.advanced]
-  allForCefr.forEach(l => { const k = cefrByTitle[l.title] || l.cefr || 'A1'; if (lessons[k]) lessons[k].push({ ...l, q: (l.q || []).map(embaralharQ) }) })
+  // Lições do banco podem repetir as fixas do app — dedup por título para não inflar
+  // contadores nem mostrar a mesma lição duas vezes na trilha.
+  const titulosVistos = new Set<string>()
+  allForCefr.forEach(l => { if (titulosVistos.has(l.title)) return; titulosVistos.add(l.title); const k = cefrByTitle[l.title] || l.cefr || 'A1'; if (lessons[k]) lessons[k].push({ ...l, q: (l.q || []).map(embaralharQ) }) })
 
   const totalLessons = Object.values(lessons).flat().length
   const doneLessons = licoesConcluidas.length
@@ -1589,7 +1603,9 @@ export default function AppPage() {
   const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite' })()
   const isNovo = xp === 0 && streak === 0 && doneLessons === 0
 
-  const hojeStr = new Date().toISOString().split('T')[0]
+  // Data no fuso do aparelho (YYYY-MM-DD). toISOString() usa UTC e viraria o dia às 21h no Brasil.
+  const dataLocal = (diasAtras = 0) => { const d = new Date(Date.now() - diasAtras * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+  const hojeStr = dataLocal(0)
   const LIMITE_DIA_LICOES = 3
   const licoesHoje = (() => { const p = licaoDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const metaFeitaHoje = licoesHoje >= LIMITE_DIA_LICOES
@@ -1630,7 +1646,7 @@ export default function AppPage() {
   })()
 
   useEffect(() => {
-    try { const d = localStorage.getItem('speakup_desafio'); setDesafioFeito(d === new Date().toISOString().split('T')[0]) } catch (e) {}
+    try { const d = localStorage.getItem('speakup_desafio'); setDesafioFeito(d === hojeStr) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1739,31 +1755,41 @@ export default function AppPage() {
     } catch (e) {}
   }, [xpHydrated, xp])
 
-  function finalizarDesafio() {
-    const hoje = new Date().toISOString().split('T')[0]
-    const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-    const anteontem = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]
+  // Sequência: qualquer estudo do dia conta (lição concluída ou desafio). Guarda o último dia
+  // ativo em localStorage; se pulou um dia e tem proteção (freeze), gasta uma para manter o fogo.
+  function calcularStreakHoje() {
+    const hoje = dataLocal(0), ontem = dataLocal(1), anteontem = dataLocal(2)
     let last: string | null = null
-    try { last = localStorage.getItem('speakup_desafio') } catch (e) {}
+    try { last = localStorage.getItem('speakup_ultima_atividade') || localStorage.getItem('speakup_desafio') } catch (e) {}
     let novoStreak: number, freezesRestantes = streakFreezes, usouFreeze = false
-    if (last === hoje) novoStreak = streak
+    if (last === hoje) novoStreak = Math.max(streak, 1)
     else if (last === ontem) novoStreak = streak + 1
     else if (last === anteontem && streakFreezes > 0) { novoStreak = streak + 1; freezesRestantes = streakFreezes - 1; usouFreeze = true }
     else novoStreak = 1
+    try { localStorage.setItem('speakup_ultima_atividade', hoje) } catch (e) {}
+    return { novoStreak, freezesRestantes, usouFreeze }
+  }
+  function aplicarStreak(r: { novoStreak: number; freezesRestantes: number; usouFreeze: boolean }) {
+    setStreak(r.novoStreak)
+    if (r.usouFreeze) { setStreakFreezes(r.freezesRestantes); setConqNova({ e: '🔥', nome: 'Proteção usada — sua sequência continua!' }) }
+  }
+
+  function finalizarDesafio() {
+    const hoje = dataLocal(0)
+    const st = calcularStreakHoje()
     const novoXp = xp + desAcertos * 5
     const novasMoedas = moedas + 5 + desAcertos
-    setStreak(novoStreak); setXp(novoXp); setDesafioFeito(true); setDesResult(true); setMoedas(novasMoedas)
-    if (usouFreeze) setStreakFreezes(freezesRestantes)
+    aplicarStreak(st); setXp(novoXp); setDesafioFeito(true); setDesResult(true); setMoedas(novasMoedas)
     try { localStorage.setItem('speakup_desafio', hoje) } catch (e) {}
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: novoStreak, moedas: novasMoedas, streak_freezes: freezesRestantes, ultima_atividade: hoje, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-    if (usouFreeze) setConqNova({ e: '🔥', nome: 'Proteção usada — sua sequência continua!' })
+    // Atenção: o cliente do Supabase só envia a requisição quando a promise é consumida (.then/await).
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hoje, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
   }
 
   // ---- Gamificação: moedas, baú do dia e loja ----
   function ganharMoedas(n: number) {
     const novo = moedas + n
     setMoedas(novo)
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
   }
   function claimMissao(id: string, reward: number) {
     const weekNow = Math.floor(Date.now() / (7 * 86400000))
@@ -1789,7 +1815,7 @@ export default function AppPage() {
     if (moedas < custo) return
     const novoM = moedas - custo, novoF = streakFreezes + 1
     setMoedas(novoM); setStreakFreezes(novoF)
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novoM, streak_freezes: novoF, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novoM, streak_freezes: novoF, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
   }
   async function carregarLiga() {
     try {
@@ -1873,7 +1899,7 @@ export default function AppPage() {
     setXp(novoXp)
     setProvaScoreSemana(provaAcertos)
     try { localStorage.setItem('speakup_prova', semanaProva + ':' + provaAcertos) } catch (e) {}
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
   }
 
   useEffect(() => {
@@ -1931,9 +1957,9 @@ export default function AppPage() {
           const weekNow = Math.floor(Date.now() / (7 * 86400000))
           semNumRef.current = weekNow
           semBaseRef.current = prog.sem_num === weekNow ? (prog.sem_base_xp || 0) : initialXp
-          supabase.from('progresso').upsert({ user_id: data.user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+          supabase.from('progresso').upsert({ user_id: data.user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
         }
-        if (!prog.email && data.user.email) supabase.from('progresso').update({ email: data.user.email }).eq('user_id', data.user.id)
+        if (!prog.email && data.user.email) supabase.from('progresso').update({ email: data.user.email }).eq('user_id', data.user.id).then(() => {})
       } else {
         // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
         // silenciosamente. Cria o profile só se faltar (ignoreDuplicates evita sobrescrever plano/trial de quem já tem).
@@ -1948,7 +1974,7 @@ export default function AppPage() {
         setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
         const initialXp = pendingXp > 0 ? pendingXp : 0
         setXp(initialXp)
-        const { error: insErr } = await supabase.from('progresso').insert({ user_id: data.user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: data.user.email })
+        const { error: insErr } = await supabase.from('progresso').upsert({ user_id: data.user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: data.user.email }, { onConflict: 'user_id', ignoreDuplicates: true })
         if (insErr) { console.log('[XP][Init] Falha ao criar progresso', insErr); lastSyncedXpRef.current = 0 }
         else { lastSyncedXpRef.current = initialXp }
       }
@@ -2003,9 +2029,10 @@ export default function AppPage() {
     })
   }, [])
 
-  async function salvarProgresso(novoXp: number, novasLicoes: string[]) {
+  async function salvarProgresso(novoXp: number, novasLicoes: string[], streakInfo?: { novoStreak: number; freezesRestantes: number }) {
     if (!userId) return
-    const payload = { user_id: userId, xp: novoXp, licoes_concluidas: novasLicoes, ultima_atividade: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }
+    const payload: any = { user_id: userId, xp: novoXp, licoes_concluidas: novasLicoes, ultima_atividade: dataLocal(0), updated_at: new Date().toISOString() }
+    if (streakInfo) { payload.streak = streakInfo.novoStreak; payload.streak_freezes = streakInfo.freezesRestantes }
     console.log('[XP][Licao] Antes de gravar no Supabase', { tabela: 'progresso', payload })
     const { error } = await supabase.from('progresso').upsert(payload, { onConflict: 'user_id' })
     if (error) {
@@ -2079,7 +2106,9 @@ export default function AppPage() {
       ganharMoedas(ehNova ? 10 : 5)
       if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val); registrarDominio(titulo) }
       agendarRevisao(titulo, licaoErrosRef.current === 0)
-      salvarProgresso(novoXp, novasLicoes)
+      const st = calcularStreakHoje()
+      aplicarStreak(st)
+      salvarProgresso(novoXp, novasLicoes, st)
       const monta = frasesMontaveis(lessons[level][lessonIdx].examples)
       setBuildIdx(0); setBuildPicked([]); setBuildChecked(false)
       setView(monta.length ? 'build' : 'finish')
@@ -2173,7 +2202,7 @@ export default function AppPage() {
     const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
-      const res = await callChat({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] })
+      const res = await callChat({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. Responda em texto puro, sem formatação markdown (nada de asteriscos, ---, # ou listas com hífen). ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] })
       if (res.status === 429) { setChatMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.' }]); setLoadingChat(false); return }
       const data = await res.json()
       setChatMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Erro.' }])
@@ -2266,7 +2295,7 @@ export default function AppPage() {
     setSelectedScenario(scenario); setConvMsgs([{ role: 'ai', text: scenario.opener }]); setConvStarted(true); setConvInput('')
     const novo = `${hojeStr}:${simulacoesHoje + 1}`
     try { localStorage.setItem('speakup_sim_dia', novo) } catch (e) {} ; setSimDiaData(novo)
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
   }
 
   async function sendConvMsg() {
@@ -2276,7 +2305,7 @@ export default function AppPage() {
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
-      const res = await callChat({ system: selectedScenario.systemPrompt + ' ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
+      const res = await callChat({ system: selectedScenario.systemPrompt + ' Responda em texto puro, sem formatação markdown (nada de asteriscos, --- ou #). ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
       if (res.status === 429) { setConvMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. Volte amanhã para continuar praticando. 🌟' }]); setLoadingConv(false); return }
       const data = await res.json()
       setConvMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Could not respond.' }])
@@ -2317,7 +2346,7 @@ export default function AppPage() {
     setSrsData(prev => {
       const atual = prev[titulo] || { box: 0, due: hojeStr }
       const box = acertou ? Math.min(atual.box + 1, SRS_INTERVALOS.length - 1) : 0
-      const due = new Date(Date.now() + SRS_INTERVALOS[box] * 86400000).toISOString().split('T')[0]
+      const due = dataLocal(-SRS_INTERVALOS[box])
       const next = { ...prev, [titulo]: { box, due } }
       try { localStorage.setItem('speakup_srs', JSON.stringify(next)) } catch (e) {}
       return next
@@ -3245,7 +3274,7 @@ export default function AppPage() {
                 {convMsgs.map((m, i) => (
                   <div key={i} style={{ maxWidth: '88%', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                     {m.role === 'ai' && <div style={{ fontSize: 10, color: purple, fontWeight: 500, marginBottom: 4, marginLeft: 2 }}><Ic e={selectedScenario?.icon} /> {selectedScenario?.title}</div>}
-                    <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? purple : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>{m.text}</div>
+                    <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? purple : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
                     {m.role === 'ai' && <button onClick={() => falarIngles(m.text, i)} style={{ marginTop: 5, marginLeft: 2, background: speakingId === i ? purple : purpleLight, color: speakingId === i ? '#fff' : purple, border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir</>}</button>}
                   </div>
                 ))}
@@ -3825,7 +3854,7 @@ export default function AppPage() {
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
                 {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Mascote size={22} /></div>}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.text}</div>
+                  <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
                 </div>
               </div>
