@@ -1558,7 +1558,10 @@ export default function AppPage() {
   const [provaNivelEscolhido, setProvaNivelEscolhido] = useState(false)
   const [dbLessons, setDbLessons] = useState<Record<string, Lesson[]>>({ beginner: [], intermediate: [], advanced: [] })
   const recognitionRef = useRef<any>(null)
+  const micAtivoRef = useRef(false)
   const xpSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Segurança: se trocar de aba enquanto grava, encerra o microfone (não fica ligado em 2º plano).
+  useEffect(() => { pararMic() }, [tab])
   const lastSyncedXpRef = useRef<number | null>(null)
   const semNumRef = useRef<number | null>(null)
   const semBaseRef = useRef(0)
@@ -2083,10 +2086,21 @@ export default function AppPage() {
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1); setAjudaTxt(null) }
   }
 
+  // Encerra o reconhecimento de voz de forma limpa: marca como inativo (impede o reinício
+  // automático), DESLIGA os handlers para nenhum resultado atrasado reescrever o campo depois
+  // do envio, e para a gravação. Usado ao tocar em parar e ao enviar a mensagem/áudio.
+  function pararMic() {
+    micAtivoRef.current = false
+    const rec = recognitionRef.current
+    if (rec) { try { rec.onresult = null; rec.onend = null; rec.onerror = null; rec.stop() } catch (e) {} }
+    recognitionRef.current = null
+    setListening(false)
+  }
+
   function micChat() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
-    if (listening) { recognitionRef.current?.stop(); return }
+    if (listening) { pararMic(); return }
     const base = chatInput ? chatInput + ' ' : ''
     const rec = new SR()
     rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
@@ -2097,9 +2111,21 @@ export default function AppPage() {
       for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
       setChatInput((base + txt).replace(/\s+/g, ' ').trim())
     }
-    rec.onend = () => setListening(false)
-    rec.onerror = () => setListening(false)
+    rec.onerror = (e: any) => {
+      // Permissão negada: avisa o aluno em vez de falhar em silêncio.
+      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
+        pararMic(); alert('Preciso da permissão do microfone. 🎤\n\nToque no cadeado 🔒 ao lado do endereço (ou em Ajustes do aparelho → Vonai → Microfone) e permita, depois toque no microfone de novo.')
+      }
+      // 'no-speech'/'aborted': ignora — o onend reinicia e a gravação não morre numa pausa.
+    }
+    rec.onend = () => {
+      // O Android encerra a sessão sozinho após pausas. Se o aluno ainda está gravando,
+      // reinicia para ele poder falar frases longas sem o microfone "morrer" no meio.
+      if (micAtivoRef.current) { try { rec.start() } catch (e) { setListening(false) } }
+      else setListening(false)
+    }
     recognitionRef.current = rec
+    micAtivoRef.current = true
     setListening(true)
     rec.start()
   }
@@ -2133,6 +2159,7 @@ export default function AppPage() {
 
   async function sendChat() {
     if (!chatInput.trim() || loadingChat) return
+    if (listening) pararMic() // ao enviar o áudio, para de gravar
     if (!isPremium && profHoje >= PROF_LIMIT) {
       setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser!` }])
       return
@@ -2209,16 +2236,27 @@ export default function AppPage() {
   function toggleMic(setter: (fn: (prev: string) => string) => void) {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
-    if (listening) { recognitionRef.current?.stop(); setListening(false); return }
+    if (listening) { pararMic(); return }
+    micAtivoRef.current = false
     const rec = new SR()
-    rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 1
+    rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
+    let base = ''; setter(prev => { base = prev ? prev + ' ' : ''; return prev })
     rec.onresult = (e: any) => {
-      const txt = e.results[0][0].transcript
-      setter(prev => prev ? prev + ' ' + txt : txt)
+      let txt = ''
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
+      setter(() => (base + txt).replace(/\s+/g, ' ').trim())
     }
-    rec.onend = () => setListening(false)
-    rec.onerror = () => setListening(false)
+    rec.onerror = (e: any) => {
+      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
+        pararMic(); alert('Preciso da permissão do microfone. 🎤\n\nToque no cadeado 🔒 ao lado do endereço (ou em Ajustes do aparelho → Vonai → Microfone) e permita, depois toque no microfone de novo.')
+      }
+    }
+    rec.onend = () => {
+      if (micAtivoRef.current) { try { rec.start() } catch (e) { setListening(false) } }
+      else setListening(false)
+    }
     recognitionRef.current = rec
+    micAtivoRef.current = true
     setListening(true)
     rec.start()
   }
@@ -2233,6 +2271,7 @@ export default function AppPage() {
 
   async function sendConvMsg() {
     if (!convInput.trim() || loadingConv || !selectedScenario) return
+    if (listening) pararMic() // ao enviar o áudio, para de gravar
     const msg = convInput; setConvInput('')
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
