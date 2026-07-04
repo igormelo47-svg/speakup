@@ -1524,7 +1524,7 @@ const pronCategorias = [
 // Mascote do Vonai ("Vô") — personagem próprio em SVG (fica igual em qualquer aparelho).
 // Mascote do Vonai com humor: reage ao que o aluno faz (comemora acertos, fica
 // triste com erros). 'comemora' quica e ergue os bracinhos.
-function Mascote({ size = 40, humor = 'normal' }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' }) {
+function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora'; prof?: boolean }) {
   const alegre = humor === 'feliz' || humor === 'comemora'
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block', animation: humor === 'comemora' ? 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
@@ -1534,9 +1534,11 @@ function Mascote({ size = 40, humor = 'normal' }: { size?: number; humor?: 'norm
           <stop offset="1" stopColor="#1E63C7" />
         </linearGradient>
       </defs>
-      {/* antena com ponto dourado */}
-      <rect x="30.5" y="4" width="3" height="8" rx="1.5" fill="#FFD98A" />
-      <circle cx="32" cy="4" r="3.4" fill="#FFD98A" />
+      {/* antena com ponto dourado (só sem capelo) */}
+      {!prof && (<>
+        <rect x="30.5" y="4" width="3" height="8" rx="1.5" fill="#FFD98A" />
+        <circle cx="32" cy="4" r="3.4" fill="#FFD98A" />
+      </>)}
       {/* bracinhos para cima na comemoração */}
       {humor === 'comemora' && (<>
         <path d="M8 30 Q2 22 6 15" stroke="#1E63C7" strokeWidth="4" fill="none" strokeLinecap="round" />
@@ -1546,6 +1548,15 @@ function Mascote({ size = 40, humor = 'normal' }: { size?: number; humor?: 'norm
       </>)}
       {/* corpo */}
       <rect x="7" y="11" width="50" height="45" rx="19" fill="url(#vonaiMasc)" />
+      {/* capelo de professor (formatura) com borla dourada */}
+      {prof && (<>
+        <path d="M16 14 Q32 7 48 14 L48 19 Q32 13 16 19 Z" fill="#122A4C" />
+        <path d="M32 1 L59 10 L32 19 L5 10 Z" fill="#16212C" />
+        <path d="M32 4 L52 10 L32 16 L12 10 Z" fill="#1E63C7" opacity="0.35" />
+        <circle cx="32" cy="10" r="2.2" fill="#FFD98A" />
+        <path d="M57 11 L57 21" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="57" cy="23.5" r="2.6" fill="#FFD98A" />
+      </>)}
       {/* olhos */}
       {alegre ? (<>
         <path d="M18 32 Q24 25 30 32" stroke="#fff" strokeWidth="3.6" fill="none" strokeLinecap="round" />
@@ -1565,6 +1576,13 @@ function Mascote({ size = 40, humor = 'normal' }: { size?: number; humor?: 'norm
         <circle cx="41" cy="32" r="3.7" fill="#0F2E5C" />
         <circle cx="23.4" cy="30.4" r="1.2" fill="#fff" />
         <circle cx="39.4" cy="30.4" r="1.2" fill="#fff" />
+      </>)}
+      {/* óculos redondos do professor */}
+      {prof && (<>
+        <circle cx="24" cy="31" r="9.6" stroke="#FFD98A" strokeWidth="2.2" fill="none" />
+        <circle cx="40" cy="31" r="9.6" stroke="#FFD98A" strokeWidth="2.2" fill="none" />
+        <path d="M14.4 29 L8.5 27" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
+        <path d="M49.6 29 L55.5 27" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
       </>)}
       {/* boca */}
       {humor === 'comemora' ? (
@@ -1953,6 +1971,7 @@ export default function AppPage() {
   const [revAcertos, setRevAcertos] = useState(0)
   const [revResult, setRevResult] = useState(false)
   const licaoErrosRef = useRef(0)
+  const licaoComboRef = useRef(0)
   const [whatsapp, setWhatsapp] = useState('')
   const [whatsappInput, setWhatsappInput] = useState('')
   const [pronCat, setPronCat] = useState<string | null>(null)
@@ -2701,7 +2720,7 @@ export default function AppPage() {
   function answer(i: number) {
     if (answered) return
     setAnswered(true); setSelected(i)
-    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); setXpFloat(10); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; if (textoEmIngles(respostaCerta)) setTimeout(() => { try { speakEN(respostaCerta, 9900 + qIdx) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title); guardarErroQ(lessons[level][lessonIdx].q[qIdx], lessons[level][lessonIdx].title) }
+    if (i === lessons[level][lessonIdx].q[qIdx].ans) { licaoComboRef.current++; setXp(x => x + 10); setXpFloat(10); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; if (textoEmIngles(respostaCerta)) setTimeout(() => { try { speakEN(respostaCerta, 9900 + qIdx) } catch (e) {} }, 450) } else { licaoComboRef.current = 0; tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title); guardarErroQ(lessons[level][lessonIdx].q[qIdx], lessons[level][lessonIdx].title) }
   }
 
   function nextQ() {
@@ -3264,14 +3283,50 @@ export default function AppPage() {
             })()}
           </div>
           <div style={{ padding: '16px', marginTop: 8 }}>
-            <div onClick={() => setTab('ai')} style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 18, padding: 16, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 6px 18px rgba(75,63,191,0.3)', animation: 'su_risefade 0.5s ease both' }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={40} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15.5, fontWeight: 700, color: '#fff' }}>Converse com seu Professor IA</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2, lineHeight: 1.4 }}>Correções em tempo real enquanto você pratica inglês</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 9, background: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 700, fontSize: 12.5, padding: '6px 14px', borderRadius: 20 }}>▶ Conversar agora</div>
-              </div>
-            </div>
+            {/* COACH: o professor fala com o aluno — dados reais, tom de treinador. */}
+            {(() => {
+              const cen = rotaDia(scenarios, 1)[0]
+              const xpHoje = Math.max(0, xp - xpInicioDia)
+              const faltaMeta = Math.max(0, metaDiaria - xpHoje)
+              const linhas: string[] = []
+              if (isNovo) {
+                linhas.push(`Oi, ${userName}! Eu sou o Vô, seu professor particular de inglês — disponível 24h por dia. 👋`)
+                linhas.push('Seu primeiro passo leva 3 minutinhos. Vamos fazer juntos?')
+              } else {
+                if (licoesHoje === 0 && streak > 0) linhas.push(`Seu fogo de ${streak} ${streak === 1 ? 'dia' : 'dias'} está esperando — uma lição segura ele. 🔥`)
+                else if (faltaMeta > 0) linhas.push(`Faltam só ${faltaMeta} XP para a meta de hoje. Você consegue!`)
+                else linhas.push(`Meta de hoje batida com ${xpHoje} XP! 🎉 Daqui pra frente é lucro.`)
+                if (streak >= 3 && streak >= recorde) linhas.push(`Você está no seu RECORDE: ${streak} dias seguidos. Bora esticar essa marca?`)
+                else if (recorde > 1 && streak === recorde - 1) linhas.push(`Amanhã você iguala seu recorde de ${recorde} dias. Não pare agora!`)
+                if (cen) linhas.push(`Preparei uma conversa sobre "${cen.title}" para hoje. Topa treinar comigo?`)
+              }
+              const irPrimeiraLicao = () => { const arr = lessons[level] || []; const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title)); setLessonIdx(Math.max(0, idx)); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons'); try { track('coach_primeira_licao') } catch (e) {} }
+              return (
+                <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 20, padding: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(75,63,191,0.3)', animation: 'su_risefade 0.5s ease both' }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={44} prof humor="feliz" /></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#D6CFFF', letterSpacing: 0.5 }}>VÔ · SEU PROFESSOR PARTICULAR</span>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block', flexShrink: 0 }} />
+                        <span style={{ fontSize: 10.5, color: '#B9AFF5' }}>online</span>
+                      </div>
+                      {linhas.map((l, i) => (
+                        <div key={i} style={{ background: 'rgba(255,255,255,0.14)', borderRadius: i === 0 ? '4px 14px 14px 14px' : 14, padding: '9px 13px', color: '#fff', fontSize: 13.5, lineHeight: 1.5, marginTop: 8, animation: `su_risefade 0.45s ease ${0.2 + i * 0.5}s both` }}>{l}</div>
+                      ))}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', animation: `su_risefade 0.45s ease ${0.3 + linhas.length * 0.5}s both` }}>
+                        {isNovo ? (
+                          <button onClick={irPrimeiraLicao} style={{ flex: 1, minWidth: 200, padding: '12px 16px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 24, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(0,0,0,0.18)' }}>📖 Fazer minha primeira lição</button>
+                        ) : (<>
+                          <button onClick={() => { if (cen) { startScenario(cen); setTab('speak') } else setTab('speak'); try { track('coach_conversa_dia') } catch (e) {} }} style={{ flex: 1, minWidth: 150, padding: '11px 14px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 24, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(0,0,0,0.18)' }}>🎭 Conversar agora</button>
+                          <button onClick={() => setTab('ai')} style={{ padding: '11px 14px', background: 'rgba(255,255,255,0.16)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 24, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>💬 Tirar dúvida</button>
+                        </>)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
             <div onClick={() => { setTab('liga'); carregarLiga() }} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 30 }}>🏆</div>
               <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2 }}>Dispute o topo do ranking com outros alunos</div></div>
@@ -4342,7 +4397,7 @@ export default function AppPage() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios <Ic e="→" /></button>
+                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('quiz') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Começar exercícios <Ic e="→" /></button>
               </div>
             )}
             {view === 'quiz' && (
@@ -4356,7 +4411,16 @@ export default function AppPage() {
                   <div style={{ fontSize: 12, color: blue, fontWeight: 500, background: blueLight, padding: '3px 8px', borderRadius: 6 }}>{qIdx + 1}/{currentLesson.q.length}</div>
                 </div>
                 {currentLesson.q[qIdx].ctx && <div style={{ background: '#F1EFE8', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>{currentLesson.q[qIdx].ctx}</div>}
-                <div style={{ background: blueLight, borderRadius: 14, padding: 16, marginBottom: 16 }}><div style={{ fontSize: 17, fontWeight: 500, color: '#042C53', lineHeight: 1.4 }}>{currentLesson.q[qIdx].q}</div></div>
+                <div style={{ background: blueLight, borderRadius: 14, padding: 16, marginBottom: 16, position: 'relative' }}>
+                  <div style={{ fontSize: 17, fontWeight: 500, color: '#042C53', lineHeight: 1.4 }}>{currentLesson.q[qIdx].q}</div>
+                  {answered && selected === currentLesson.q[qIdx].ans && (
+                    <div style={{ position: 'absolute', top: -8, right: 6, pointerEvents: 'none' }}>
+                      {['#16A34A', '#4ADE80', '#F5A623', '#2E72D6', '#DB2777', '#7C3AED', '#FFD98A', '#E24B4A'].map((cor, ci) => (
+                        <span key={ci} style={{ position: 'absolute', top: 0, right: ci * 9, width: 8, height: 8, borderRadius: ci % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1 + (ci % 4) * 0.25}s ease-in ${(ci % 5) * 0.06}s forwards` }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                   {currentLesson.q[qIdx].opts.map((o, i) => {
                     const isCorrect = answered && i === currentLesson.q[qIdx].ans
@@ -4371,19 +4435,19 @@ export default function AppPage() {
                   })}
                 </div>
                 {!answered && (
-                  <button onClick={pedirAjuda} disabled={ajudaLoading} style={{ width: '100%', padding: '11px', background: '#EEEDFE', color: '#4B3FBF', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 600, cursor: ajudaLoading ? 'default' : 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit' }}><Mascote size={20} /> {ajudaLoading ? 'Pensando...' : 'Pedir ajuda ao professor'}</button>
+                  <button onClick={pedirAjuda} disabled={ajudaLoading} style={{ width: '100%', padding: '11px', background: '#EEEDFE', color: '#4B3FBF', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 600, cursor: ajudaLoading ? 'default' : 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit' }}><Mascote size={20} prof /> {ajudaLoading ? 'Pensando...' : 'Pedir ajuda ao professor'}</button>
                 )}
                 {ajudaTxt && !answered && (
                   <div style={{ background: '#EEEDFE', border: '1px solid #D9D6F7', borderRadius: 12, padding: 14, marginBottom: 14, display: 'flex', gap: 10 }}>
-                    <div style={{ flexShrink: 0 }}><Mascote size={26} /></div>
+                    <div style={{ flexShrink: 0 }}><Mascote size={26} prof /></div>
                     <div style={{ fontSize: 13, color: '#3A3273', lineHeight: 1.55 }}>{ajudaTxt}</div>
                   </div>
                 )}
                 {answered && (
-                  <div style={{ background: selected === currentLesson.q[qIdx].ans ? greenLight : '#FCEBEB', borderRadius: 12, padding: 14, marginBottom: 14, display: 'flex', gap: 10 }}>
+                  <div style={{ background: selected === currentLesson.q[qIdx].ans ? greenLight : '#FCEBEB', borderRadius: 12, padding: 14, marginBottom: 14, display: 'flex', gap: 10, animation: 'su_pop 0.35s cubic-bezier(0.16,1,0.3,1)' }}>
                     <span style={{ flexShrink: 0 }}><Mascote size={30} humor={selected === currentLesson.q[qIdx].ans ? 'comemora' : 'triste'} /></span>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: selected === currentLesson.q[qIdx].ans ? '#27500A' : '#633806', marginBottom: 2 }}>{selected === currentLesson.q[qIdx].ans ? 'Correto!' : 'Quase lá!'}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: selected === currentLesson.q[qIdx].ans ? '#27500A' : '#633806', marginBottom: 2 }}>{selected === currentLesson.q[qIdx].ans ? (licaoComboRef.current >= 2 ? <>Correto! <span style={{ background: '#F5A623', color: '#fff', fontWeight: 800, fontSize: 11.5, padding: '2px 9px', borderRadius: 12, marginLeft: 4 }}>🔥 {licaoComboRef.current} seguidas!</span></> : 'Correto!') : 'Quase lá!'}</div>
                       <div style={{ fontSize: 13, color: selected === currentLesson.q[qIdx].ans ? green : '#854F0B', lineHeight: 1.5 }}>{currentLesson.q[qIdx].exp}</div>
                     </div>
                   </div>
@@ -4838,7 +4902,7 @@ export default function AppPage() {
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: 'linear-gradient(180deg, #F0EEFB 0%, #E6EAFB 60%, #DCE4FA 100%)' }}>
           <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={32} /></div>
+            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={32} prof /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Vô, seu professor de IA</div>
               <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
@@ -4849,7 +4913,7 @@ export default function AppPage() {
             {chatMsgs.length <= 1 && (
               <>
                 <div style={{ textAlign: 'center', padding: '4px 0 2px' }}>
-                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={72} /></div>
+                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={72} prof humor="feliz" /></div>
                   <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>Toque no <b>Vô</b> pra me ouvir, ou escolha um tema 👇</div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4, justifyContent: 'center' }}>
@@ -4861,7 +4925,7 @@ export default function AppPage() {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Mascote size={22} /></div>}
+                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Mascote size={22} prof /></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
@@ -4870,7 +4934,7 @@ export default function AppPage() {
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Mascote size={22} /></div>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Mascote size={22} prof /></div>
                 <div style={{ padding: '14px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 5, alignItems: 'center' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
