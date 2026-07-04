@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
+import { track } from '@vercel/analytics'
 import InstallButton from '../InstallButton'
 
 export default function Login() {
@@ -42,6 +43,7 @@ export default function Login() {
           trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
         }, { onConflict: 'id', ignoreDuplicates: true })
       }
+      try { track('cadastro') } catch (e) {}
       // Se a confirmação de e-mail estiver ligada no Supabase, não vem sessão: avisa o aluno.
       if (!data.session) {
         setAviso('Conta criada! Confirme seu e-mail (verifique também o spam) e depois entre.')
@@ -54,6 +56,7 @@ export default function Login() {
         setErro(/confirm/i.test(error.message) ? 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).' : 'E-mail ou senha incorretos.')
         setLoading(false); return
       }
+      try { track('login') } catch (e) {}
       router.push('/app')
     }
     setLoading(false)

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
+import { track } from '@vercel/analytics'
 import {
   type LucideIcon,
   Briefcase, BriefcaseBusiness, Plane, Coffee, BarChart3, Hotel, Stethoscope,
@@ -16,7 +17,7 @@ import {
   Flag, X, Heart, Rocket, Folder, Home, Apple, Shirt, Goal, ChefHat, Cat, Map as MapIcon,
   Image as ImageIcon, ArrowRight, ArrowLeft, Check, CircleCheck, BookText, Pause, Square,
   Volume2, MessageCircle, Settings, HelpingHand, Bell, Bird, Brain,
-  Landmark, Key, Pill, Puzzle, Feather, Footprints, Moon, Gem,
+  Landmark, Key, Pill, Puzzle, Feather, Footprints, Moon, Gem, Headphones, Turtle,
 } from 'lucide-react'
 
 // Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
@@ -54,6 +55,7 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
   '🏦': Landmark, '🏛️': Landmark, '🔑': Key, '💊': Pill, '🚨': TriangleAlert,
   '🏋️': BicepsFlexed, '💇': Scissors, '🧩': Puzzle, '🎚️': Settings, '🪞': UserRound,
   '🧰': Wrench, '🪶': Feather, '👟': Footprints, '🌑': Moon, '🧃': Coffee, '💎': Gem,
+  '🎧': Headphones, '🐢': Turtle, '🇧🇷': Flag,
 }
 
 // Renderiza um ícone do lucide a partir do emoji equivalente, mantendo tamanho/cor.
@@ -591,7 +593,19 @@ const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem',
 const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#0EA5A5', work: '#4B3FBF', food: '#E8590C', home: '#B45309', verbs: '#7C3AED', feelings: '#DB2777', daily: '#0D9488', health: '#DC2626', tech: '#4F46E5', shopping: '#C026D3', weather: '#0284C7', family: '#EA580C', nature: '#16A34A', city: '#475569' }
 
 interface Msg { role: string; text: string }
-type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'finish'
+type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'ditado' | 'finish'
+// Ditado (ouvir e escrever): treina listening + escrita com os exemplos da própria lição.
+// Frases curtas e sem pontuação no meio, até 2 por lição para não cansar.
+function frasesDitado(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
+  return (examples || []).filter(e => {
+    const en = (e.en || '').trim()
+    if (!en || en.length > 60) return false
+    const n = en.split(/\s+/).filter(Boolean).length
+    if (n < 3 || n > 9) return false
+    if (/[.!?]/.test(en.replace(/[.!?]+$/, ''))) return false
+    return true
+  }).slice(0, 2)
+}
 // Exercício "montar a frase": só usa exemplos de UMA frase só (3 a 10 palavras).
 // Frases com "." "?" "!" no meio costumam ter tradução PT incompleta -> descartadas.
 function frasesMontaveis(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
@@ -832,8 +846,34 @@ const expressoes = [
   {en:'In the long run',pt:'A longo prazo',ex:'It pays off in the long run.'},
   {en:'Take care',pt:'Se cuida',ex:'Bye! Take care!'},
 ]
+// Escolhe a melhor voz em inglês do aparelho. A padrão costuma ser robótica; vozes
+// "Natural" (Windows/Edge) e "Google" (Android/Chrome) soam muito melhor.
+function melhorVozEN(): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null
+  const vs = window.speechSynthesis.getVoices().filter(v => /^en([-_]|$)/i.test(v.lang))
+  if (!vs.length) return null
+  const nota = (v: SpeechSynthesisVoice) => {
+    let n = 0
+    if (/natural|neural|premium|enhanced/i.test(v.name)) n -= 40
+    if (/google/i.test(v.name)) n -= 20
+    if (/en[-_]US/i.test(v.lang)) n -= 10
+    if (/samantha|aria|jenny|ava/i.test(v.name)) n -= 5
+    return n
+  }
+  return [...vs].sort((a, b) => nota(a) - nota(b))[0]
+}
+function falarNavegador(text: string, rate = 0.95, onend?: () => void) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) { onend?.(); return }
+  window.speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance(text)
+  u.lang = 'en-US'; u.rate = rate
+  const v = melhorVozEN(); if (v) u.voice = v
+  if (onend) { u.onend = onend; u.onerror = onend }
+  window.speechSynthesis.speak(u)
+}
+
 function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string};color?:string}) {
-  function speak(){if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(word.en);u.lang='en-US';u.rate=0.85;window.speechSynthesis.cancel();window.speechSynthesis.speak(u)}}
+  function speak(){falarNavegador(word.en, 0.85)}
   // Alguns registros já vêm com as barras (/x/) e outros não — normaliza para exibir /x/ uma única vez.
   const pron = (word.pron || '').replace(/^\/+|\/+$/g, '')
   const traducao = word.pt ? word.pt.charAt(0).toUpperCase() + word.pt.slice(1) : ''
@@ -865,7 +905,7 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
   const weekWords = rota(words, 10)
   const weekCog = rota(falsosCognatos, 8)
   const weekExp = rota(expressoes, 8)
-  const falarEN = (t:string) => { if('speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(t); u.lang='en-US'; u.rate=0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } }
+  const falarEN = (t:string) => falarNavegador(t, 0.9)
   const subt = dictMode==='cognatos' ? 'Palavras que enganam o brasileiro' : dictMode==='expressoes' ? 'O que os nativos realmente dizem' : 'Toque na palavra para ouvir'
   return(
     <div>
@@ -1429,6 +1469,19 @@ function Mascote({ size = 40 }: { size?: number }) {
   )
 }
 
+// Sons que mais derrubam brasileiros no inglês, com dica pronta — aparece na hora,
+// sem esperar a resposta da IA (e funciona offline).
+const SONS_BR: { id: string; re: RegExp; dica: string }[] = [
+  { id: 'th', re: /th/i, dica: 'o "th" não existe em português: encoste a ponta da língua nos dentes e sopre. "Think" não é "sink" nem "fink".' },
+  { id: 'ed-final', re: /[a-z]ed$/i, dica: 'o "-ed" final quase nunca soa "éd": em "worked" vira /t/ (workt), em "played" vira /d/ (playd). Não acrescente uma sílaba extra.' },
+  { id: 'h-aspirado', re: /^h[aeiou]/i, dica: 'o "h" inglês é soprado, como um "rr" carioca bem leve: "house" começa com sopro — brasileiro tende a comer esse som.' },
+  { id: 'r-ingles', re: /^r/i, dica: 'o "r" inglês não vibra como o nosso: a língua NÃO toca o céu da boca. "Red" não é "réd" de "rato".' },
+  { id: 'i-longo', re: /ee|ea/i, dica: 'capriche na vogal longa: "sheep" (iiii) é diferente de "ship" (i curtinho). Brasileiro costuma encurtar as duas.' },
+  { id: 'w', re: /^w/i, dica: 'o "w" é um "u" rápido, nunca "v": "wine" ≠ "vine". Arredonde os lábios como em "uau".' },
+  { id: 's-inicial', re: /^s[tpkc]/i, dica: 'não coloque um "i" antes do "s": "school" é "skul", não "eskul" — esse é o erro nº 1 do brasileiro.' },
+  { id: 'oo', re: /oo/i, dica: 'o "oo" muda de palavra pra palavra: "food" é "u" longo (fuud), "book" é "u" curto (buk).' },
+]
+
 // A IA às vezes responde com markdown mesmo sem pedirmos. Renderiza o básico (**negrito**)
 // e remove separadores "---" em vez de mostrar os asteriscos crus na tela.
 function TextoIA({ text }: { text: string }) {
@@ -1460,6 +1513,9 @@ export default function AppPage() {
   const [buildIdx, setBuildIdx] = useState(0)
   const [buildPicked, setBuildPicked] = useState<number[]>([])
   const [buildChecked, setBuildChecked] = useState(false)
+  const [ditIdx, setDitIdx] = useState(0)
+  const [ditInput, setDitInput] = useState('')
+  const [ditChecked, setDitChecked] = useState(false)
   const [xp, setXp] = useState(0)
   const [xpHydrated, setXpHydrated] = useState(false)
   const [streak, setStreak] = useState(0)
@@ -1570,6 +1626,17 @@ export default function AppPage() {
   const [dbLessons, setDbLessons] = useState<Record<string, Lesson[]>>({ beginner: [], intermediate: [], advanced: [] })
   const recognitionRef = useRef<any>(null)
   const micAtivoRef = useRef(false)
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
+  const ttsServidorRef = useRef(true)
+  // As vozes do navegador carregam de forma assíncrona — este listener garante que
+  // melhorVozEN() encontre a lista completa no primeiro toque em "Ouvir".
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    const carrega = () => window.speechSynthesis.getVoices()
+    carrega()
+    window.speechSynthesis.addEventListener?.('voiceschanged', carrega)
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', carrega)
+  }, [])
   const xpSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Segurança: se trocar de aba enquanto grava, encerra o microfone (não fica ligado em 2º plano).
   useEffect(() => { pararMic() }, [tab])
@@ -1688,8 +1755,10 @@ export default function AppPage() {
       const nome = userName ? ' ' + userName : ''
       const fracos = perfilIa.topicos_fracos || []
       const fraco = fracos[fracos.length - 1]
+      const sons = perfilIa.sons_dificeis || []
       let txt = `Oi${nome}! 👋 Sou seu professor pessoal de inglês. `
       if (fraco) txt += `Da última vez, "${fraco}" te deu um pouco de trabalho — quer revisar isso ou praticar outra coisa hoje?`
+      else if (sons.length) txt += `Reparei que ${SONS_NOME[sons[sons.length - 1]] || 'um som'} ainda te desafia na pronúncia. Quer umas dicas, ou prefere praticar outra coisa?`
       else if (streak > 0) txt += `Você está com ${streak} ${streak === 1 ? 'dia' : 'dias'} de sequência, mandando bem! O que vamos praticar hoje?`
       else txt += 'O que você quer praticar hoje? Posso explicar gramática, vocabulário ou puxar uma conversa.'
       return [{ role: 'ai', text: txt }]
@@ -1843,7 +1912,19 @@ export default function AppPage() {
     const soma = tw.reduce((acc, w) => { const s = melhorSim(w, hw); return acc + (s >= 0.5 ? s : 0) }, 0)
     const score = tw.length ? Math.round(soma / tw.length * 100) : 0
     setPronScore(score)
+    try { track('pronuncia_avaliada', { score }) } catch (e) {}
+    // Som fraco vai para o perfil do aluno — o Professor IA passa a saber e reforçar.
+    if (score < 70) {
+      const pior = tw.map(w => ({ w, s: melhorSim(w, hw) })).filter(d => d.s < 0.75).sort((a, b) => a.s - b.s)[0]
+      const som = pior ? SONS_BR.find(p => p.re.test(pior.w)) : null
+      if (som) registrarSomDificil(som.id)
+    }
     if (score < 90) pedirDicaPron(target, heard); else setPronTip('')
+  }
+
+  function registrarSomDificil(somId: string) {
+    const sons = Array.from(new Set([...(perfilIa.sons_dificeis || []), somId])).slice(-8)
+    salvarPerfil({ ...perfilIa, sons_dificeis: sons, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO })
   }
 
   function gravarPron(target: string) {
@@ -1903,38 +1984,45 @@ export default function AppPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { router.push('/login'); return }
-      const nome = data.user.user_metadata?.nome || data.user.email?.split('@')[0] || 'Aluno'
+    // getSession lê a sessão guardada no aparelho — funciona OFFLINE (getUser exigiria rede,
+    // e sem internet expulsaria o aluno para o login).
+    supabase.auth.getSession().then(async ({ data: sess }) => {
+      const user = sess.session?.user
+      if (!user) { router.push('/login'); return }
+      const nome = user.user_metadata?.nome || user.email?.split('@')[0] || 'Aluno'
       setUserName(nome.split(' ')[0])
-      setUserId(data.user.id)
-      setUserEmail(data.user.email || '')
+      setUserId(user.id)
+      setUserEmail(user.email || '')
       // Troca de conta no mesmo aparelho: o estado local (onboarding, plano do dia, etc.)
       // fica no localStorage do dispositivo. Se o usuário mudou, zera tudo para começar limpo.
       try {
         const prevUid = localStorage.getItem('speakup_uid')
-        if (prevUid && prevUid !== data.user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+        if (prevUid && prevUid !== user.id) {
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
           setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setBauDia(''); setTempoMin(0); setMissoes({ week: 0, claimed: [] })
         }
-        localStorage.setItem('speakup_uid', data.user.id)
+        localStorage.setItem('speakup_uid', user.id)
       } catch (e) {}
       const { data: progRows, error: progReadError } = await supabase
         .from('progresso')
         .select('*')
-        .eq('user_id', data.user.id)
+        .eq('user_id', user.id)
         .limit(1)
-      const prog = progRows?.[0] || null
+      let prog = progRows?.[0] || null
+      // Sem rede (ou banco fora do ar), usa a última foto do progresso salva no aparelho —
+      // o aluno continua estudando offline e o XP pendente sincroniza quando a rede voltar.
+      let usandoCache = false
+      if (!prog && progReadError) {
+        try { const raw = localStorage.getItem('speakup_prog_cache'); if (raw) { prog = JSON.parse(raw); usandoCache = true } } catch (e) {}
+        console.log('[XP][Read] Erro ao ler progresso (usando cache local: ' + usandoCache + ')', progReadError)
+      }
       // Trial de 2 dias: enquanto profiles.trial_expira estiver no futuro, o aluno usa o app como Premium.
       let emTrial = false
       try {
-        const { data: profRows } = await supabase.from('profiles').select('trial_expira').eq('id', data.user.id).limit(1)
+        const { data: profRows } = await supabase.from('profiles').select('trial_expira').eq('id', user.id).limit(1)
         const texp = profRows?.[0]?.trial_expira
         if (texp) emTrial = new Date(texp).getTime() > Date.now()
       } catch (e) {}
-      if (progReadError) {
-        console.log('[XP][Read] Erro ao ler progresso', progReadError)
-      }
       let pendingXp = 0
       try {
         const rawPending = localStorage.getItem(XP_PENDING_KEY)
@@ -1945,27 +2033,38 @@ export default function AppPage() {
         const dbXp = prog.xp || 0
         const initialXp = Math.max(dbXp, pendingXp)
         setXp(initialXp)
-        lastSyncedXpRef.current = dbXp
+        lastSyncedXpRef.current = usandoCache ? null : dbXp
         setPerfilIa(prog.perfil_ia || {})
         setStreak(prog.streak || 0)
         setLicoesConcluidas(prog.licoes_concluidas || [])
-        setIsPremium(BETA_GRATIS || prog.is_premium || emTrial)
+        setIsPremium(BETA_GRATIS || prog.is_premium || emTrial || (usandoCache && !!prog.em_trial_cache))
         setWhatsapp(prog.whatsapp || '')
         setMoedas(prog.moedas || 0)
         setStreakFreezes(prog.streak_freezes || 0)
-        {
+        if (!usandoCache) {
+          // Dias ativos: um marcador por dia de uso, para as métricas de retenção
+          // D1/D7/D30 (consultas prontas em retencao.sql). Upsert separado: se a
+          // coluna ainda não existir no banco, nada mais é afetado.
+          try {
+            const dias: string[] = Array.isArray(prog.dias_ativos) ? prog.dias_ativos : []
+            if (!dias.includes(hojeStr)) {
+              supabase.from('progresso').upsert({ user_id: user.id, dias_ativos: [...dias, hojeStr].slice(-60), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+            }
+          } catch (e) {}
+          // Foto local do progresso para o modo offline (só o essencial).
+          try { localStorage.setItem('speakup_prog_cache', JSON.stringify({ xp: dbXp, streak: prog.streak || 0, licoes_concluidas: prog.licoes_concluidas || [], moedas: prog.moedas || 0, streak_freezes: prog.streak_freezes || 0, perfil_ia: prog.perfil_ia || {}, is_premium: !!prog.is_premium, em_trial_cache: emTrial, whatsapp: prog.whatsapp || '' })) } catch (e) {}
           const weekNow = Math.floor(Date.now() / (7 * 86400000))
           semNumRef.current = weekNow
           semBaseRef.current = prog.sem_num === weekNow ? (prog.sem_base_xp || 0) : initialXp
-          supabase.from('progresso').upsert({ user_id: data.user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+          supabase.from('progresso').upsert({ user_id: user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+          if (!prog.email && user.email) supabase.from('progresso').update({ email: user.email }).eq('user_id', user.id).then(() => {})
         }
-        if (!prog.email && data.user.email) supabase.from('progresso').update({ email: data.user.email }).eq('user_id', data.user.id).then(() => {})
       } else {
         // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
         // silenciosamente. Cria o profile só se faltar (ignoreDuplicates evita sobrescrever plano/trial de quem já tem).
         await supabase.from('profiles').upsert({
-          id: data.user.id,
-          email: data.user.email,
+          id: user.id,
+          email: user.email,
           nome: nome,
           plano: 'free',
           ativo: true,
@@ -1974,7 +2073,7 @@ export default function AppPage() {
         setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
         const initialXp = pendingXp > 0 ? pendingXp : 0
         setXp(initialXp)
-        const { error: insErr } = await supabase.from('progresso').upsert({ user_id: data.user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: data.user.email }, { onConflict: 'user_id', ignoreDuplicates: true })
+        const { error: insErr } = await supabase.from('progresso').upsert({ user_id: user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: user.email }, { onConflict: 'user_id', ignoreDuplicates: true })
         if (insErr) { console.log('[XP][Init] Falha ao criar progresso', insErr); lastSyncedXpRef.current = 0 }
         else { lastSyncedXpRef.current = initialXp }
       }
@@ -2109,9 +2208,12 @@ export default function AppPage() {
       const st = calcularStreakHoje()
       aplicarStreak(st)
       salvarProgresso(novoXp, novasLicoes, st)
+      try { track('licao_concluida', { licao: titulo, nivel: level }) } catch (e) {}
       const monta = frasesMontaveis(lessons[level][lessonIdx].examples)
       setBuildIdx(0); setBuildPicked([]); setBuildChecked(false)
-      setView(monta.length ? 'build' : 'finish')
+      setDitIdx(0); setDitInput(''); setDitChecked(false)
+      const dit = frasesDitado(lessons[level][lessonIdx].examples)
+      setView(monta.length ? 'build' : dit.length ? 'ditado' : 'finish')
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1); setAjudaTxt(null) }
   }
 
@@ -2189,6 +2291,7 @@ export default function AppPage() {
   async function sendChat() {
     if (!chatInput.trim() || loadingChat) return
     if (listening) pararMic() // ao enviar o áudio, para de gravar
+    try { track('professor_mensagem') } catch (e) {}
     if (!isPremium && profHoje >= PROF_LIMIT) {
       setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser!` }])
       return
@@ -2235,18 +2338,41 @@ export default function AppPage() {
     }
   }
 
-  function speakEN(text: string, id: number) {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
+  // Voz do app: tenta a voz neural do servidor (/api/tts, se a chave estiver configurada na
+  // Vercel) com cache local — cada frase só é gerada uma vez. Sem chave ou sem rede, cai
+  // para a melhor voz do navegador. ttsServidorRef evita re-tentar a cada toque.
+  async function speakEN(text: string, id: number) {
+    if (typeof window === 'undefined') return
+    try { window.speechSynthesis?.cancel() } catch (e) {}
+    if (ttsAudioRef.current) { try { ttsAudioRef.current.pause() } catch (e) {} ttsAudioRef.current = null }
     if (speakingId === id) { setSpeakingId(-1); return }
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'en-US'; u.rate = 0.95
-    const vs = window.speechSynthesis.getVoices()
-    const enV = vs.find(v => /en[-_]US/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang))
-    if (enV) u.voice = enV
-    u.onend = () => setSpeakingId(-1)
     setSpeakingId(id)
-    window.speechSynthesis.speak(u)
+    const fim = () => setSpeakingId(s => (s === id ? -1 : s))
+    if (ttsServidorRef.current && text.length <= 290) {
+      try {
+        const cache = 'caches' in window ? await caches.open('vonai-tts-v1') : null
+        const chave = '/api/tts?t=' + encodeURIComponent(text)
+        let resp = cache ? await cache.match(chave) : undefined
+        if (!resp) {
+          const { data: s } = await supabase.auth.getSession()
+          const token = s.session?.access_token
+          if (token) {
+            const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text }) })
+            if (r.ok) { if (cache) { try { await cache.put(chave, r.clone()) } catch (e) {} } resp = r }
+            else if (r.status === 501) ttsServidorRef.current = false
+          }
+        }
+        if (resp) {
+          const blob = await resp.blob()
+          const audio = new Audio(URL.createObjectURL(blob))
+          ttsAudioRef.current = audio
+          audio.onended = fim; audio.onerror = fim
+          await audio.play()
+          return
+        }
+      } catch (e) {}
+    }
+    falarNavegador(text, 0.95, fim)
   }
 
   function falarIngles(text: string, id: number) {
@@ -2301,6 +2427,7 @@ export default function AppPage() {
   async function sendConvMsg() {
     if (!convInput.trim() || loadingConv || !selectedScenario) return
     if (listening) pararMic() // ao enviar o áudio, para de gravar
+    try { track('simulador_mensagem', { cenario: selectedScenario.title }) } catch (e) {}
     const msg = convInput; setConvInput('')
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
@@ -2329,7 +2456,7 @@ export default function AppPage() {
   const marcarVocab = (en: string, estado: string) => { try { localStorage.setItem('speakup_vocab_dia', hojeStr) } catch (e) {} ; setVocabDiaData(hojeStr); setVocabSrs(prev => { const next = { ...prev, [en]: estado }; try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(next)) } catch (e) {} ; return next }) }
   const vocabFeitoHoje = vocabDiaData === hojeStr
   const OBJETIVO_PADRAO = 'Conversar 30 minutos em inglês sem usar português'
-  function salvarPerfil(novo: any) { setPerfilIa(novo); if (userId) supabase.from('progresso').upsert({ user_id: userId, perfil_ia: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }) }
+  function salvarPerfil(novo: any) { setPerfilIa(novo); if (userId) supabase.from('progresso').upsert({ user_id: userId, perfil_ia: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {}) }
   function registrarErro(topico: string) {
     const fracos = Array.from(new Set([...(perfilIa.topicos_fracos || []), topico])).slice(-12)
     salvarPerfil({ ...perfilIa, topicos_fracos: fracos, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO })
@@ -2379,13 +2506,16 @@ export default function AppPage() {
     setXp(novoXp)
   }
 
+  const SONS_NOME: Record<string, string> = { th: 'o som "th" (think/this)', 'ed-final': 'a terminação "-ed" dos verbos', 'h-aspirado': 'o "h" aspirado (house/hot)', 'r-ingles': 'o "r" inglês', 'i-longo': 'vogais longas vs curtas (sheep/ship)', w: 'o som do "w" (wine≠vine)', 's-inicial': 'palavras começando com "s" + consoante (school)', oo: 'os sons de "oo" (food/book)' }
   function resumoPerfil(): string {
     const p = perfilIa || {}
-    const partes: string[] = [`Aluno: ${userName || 'estudante'} (nível ${level}, ${xp} XP, sequência de ${streak} dias).`]
+    const partes: string[] = [`Aluno: ${userName || 'estudante'} (nível ${level}, ${xp} XP, sequência de ${streak} dias, ${doneLessons} lições concluídas).`]
     partes.push(`Objetivo do aluno: ${p.objetivo || OBJETIVO_PADRAO}.`)
     if (p.topicos_fracos?.length) partes.push(`Pontos em que o aluno erra e precisa de reforço: ${p.topicos_fracos.slice(-6).join('; ')}.`)
-    if (p.dominados?.length) partes.push(`Tópicos que o aluno já domina: ${p.dominados.slice(-6).join('; ')}.`)
-    partes.push('Use esse histórico para personalizar, mencionar o progresso quando fizer sentido e focar nos pontos fracos. Não invente dados que não estão aqui.')
+    if (p.dominados?.length) partes.push(`Tópicos que o aluno já domina: ${p.dominados.slice(-4).join('; ')}. Última lição concluída: ${p.dominados[p.dominados.length - 1]}.`)
+    if (p.sons_dificeis?.length) partes.push(`Sons de pronúncia em que o aluno tem dificuldade: ${p.sons_dificeis.map((s: string) => SONS_NOME[s] || s).join('; ')}.`)
+    partes.push('Use esse histórico para personalizar: cite a lição ou o erro específico do aluno quando fizer sentido, elogie o progresso real e foque nos pontos fracos. Não invente dados que não estão aqui.')
+    partes.push('O aluno é brasileiro: fique de olho nos erros clássicos de brasileiro (traduzir "ter anos" como "have years" em vez de "be ... years old", esquecer o "s" da 3ª pessoa, confundir make/do, in/on/at, falsos cognatos como pretend/actually/push) e corrija com carinho quando aparecerem.')
     return partes.join(' ')
   }
   const metaDiaria = perfilIa.meta_diaria || 50
@@ -2963,7 +3093,8 @@ export default function AppPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                     <button onClick={() => ouvirPron(frase.en)} style={{ flex: 1, padding: 14, background: purpleLight, color: '#3C3489', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}><Ic e="🔊" /> Ouvir</button>
-                    <button onClick={() => gravarPron(frase.en)} style={{ flex: 1, padding: 14, background: pronListening ? '#C0392B' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', animation: pronListening ? 'su_pulse 1.2s infinite' : 'none' }}>{pronListening ? <><Ic e="⏹️" /> Parar e avaliar</> : <><Ic e="🎤" /> Falar</>}</button>
+                    <button onClick={() => falarNavegador(frase.en, 0.55)} title="Ouvir bem devagar" style={{ padding: '14px 16px', background: purpleLight, color: '#3C3489', border: 'none', borderRadius: 12, fontSize: 15, cursor: 'pointer', flexShrink: 0 }}><Ic e="🐢" /></button>
+                    <button onClick={() => gravarPron(frase.en)} style={{ flex: 1, padding: 14, background: pronListening ? '#C0392B' : purple, border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', color: '#fff', animation: pronListening ? 'su_pulse 1.2s infinite' : 'none' }}>{pronListening ? <><Ic e="⏹️" /> Parar e avaliar</> : <><Ic e="🎤" /> Falar</>}</button>
                   </div>
                   {pronScore !== null && (
                     <div style={{ background: 'var(--color-background-secondary)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
@@ -2974,6 +3105,13 @@ export default function AppPage() {
                       <div style={{ fontSize: 15, fontStyle: 'italic', color: 'var(--color-text-primary)', marginBottom: 12 }}>"{pronHeard || '...'}"</div>
                       {pronScore >= 90 && <div style={{ background: '#E3F3EA', borderRadius: 10, padding: 12, fontSize: 13, color: '#16A34A', fontWeight: 600, textAlign: 'center' }}><Ic e="🎉" /> {pronScore === 100 ? 'Perfeito! Pronúncia certeira!' : 'Muito bom! Quase perfeito!'}</div>}
                       {pronScore >= 70 && pronScore < 90 && <div style={{ background: '#FEF3E2', borderRadius: 10, padding: 12, fontSize: 13, color: '#E08A1E', fontWeight: 600, textAlign: 'center' }}><Ic e="👍" /> Boa! Ajuste as palavras em laranja.</div>}
+                      {pronScore < 90 && (() => {
+                        // Dica local instantânea: acha a pior palavra e vê se ela tem um som clássico de brasileiro.
+                        const pior = palavras.map((w: string) => w.toLowerCase().replace(/[^a-z0-9']/g, '')).filter(Boolean)
+                          .map((w: string) => ({ w, s: melhorSim(w, heardSet) })).filter((d: any) => d.s < 0.75).sort((a: any, b: any) => a.s - b.s)[0]
+                        const som = pior ? SONS_BR.find(p => p.re.test(pior.w)) : null
+                        return som ? <div style={{ background: '#FEF3E2', borderRadius: 10, padding: 12, fontSize: 13, color: '#8A5A10', lineHeight: 1.5, marginBottom: 8 }}><Ic e="🇧🇷" /> <b>Na palavra “{pior.w}”:</b> {som.dica}</div> : null
+                      })()}
                       {pronLoadingTip && <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}><Ic e="💡" /> Analisando sua pronúncia...</div>}
                       {pronTip && <div style={{ background: purpleLight, borderRadius: 10, padding: 12, fontSize: 13, color: '#3C3489', lineHeight: 1.5 }}><Ic e="💡" /> {pronTip}</div>}
                     </div>
@@ -3415,9 +3553,12 @@ export default function AppPage() {
                 <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 16, marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, color: blue, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>Exemplos</div>
                   {currentLesson.examples.map((ex, i) => (
-                    <div key={i} style={{ marginBottom: i < currentLesson.examples.length - 1 ? 12 : 0, paddingBottom: i < currentLesson.examples.length - 1 ? 12 : 0, borderBottom: i < currentLesson.examples.length - 1 ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: blue, marginBottom: 3 }}>{ex.en}</div>
-                      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{ex.pt}</div>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < currentLesson.examples.length - 1 ? 12 : 0, paddingBottom: i < currentLesson.examples.length - 1 ? 12 : 0, borderBottom: i < currentLesson.examples.length - 1 ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>
+                      <button onClick={() => speakEN(ex.en, 8500 + i)} aria-label="Ouvir exemplo" style={{ width: 34, height: 34, borderRadius: '50%', background: speakingId === 8500 + i ? blue : blueLight, color: speakingId === 8500 + i ? '#fff' : blue, border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: speakingId === 8500 + i ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e="🔊" s={15} c={speakingId === 8500 + i ? '#fff' : blue} /></button>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: blue, marginBottom: 3 }}>{ex.en}</div>
+                        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{ex.pt}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -3506,7 +3647,40 @@ export default function AppPage() {
                   {!buildChecked ? (
                     <button disabled={!cheio} onClick={() => { setBuildChecked(true); if (answer === toks.join(' ')) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: cheio ? '#6A5ACD' : 'var(--color-background-secondary)', color: cheio ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: cheio ? 'pointer' : 'default' }}>Verificar</button>
                   ) : (
-                    <button onClick={() => { if (!ultima) { setBuildIdx(buildIdx + 1); setBuildPicked([]); setBuildChecked(false) } else { setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Concluir lição <Ic e="🎯" /></> : <>Próxima frase <Ic e="→" /></>}</button>
+                    <button onClick={() => { if (!ultima) { setBuildIdx(buildIdx + 1); setBuildPicked([]); setBuildChecked(false) } else { const dit = frasesDitado(currentLesson?.examples || []); if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima frase <Ic e="→" /></>}</button>
+                  )}
+                </div>
+              )
+            })()}
+            {view === 'ditado' && (() => {
+              const exs = frasesDitado(currentLesson?.examples || [])
+              const alvo = (exs[ditIdx]?.en || '').trim()
+              const normD = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').replace(/\s+/g, ' ').trim()
+              const acertou = ditChecked && normD(ditInput) === normD(alvo)
+              const ultima = ditIdx >= exs.length - 1
+              return (
+                <div style={{ animation: 'su_fade 0.3s ease' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: '#0D9488', fontWeight: 700, background: '#E1F5EE', padding: '4px 12px', borderRadius: 20 }}><Ic e="🎧" /> Ditado · {ditIdx + 1}/{exs.length}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14 }}>Toque para ouvir e escreva em inglês o que você entendeu:</div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 16 }}>
+                    <button onClick={() => speakEN(alvo, 8800 + ditIdx)} style={{ width: 84, height: 84, borderRadius: '50%', background: 'linear-gradient(135deg, #1D9E75, #0F6E56)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 30, boxShadow: '0 6px 16px rgba(15,110,86,0.35)', animation: speakingId === 8800 + ditIdx ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e="🔊" c="#fff" s={30} /></button>
+                    <button onClick={() => falarNavegador(alvo, 0.55)} title="Ouvir devagar" style={{ width: 52, height: 52, borderRadius: '50%', background: '#E1F5EE', color: '#0F6E56', border: 'none', cursor: 'pointer', fontSize: 20, alignSelf: 'flex-end' }}><Ic e="🐢" /></button>
+                  </div>
+                  <textarea value={ditInput} onChange={e => setDitInput(e.target.value)} disabled={ditChecked} rows={2} placeholder="Escreva aqui em inglês..."
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', border: `1.5px solid ${ditChecked ? (acertou ? '#16A34A' : '#E24B4A') : 'var(--color-border-tertiary)'}`, borderRadius: 12, fontSize: 16, fontFamily: 'inherit', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', resize: 'none', marginBottom: 14 }} />
+                  {ditChecked && (
+                    <div style={{ background: acertou ? '#E3F3EA' : '#FCEBEB', borderRadius: 12, padding: 13, marginBottom: 14 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: acertou ? '#16A34A' : '#C0392B' }}>{acertou ? '✅ Ouvido certeiro! +5 XP' : '👂 Quase!'}</div>
+                      {!acertou && <div style={{ fontSize: 13.5, color: 'var(--color-text-primary)', marginTop: 5 }}>Era: <b>{alvo}</b></div>}
+                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 4 }}>{exs[ditIdx]?.pt}</div>
+                    </div>
+                  )}
+                  {!ditChecked ? (
+                    <button disabled={!ditInput.trim()} onClick={() => { setDitChecked(true); if (normD(ditInput) === normD(alvo)) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: ditInput.trim() ? '#0D9488' : 'var(--color-background-secondary)', color: ditInput.trim() ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: ditInput.trim() ? 'pointer' : 'default' }}>Verificar</button>
+                  ) : (
+                    <button onClick={() => { if (!ultima) { setDitIdx(ditIdx + 1); setDitInput(''); setDitChecked(false) } else setView('finish') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Concluir lição <Ic e="🎯" /></> : <>Próxima <Ic e="→" /></>}</button>
                   )}
                 </div>
               )
