@@ -894,6 +894,26 @@ const COMO_SOA: Record<string, string> = {
   interesting: 'íntresting', restaurant: 'réstront', business: 'bíznes', clothes: 'clôuz',
 }
 
+// Um texto "parece inglês"? Regra conservadora para NUNCA ler português com voz de
+// inglês (fica muito estranho): acento/çãõ = português; frase só é inglês se tiver
+// sinal claro (palavra funcional inglesa ou contração); palavra solta vale se não
+// for português conhecido. Na dúvida, fica em silêncio — melhor que falar errado.
+function textoEmIngles(t: string): boolean {
+  if (!t || !/[a-z]/i.test(t)) return false
+  if (/[ãõçáéíóúâêôàü]/i.test(t)) return false
+  const limpo = t.trim()
+  // Contração inglesa (I'm, don't, it's) = sinal fortíssimo, decide sozinha.
+  if (/[a-z]'(s|t|m|re|ve|ll|d)\b/i.test(limpo)) return true
+  // Palavras que SÓ existem em português (ambíguas como no/do/a/as ficam de fora das duas listas).
+  const ptSoPt = /\b(que|voce|nao|uma|um|meu|minha|seu|sua|ele|ela|eu|se|os|ou|mas|em|na|da|de|por|ao|ser|estar|ter|foi|era|isso|esse|essa|muito|mais|verdade|quando|algo|tipo|meio|fim|frase|passado|presente|futuro|sentido|motivo|objeto|emprego|oposto|verbo|sujeito|puxe|puxar|empurre|empurrar|pare|parar|atualmente|eventualmente|dois|soam|dentes|resfriado|resfriada|constrangida|intestino|cozinheiro|anos|dias|casa|pergunta|resposta|certa|errada|nenhuma|porque|onde|fazer|trabalho|escola|festa|pessoas|palavra|mudo|soprado|bom|boa|dia|noite|tarde|prazer|obrigado|obrigada|oi|ola|tchau|gato|cachorro|comida|livro|grande|pequeno|homem|mulher|feliz|triste|ontem|hoje|sempre|nunca|tempo|cedo|moro|morar|gosto|quero|tenho|estou|vou|com|sem|para|pelo|pela|antes|depois|entre|sobre|pode|coisa|forma|maneira|exemplo|apenas|nada|tudo|outro|outra|acordo|termo|significa|geralmente|normalmente)\b/i
+  if (ptSoPt.test(limpo)) return false
+  const palavras = limpo.split(/\s+/).filter(Boolean)
+  if (palavras.length === 1) return /^[a-z][a-z'-]{2,}[.!?]?$/i.test(limpo)
+  // Frase só é falada se tiver sinal claro de inglês; sem sinal = silêncio (nunca lê PT).
+  const sinalEN = /\b(the|is|are|was|were|be|been|you|i|my|your|he|she|it|we|they|an|to|of|in|on|at|does|did|have|has|had|and|not|this|that|these|those|what|how|where|when|who|why|good|hello|hi|thank|thanks|please|yes|his|her|our|their|for|with|from|make|take|get|go|let|see|like|need|meet|nice|day|off|one|will|would|can|could|should)\b/i
+  return sinalEN.test(limpo)
+}
+
 // Escolhe a melhor voz em inglês do aparelho. A padrão costuma ser robótica; vozes
 // "Natural" (Windows/Edge) e "Google" (Android/Chrome) soam muito melhor.
 function melhorVozEN(): SpeechSynthesisVoice | null {
@@ -2616,7 +2636,7 @@ export default function AppPage() {
   function answer(i: number) {
     if (answered) return
     setAnswered(true); setSelected(i)
-    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); setXpFloat(10); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title); guardarErroQ(lessons[level][lessonIdx].q[qIdx], lessons[level][lessonIdx].title) }
+    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); setXpFloat(10); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; if (textoEmIngles(respostaCerta)) setTimeout(() => { try { speakEN(respostaCerta, 9900 + qIdx) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title); guardarErroQ(lessons[level][lessonIdx].q[qIdx], lessons[level][lessonIdx].title) }
   }
 
   function nextQ() {
@@ -3807,7 +3827,7 @@ export default function AppPage() {
                     )
                   })}
                   {errAns && (<div style={{ background: '#FEF3E2', borderRadius: 12, padding: 13, marginBottom: 12, fontSize: 13, color: '#8A5A10', lineHeight: 1.55 }}><Ic e="🇧🇷" /> {atual.exp}</div>)}
-                  {errAns && atual.opts[atual.ans] && /[a-z]/i.test(atual.opts[atual.ans]) && !/[ãõçáéíóú]/i.test(atual.opts[atual.ans]) && (
+                  {errAns && textoEmIngles(atual.opts[atual.ans]) && (
                     <button onClick={() => speakEN(atual.opts[atual.ans], 9200 + errQ)} style={{ width: '100%', padding: 11, background: '#E1F5EE', color: '#0F6E56', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', marginBottom: 12, fontFamily: 'inherit' }}><Ic e="🔊" /> Ouvir a forma certa</button>
                   )}
                   <button disabled={!errAns} onClick={() => { if (errQ < qs.length - 1) { setErrQ(errQ + 1); setErrSel(-1); setErrAns(false) } else { finalizarErrosBr() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !errAns ? 'var(--color-background-secondary)' : '#059669', color: !errAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !errAns ? 'default' : 'pointer' }}>{errQ < qs.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver resultado <Ic e="🎯" /></>}</button>
