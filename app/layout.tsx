@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/react'
+import { Nunito } from 'next/font/google'
+import './globals.css'
+
+// Fonte própria do app: arredondada e simpática (mesma família visual do Duolingo).
+const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700', '800'], variable: '--font-nunito', display: 'swap' })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://speakup-dusky.vercel.app'),
@@ -46,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={nunito.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -54,7 +59,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Vonai" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body style={{ margin: 0, padding: 0, background: '#f5f5f5' }}>
+      <body style={{ margin: 0, padding: 0 }}>
         {children}
         <Analytics />
       </body>

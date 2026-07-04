@@ -6,7 +6,7 @@ export const metadata = {
 export default function ExcluirConta() {
   const h2: React.CSSProperties = { fontSize: 18, fontWeight: 700, marginTop: 28, marginBottom: 6, color: '#102A4C' }
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 22px', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#243447', lineHeight: 1.65 }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 22px', fontFamily: 'inherit', color: '#243447', lineHeight: 1.65 }}>
       <h1 style={{ fontSize: 26, fontWeight: 800, color: '#102A4C' }}>
         Excluir sua conta e seus dados — Von<span style={{ color: '#185FA5' }}>ai</span>
       </h1>

@@ -32,7 +32,7 @@ export default function Home() {
   const container: React.CSSProperties = { maxWidth: 1040, margin: '0 auto', padding: '0 20px' }
   const cta: React.CSSProperties = { display: 'inline-block', background: '#F5A623', color: '#fff', fontWeight: 700, fontSize: 16, padding: '14px 30px', borderRadius: 30, textDecoration: 'none', boxShadow: '0 6px 18px rgba(245,166,35,0.4)' }
   return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: '#102A4C', background: '#fff' }}>
+    <div style={{ fontFamily: 'inherit', color: '#102A4C', background: '#fff' }}>
       {/* Nav */}
       <div style={{ borderBottom: '1px solid #EEF1F6' }}>
         <div style={{ ...container, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>

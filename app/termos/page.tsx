@@ -3,7 +3,7 @@ import Link from 'next/link'
 export const metadata = { title: 'Termos de Uso — Vonai' }
 
 export default function Termos() {
-  const box: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '32px 20px 64px', fontFamily: 'system-ui, sans-serif', color: '#1f2937', lineHeight: 1.7 }
+  const box: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '32px 20px 64px', fontFamily: 'inherit', color: '#1f2937', lineHeight: 1.7 }
   const h2: React.CSSProperties = { fontSize: 17, fontWeight: 600, marginTop: 28, marginBottom: 6, color: '#103D77' }
   return (
     <div style={box}>

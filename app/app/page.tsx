@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -1005,7 +1005,7 @@ function DictTab({dictCat,setDictCat}:{dictCat:string;setDictCat:(c:string)=>voi
               <button key={c.id} onClick={()=>setDictCat(c.id)} style={{padding:'7px 14px',border:dictCat===c.id?'none':'0.5px solid var(--color-border-tertiary)',borderRadius:20,background:dictCat===c.id?(dictColor[c.id]||'#534AB7'):'var(--color-background-primary)',color:dictCat===c.id?'#fff':'var(--color-text-secondary)',fontSize:13,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}><IcLabel label={c.label} /></button>
             ))}
           </div>
-          {loading?<div style={{textAlign:'center',padding:40,color:'var(--color-text-secondary)'}}>Carregando...</div>:(
+          {loading?<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>{[0,1,2,3,4,5].map(i=><div key={i} className="su-skel" style={{height:104,borderRadius:16}} />)}</div>:(
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               {weekWords.map((w,i)=><DictCard key={i} word={w} color={cc}/>)}
             </div>
@@ -1513,9 +1513,12 @@ const pronCategorias = [
 ]
 
 // Mascote do Vonai ("Vô") — personagem próprio em SVG (fica igual em qualquer aparelho).
-function Mascote({ size = 40 }: { size?: number }) {
+// Mascote do Vonai com humor: reage ao que o aluno faz (comemora acertos, fica
+// triste com erros). 'comemora' quica e ergue os bracinhos.
+function Mascote({ size = 40, humor = 'normal' }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' }) {
+  const alegre = humor === 'feliz' || humor === 'comemora'
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block' }}>
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block', animation: humor === 'comemora' ? 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
       <defs>
         <linearGradient id="vonaiMasc" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#3E86E8" />
@@ -1525,21 +1528,50 @@ function Mascote({ size = 40 }: { size?: number }) {
       {/* antena com ponto dourado */}
       <rect x="30.5" y="4" width="3" height="8" rx="1.5" fill="#FFD98A" />
       <circle cx="32" cy="4" r="3.4" fill="#FFD98A" />
+      {/* bracinhos para cima na comemoração */}
+      {humor === 'comemora' && (<>
+        <path d="M8 30 Q2 22 6 15" stroke="#1E63C7" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <path d="M56 30 Q62 22 58 15" stroke="#1E63C7" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <circle cx="6" cy="14" r="3" fill="#FFD98A" />
+        <circle cx="58" cy="14" r="3" fill="#FFD98A" />
+      </>)}
       {/* corpo */}
       <rect x="7" y="11" width="50" height="45" rx="19" fill="url(#vonaiMasc)" />
       {/* olhos */}
-      <circle cx="24" cy="31" r="8.2" fill="#fff" />
-      <circle cx="40" cy="31" r="8.2" fill="#fff" />
-      <circle cx="25" cy="32" r="3.7" fill="#0F2E5C" />
-      <circle cx="41" cy="32" r="3.7" fill="#0F2E5C" />
-      {/* brilho nos olhos */}
-      <circle cx="23.4" cy="30.4" r="1.2" fill="#fff" />
-      <circle cx="39.4" cy="30.4" r="1.2" fill="#fff" />
-      {/* sorriso */}
-      <path d="M23 43 Q32 50 41 43" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
+      {alegre ? (<>
+        <path d="M18 32 Q24 25 30 32" stroke="#fff" strokeWidth="3.6" fill="none" strokeLinecap="round" />
+        <path d="M34 32 Q40 25 46 32" stroke="#fff" strokeWidth="3.6" fill="none" strokeLinecap="round" />
+      </>) : humor === 'triste' ? (<>
+        <circle cx="24" cy="31" r="8.2" fill="#fff" />
+        <circle cx="40" cy="31" r="8.2" fill="#fff" />
+        <path d="M16 25 L31 28" stroke="#1E63C7" strokeWidth="5" strokeLinecap="round" />
+        <path d="M48 25 L33 28" stroke="#1E63C7" strokeWidth="5" strokeLinecap="round" />
+        <circle cx="25" cy="33.5" r="3.7" fill="#0F2E5C" />
+        <circle cx="41" cy="33.5" r="3.7" fill="#0F2E5C" />
+        <path d="M47.5 40 Q50 44.5 47.5 46.5 Q45 44.5 47.5 40" fill="#9BD1FF" />
+      </>) : (<>
+        <circle cx="24" cy="31" r="8.2" fill="#fff" />
+        <circle cx="40" cy="31" r="8.2" fill="#fff" />
+        <circle cx="25" cy="32" r="3.7" fill="#0F2E5C" />
+        <circle cx="41" cy="32" r="3.7" fill="#0F2E5C" />
+        <circle cx="23.4" cy="30.4" r="1.2" fill="#fff" />
+        <circle cx="39.4" cy="30.4" r="1.2" fill="#fff" />
+      </>)}
+      {/* boca */}
+      {humor === 'comemora' ? (
+        <ellipse cx="32" cy="45" rx="7" ry="5.5" fill="#0F2E5C" />
+      ) : humor === 'feliz' ? (
+        <path d="M22 42 Q32 52 42 42" stroke="#fff" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+      ) : humor === 'triste' ? (
+        <path d="M24 48 Q32 42 40 48" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
+      ) : (
+        <path d="M23 43 Q32 50 41 43" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
+      )}
       {/* bochechas */}
-      <circle cx="15.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
-      <circle cx="48.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
+      {humor !== 'triste' && (<>
+        <circle cx="15.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
+        <circle cx="48.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
+      </>)}
     </svg>
   )
 }
@@ -1759,6 +1791,11 @@ function TextoIA({ text }: { text: string }) {
   return <>{partes.map((p, i) => (i % 2 === 1 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>))}</>
 }
 
+// Bloco pulsante de carregamento (skeleton) — sensação de app vivo enquanto os dados chegam.
+function Skel({ h = 16, w = '100%' as string | number, r = 12, mb = 0 }: { h?: number; w?: string | number; r?: number; mb?: number }) {
+  return <div className="su-skel" style={{ height: h, width: w, borderRadius: r, marginBottom: mb }} />
+}
+
 // Nível numérico a partir do XP total (sobe rápido no começo, dando "level up" frequente).
 function nivelDeXp(xp: number) {
   let nivel = 1, need = 100, acc = 0
@@ -1823,6 +1860,22 @@ export default function AppPage() {
   const [hist, setHist] = useState<Record<string, number>>({})
   const [feedbackModal, setFeedbackModal] = useState(false)
   const [avalModal, setAvalModal] = useState(false)
+  // Modo escuro (opt-in): classe .dark no <html> troca as variáveis de cor do globals.css.
+  const [temaEscuro, setTemaEscuro] = useState(false)
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem('speakup_tema') === 'escuro'
+      setTemaEscuro(t)
+      document.documentElement.classList.toggle('dark', t)
+    } catch (e) {}
+  }, [])
+  function alternarTema() {
+    const novo = !temaEscuro
+    setTemaEscuro(novo)
+    try { localStorage.setItem('speakup_tema', novo ? 'escuro' : 'claro') } catch (e) {}
+    try { document.documentElement.classList.toggle('dark', novo) } catch (e) {}
+    try { track('tema_' + (novo ? 'escuro' : 'claro')) } catch (e) {}
+  }
   const [feedbackTxt, setFeedbackTxt] = useState('')
   const [feedbackEnviado, setFeedbackEnviado] = useState(false)
   const [onbStep, setOnbStep] = useState(0)
@@ -1931,6 +1984,7 @@ export default function AppPage() {
   const semNumRef = useRef<number | null>(null)
   const semBaseRef = useRef(0)
   const [ligaData, setLigaData] = useState<{ nome: string; sem_xp: number }[]>([])
+  const [ligaLoading, setLigaLoading] = useState(false)
   const convEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -2206,11 +2260,13 @@ export default function AppPage() {
     if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novoM, streak_freezes: novoF, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
   }
   async function carregarLiga() {
+    setLigaLoading(true)
     try {
       const weekNow = Math.floor(Date.now() / (7 * 86400000))
       const { data } = await supabase.from('ranking_semanal').select('nome, sem_xp').eq('sem_num', weekNow).order('sem_xp', { ascending: false }).limit(30)
       setLigaData((data as any) || [])
     } catch (e) { setLigaData([]) }
+    setLigaLoading(false)
   }
 
   async function salvarWhatsapp() {
@@ -3013,11 +3069,35 @@ export default function AppPage() {
   const mostrarOnboarding = xpHydrated && isNovo && !perfilIa.objetivo && !onboarded
   const currentLesson = lessons[level][lessonIdx]
 
+  // ⏳ Enquanto o progresso não chega do banco, mostra skeletons em vez de números zerados.
+  if (!xpHydrated) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
+        <div style={{ width: '100%', maxWidth: 430, minHeight: '100dvh', background: 'var(--color-background-secondary)' }}>
+          <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: '18px 16px 22px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Mascote size={30} /><span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Von<span style={{ background: '#FFD98A', color: '#7A5A12', padding: '0 6px', borderRadius: 6 }}>ai</span></span></div>
+              <div className="su-skel" style={{ height: 26, width: 88, borderRadius: 20, background: 'rgba(255,255,255,0.25)' }} />
+            </div>
+            <div className="su-skel" style={{ height: 148, borderRadius: 18, background: 'rgba(255,255,255,0.18)' }} />
+          </div>
+          <div style={{ padding: 16 }}>
+            <Skel h={78} r={16} mb={12} />
+            <Skel h={64} r={16} mb={12} />
+            <Skel h={64} r={16} mb={12} />
+            <Skel h={150} r={16} mb={12} />
+            <div style={{ textAlign: 'center', marginTop: 22, fontSize: 13, color: 'var(--color-text-secondary)' }}>Carregando seu progresso…</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // 🔒 PAYWALL DURO: acabou o trial de 2 dias e não é Premium -> bloqueia o app até assinar.
   if (xpHydrated && !isPremium) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: '#E9EDF2' }}>
-        <div style={{ width: '100%', maxWidth: 430, fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
+        <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <div style={{ background: `linear-gradient(135deg, ${gold}, #DAA520)`, padding: '44px 20px 30px', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
             <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste grátis terminou</div>
@@ -3048,8 +3128,8 @@ export default function AppPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: '#E9EDF2' }}>
-    <div style={{ width: '100%', maxWidth: 430, fontFamily: 'system-ui, sans-serif', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 0 40px rgba(0,0,0,0.10)' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
+    <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 0 40px rgba(0,0,0,0.10)' }}>
 
       <style>{`
         @keyframes su_fade { from { opacity: 0 } to { opacity: 1 } }
@@ -3109,13 +3189,14 @@ export default function AppPage() {
       {tab === 'home' && (
         <div>
           <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 26px' }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 32, marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 7, padding: '1px 7px', marginLeft: 2 }}>ai</span></span>
+                <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 7, padding: '1px 6px', marginLeft: 2 }}>ai</span></span>
               </div>
-              <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
                 <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(245,201,122,0.18)', border: '1px solid rgba(245,201,122,0.5)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}><span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
+                <button onClick={alternarTema} aria-label="Alternar modo escuro" title="Modo claro/escuro" style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 9px', color: '#85B7EB', fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>{temaEscuro ? '☀️' : '🌙'}</button>
                 <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 11px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
               </div>
             </div>
@@ -3548,16 +3629,30 @@ export default function AppPage() {
                 {provaAns && provaQuestoes[provaQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {provaQuestoes[provaQ].exp}</div>)}
                 <button disabled={!provaAns} onClick={() => { if (provaQ < provaQuestoes.length - 1) { setProvaQ(provaQ + 1); setProvaSel(-1); setProvaAns(false) } else { finalizarProva() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !provaAns ? 'var(--color-background-secondary)' : '#C0392B', color: !provaAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !provaAns ? 'default' : 'pointer' }}>{provaQ < provaQuestoes.length - 1 ? <>Próxima <Ic e="→" /></> : <>Finalizar prova <Ic e="🎯" /></>}</button>
               </div>
-            ) : (
+            ) : (() => {
+              const pct = Math.round(provaAcertos / provaQuestoes.length * 100)
+              const corNota = pct >= 80 ? '#16A34A' : pct >= 50 ? '#E08A1E' : '#C0392B'
+              const circ = 2 * Math.PI * 52
+              return (
               <div style={{ textAlign: 'center', paddingTop: 12 }}>
-                <div style={{ fontSize: 56 }}><Ic e={provaAcertos >= 16 ? '🏆' : provaAcertos >= 12 ? '🎉' : provaAcertos >= 8 ? '💪' : '📚'} /></div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 8 }}>{provaAcertos}/{provaQuestoes.length}</div>
-                <div style={{ fontSize: 16, color: '#C0392B', fontWeight: 700, marginTop: 4 }}>{Math.round(provaAcertos / provaQuestoes.length * 100)}% de acerto</div>
-                <div style={{ fontSize: 15, color: '#E08A1E', fontWeight: 600, marginTop: 8 }}>+{provaAcertos * 2} XP</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Mascote size={64} humor={pct >= 50 ? 'comemora' : 'triste'} /></div>
+                {/* Anel de nota */}
+                <div style={{ position: 'relative', width: 128, height: 128, margin: '10px auto' }}>
+                  <svg width="128" height="128" viewBox="0 0 128 128">
+                    <circle cx="64" cy="64" r="52" stroke="var(--color-background-secondary)" strokeWidth="11" fill="none" />
+                    <circle cx="64" cy="64" r="52" stroke={corNota} strokeWidth="11" fill="none" strokeLinecap="round" strokeDasharray={`${circ * pct / 100} ${circ}`} transform="rotate(-90 64 64)" style={{ transition: 'stroke-dasharray 0.8s ease' }} />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--color-text-primary)', lineHeight: 1 }}>{provaAcertos}/{provaQuestoes.length}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: corNota, marginTop: 3 }}>{pct}%</div>
+                  </div>
+                </div>
+                <div style={{ display: 'inline-block', fontSize: 15, color: '#fff', fontWeight: 700, background: 'linear-gradient(135deg,#F5A623,#E08A1E)', padding: '6px 18px', borderRadius: 20, marginTop: 4 }}>+{provaAcertos * 2} XP</div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 320, margin: '14px auto 0' }}>{provaAcertos >= 16 ? 'Excelente! Você domina este nível. Que tal subir um nível?' : provaAcertos >= 10 ? 'Bom resultado! Continue praticando para fixar.' : 'Continue estudando as lições deste nível e tente na próxima semana.'}</div>
                 <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
               </div>
-            )}
+              )
+            })()}
           </div>
         </div>
       )}
@@ -3650,7 +3745,13 @@ export default function AppPage() {
           </div>
           <div style={{ padding: 16 }}>
             {desafioQuestions.length < 5 ? (
-              <div style={{ textAlign: 'center', padding: 30, color: 'var(--color-text-secondary)' }}>Carregando o desafio de hoje...</div>
+              <div>
+                <Skel h={14} w={120} r={8} mb={14} />
+                <Skel h={54} r={14} mb={12} />
+                <Skel h={54} r={14} mb={12} />
+                <Skel h={54} r={14} mb={12} />
+                <Skel h={54} r={14} />
+              </div>
             ) : !desResult ? (
               <div>
                 <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Pergunta {desQ + 1} de 5</div>
@@ -4271,7 +4372,7 @@ export default function AppPage() {
                 )}
                 {answered && (
                   <div style={{ background: selected === currentLesson.q[qIdx].ans ? greenLight : '#FCEBEB', borderRadius: 12, padding: 14, marginBottom: 14, display: 'flex', gap: 10 }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={selected === currentLesson.q[qIdx].ans ? '✅' : '💡'} /></span>
+                    <span style={{ flexShrink: 0 }}><Mascote size={30} humor={selected === currentLesson.q[qIdx].ans ? 'comemora' : 'triste'} /></span>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: selected === currentLesson.q[qIdx].ans ? '#27500A' : '#633806', marginBottom: 2 }}>{selected === currentLesson.q[qIdx].ans ? 'Correto!' : 'Quase lá!'}</div>
                       <div style={{ fontSize: 13, color: selected === currentLesson.q[qIdx].ans ? green : '#854F0B', lineHeight: 1.5 }}>{currentLesson.q[qIdx].exp}</div>
@@ -4341,10 +4442,13 @@ export default function AppPage() {
                   <textarea value={ditInput} onChange={e => setDitInput(e.target.value)} disabled={ditChecked} rows={2} placeholder="Escreva aqui em inglês..."
                     style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', border: `1.5px solid ${ditChecked ? (acertou ? '#16A34A' : '#E24B4A') : 'var(--color-border-tertiary)'}`, borderRadius: 12, fontSize: 16, fontFamily: 'inherit', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', resize: 'none', marginBottom: 14 }} />
                   {ditChecked && (
-                    <div style={{ background: acertou ? '#E3F3EA' : '#FCEBEB', borderRadius: 12, padding: 13, marginBottom: 14 }}>
+                    <div style={{ background: acertou ? '#E3F3EA' : '#FCEBEB', borderRadius: 12, padding: 13, marginBottom: 14, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span style={{ flexShrink: 0, marginTop: 2 }}><Mascote size={30} humor={acertou ? 'comemora' : 'triste'} /></span>
+                      <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: acertou ? '#16A34A' : '#C0392B' }}>{acertou ? '✅ Ouvido certeiro! +5 XP' : '👂 Quase!'}</div>
                       {!acertou && <div style={{ fontSize: 13.5, color: 'var(--color-text-primary)', marginTop: 5 }}>Era: <b>{alvo}</b></div>}
                       <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 4 }}>{exs[ditIdx]?.pt}</div>
+                      </div>
                     </div>
                   )}
                   {!ditChecked ? (
@@ -4362,7 +4466,7 @@ export default function AppPage() {
                     <div key={i} style={{ position: 'absolute', top: 0, left: `${8 + i * 11}%`, width: 9, height: 9, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1.4 + (i % 4) * 0.3}s ease-in ${(i % 5) * 0.12}s forwards` }} />
                   ))}
                 </div>
-                <div style={{ fontSize: 64, marginBottom: 16, animation: 'su_bounce 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}><Ic e="🏆" /></div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}><Mascote size={84} humor="comemora" /></div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8, animation: 'su_risefade 0.5s ease 0.2s both' }}>Lição concluída!</div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 10, animation: 'su_risefade 0.5s ease 0.32s both' }}>Você ganhou</div>
                 <div style={{ display: 'inline-block', fontSize: 36, fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, #F5A623, #E08A1E)', padding: '8px 28px', borderRadius: 30, marginBottom: 24, boxShadow: '0 6px 18px rgba(239,159,39,0.4)', animation: 'su_xppop 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both' }}>+30 XP</div>
@@ -4663,25 +4767,59 @@ export default function AppPage() {
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 3 }}>Quem mais ganhou XP nesta semana. Zera toda semana!</div>
           </div>
           <div style={{ padding: 16 }}>
-            {ligaData.length === 0 ? (
+            {ligaLoading ? (
+              <div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', justifyContent: 'center', marginBottom: 18 }}>
+                  <Skel h={92} w={92} r={16} /><Skel h={116} w={98} r={16} /><Skel h={78} w={92} r={16} />
+                </div>
+                {[0, 1, 2, 3, 4].map(i => <Skel key={i} h={48} r={12} mb={8} />)}
+              </div>
+            ) : ligaData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                 <div style={{ fontSize: 48 }}>🏅</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginTop: 10 }}>O ranking está começando!</div>
                 <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.5, maxWidth: 300, margin: '6px auto 0' }}>Ganhe XP fazendo lições e desafios para aparecer aqui. Volte em breve!</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {ligaData.map((u, i) => {
-                  const isMe = u.nome === userName
-                  const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : ''
+              <div>
+                {/* Pódio top 3: 2º · 1º · 3º */}
+                {(() => {
+                  const top = [ligaData[1], ligaData[0], ligaData[2]]
+                  const alturas = [86, 112, 72]
+                  const medalhas = ['🥈', '🥇', '🥉']
+                  const cores = ['#B4B2A9', '#E0A62E', '#C77B4A']
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isMe ? blueLight : 'var(--color-background-primary)', border: isMe ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '11px 14px' }}>
-                      <div style={{ width: 30, textAlign: 'center', fontSize: medal ? 20 : 14, fontWeight: 700, color: isMe ? blue : 'var(--color-text-secondary)' }}>{medal || (i + 1)}</div>
-                      <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: isMe ? 700 : 500, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.nome || 'Aluno'}{isMe ? ' (você)' : ''}</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#E0A62E', flexShrink: 0 }}>{u.sem_xp} XP</div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', justifyContent: 'center', marginBottom: 20, paddingTop: 8 }}>
+                      {top.map((u, k) => u ? (
+                        <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 100 }}>
+                          <div style={{ width: 46, height: 46, borderRadius: '50%', background: u.nome === userName ? blue : 'var(--color-background-primary)', border: `2.5px solid ${cores[k]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: u.nome === userName ? '#fff' : cores[k], marginBottom: -12, zIndex: 1, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>{(u.nome || 'A').charAt(0).toUpperCase()}</div>
+                          <div style={{ width: '100%', height: alturas[k], background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '14px 14px 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 8, boxShadow: '0 3px 10px rgba(0,0,0,0.06)' }}>
+                            <div style={{ fontSize: 20 }}>{medalhas[k]}</div>
+                            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--color-text-primary)', maxWidth: 88, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center' }}>{u.nome || 'Aluno'}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: cores[k] }}>{u.sem_xp} XP</div>
+                          </div>
+                        </div>
+                      ) : <div key={k} style={{ width: 100 }} />)}
                     </div>
                   )
-                })}
+                })()}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {ligaData.slice(3).map((u, j) => {
+                    const i = j + 3
+                    const isMe = u.nome === userName
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isMe ? blueLight : 'var(--color-background-primary)', border: isMe ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 12, padding: '11px 14px' }}>
+                        <div style={{ width: 26, textAlign: 'center', fontSize: 13, fontWeight: 700, color: isMe ? blue : 'var(--color-text-secondary)' }}>{i + 1}</div>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: isMe ? blue : 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: isMe ? '#fff' : 'var(--color-text-secondary)', flexShrink: 0 }}>{(u.nome || 'A').charAt(0).toUpperCase()}</div>
+                        <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: isMe ? 700 : 500, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.nome || 'Aluno'}{isMe ? ' (você)' : ''}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#E0A62E', flexShrink: 0 }}>{u.sem_xp} XP</div>
+                      </div>
+                    )
+                  })}
+                </div>
+                {(() => { const meIdx = ligaData.findIndex(u => u.nome === userName); return meIdx >= 0 && (
+                  <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12.5, color: 'var(--color-text-secondary)' }}>Você está em <b style={{ color: blue }}>{meIdx + 1}º</b> de {ligaData.length} nesta semana <Ic e="🔥" /></div>
+                ) })()}
               </div>
             )}
           </div>
