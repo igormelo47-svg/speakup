@@ -908,7 +908,16 @@ function textoEmIngles(t: string): boolean {
   const ptSoPt = /\b(que|voce|nao|uma|um|meu|minha|seu|sua|ele|ela|eu|se|os|ou|mas|em|na|da|de|por|ao|ser|estar|ter|foi|era|isso|esse|essa|muito|mais|verdade|quando|algo|tipo|meio|fim|frase|passado|presente|futuro|sentido|motivo|objeto|emprego|oposto|verbo|sujeito|puxe|puxar|empurre|empurrar|pare|parar|atualmente|eventualmente|dois|soam|dentes|resfriado|resfriada|constrangida|intestino|cozinheiro|anos|dias|casa|pergunta|resposta|certa|errada|nenhuma|porque|onde|fazer|trabalho|escola|festa|pessoas|palavra|mudo|soprado|bom|boa|dia|noite|tarde|prazer|obrigado|obrigada|oi|ola|tchau|gato|cachorro|comida|livro|grande|pequeno|homem|mulher|feliz|triste|ontem|hoje|sempre|nunca|tempo|cedo|moro|morar|gosto|quero|tenho|estou|vou|com|sem|para|pelo|pela|antes|depois|entre|sobre|pode|coisa|forma|maneira|exemplo|apenas|nada|tudo|outro|outra|acordo|termo|significa|geralmente|normalmente)\b/i
   if (ptSoPt.test(limpo)) return false
   const palavras = limpo.split(/\s+/).filter(Boolean)
-  if (palavras.length === 1) return /^[a-z][a-z'-]{2,}[.!?]?$/i.test(limpo)
+  // Palavra solta: só fala se tiver "ortografia de inglês" (letras/dígrafos que o
+  // português não usa) OU estiver na whitelist de palavras inglesas frequentes.
+  // "Gaveta"/"Janela" ficam mudas; "week"/"Sister"/"Seven" falam.
+  if (palavras.length === 1) {
+    if (!/^[a-z][a-z'-]{1,}[.!?]?$/i.test(limpo)) return false
+    const soLetras = limpo.toLowerCase().replace(/[.!?]+$/, '')
+    const enComuns = /^(hi|bye|am|is|are|was|were|has|had|did|done|been|goes|went|ate|ran|saw|made|took|came|gave|got|said|told|drank|drove|wrote|read|sang|swam|sat|met|left|felt|kept|slept|paid|sold|built|sent|spent|lost|won|one|two|four|five|six|seven|eight|nine|ten|red|purple|orange|sister|brother|husband|uncle|aunt|cousin|son|march|april|june|august|september|october|november|december|monday|rice|bread|egg|milk|meat|arm|leg|ear|nose|hand|foot|toe|head|dog|cat|sun|rain|man|men|car|bus|cup|pen|bed|hat|map|job|fun|run|sit|eat|hot|cold|big|tall|old|new|sad|bad|mine|hers|ours|theirs|an|in|on|at|can|have|ever|blue|forest|generous)$/
+    if (enComuns.test(soLetras)) return true
+    return /[kwy]|ee|oo|th|sh|gh|ck|ll|tt|ph|wh|ay|ey|ow|aw|igh|ing\b|'s\b/i.test(limpo)
+  }
   // Frase só é falada se tiver sinal claro de inglês; sem sinal = silêncio (nunca lê PT).
   const sinalEN = /\b(the|is|are|was|were|be|been|you|i|my|your|he|she|it|we|they|an|to|of|in|on|at|does|did|have|has|had|and|not|this|that|these|those|what|how|where|when|who|why|good|hello|hi|thank|thanks|please|yes|his|her|our|their|for|with|from|make|take|get|go|let|see|like|need|meet|nice|day|off|one|will|would|can|could|should)\b/i
   return sinalEN.test(limpo)
