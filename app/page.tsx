@@ -9,6 +9,15 @@ export const metadata = {
 const AZUL = '#1E63C7'
 const ESCURO = '#103D77'
 
+const FAQ = [
+  { q: 'O Vonai é grátis?', a: 'Você começa com 2 dias de Premium grátis, sem cartão de crédito. Depois, pode continuar no plano gratuito (com limites diários) ou assinar o Premium para usar o Professor IA e o Simulador sem limites.' },
+  { q: 'Funciona para quem está começando do zero?', a: 'Sim. A trilha vai do A1 (primeiras palavras) ao C2 (nível quase nativo), e um teste rápido de nivelamento posiciona você no ponto certo. As explicações são todas em português.' },
+  { q: 'Como a IA corrige minha pronúncia?', a: 'Você lê frases em voz alta e o app compara o que você falou com o esperado, mostrando palavra por palavra o que ficou bom — com dicas específicas para os sons difíceis para brasileiros, como o "th" e o "-ed".' },
+  { q: 'Em que o Vonai é diferente de Duolingo ou Babbel?', a: 'O Vonai é um professor de IA que lembra de você: seus erros, seu objetivo e sua pronúncia alimentam as próximas aulas. E é feito para brasileiros — as armadilhas do português (falsos cognatos, "I have 25 years") são parte do treino diário.' },
+  { q: 'Funciona sem internet?', a: 'As lições da trilha funcionam offline depois do primeiro acesso. O Professor IA e o Simulador precisam de internet, pois conversam com a IA em tempo real.' },
+  { q: 'Quanto tempo por dia eu preciso?', a: 'A partir de 5 minutos por dia. O app monta um plano diário realista para a sua meta, e a sequência (🔥) e as missões semanais ajudam a manter a constância — que é o que de fato leva à fluência.' },
+]
+
 function Beneficio({ e, t, d }: { e: string; t: string; d: string }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #E8ECF2', borderRadius: 16, padding: 20 }}>
@@ -105,6 +114,32 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Feito para brasileiros */}
+      <div style={{ ...container, padding: '48px 20px 8px' }}>
+        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Feito para o brasileiro 🇧🇷</h2>
+        <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>Apps gringos não sabem onde o português te derruba. O Vonai sabe.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
+          <Beneficio e="🪤" t="Caça-Erros do Brasileiro" d='Treino diário das armadilhas clássicas: "I have 25 years", push ≠ puxe, pretend ≠ pretender.' />
+          <Beneficio e="🗣️" t="Pronúncia para a nossa boca" d='Dicas específicas para os sons que não existem em português: th, -ed, h aspirado, "is-cul".' />
+          <Beneficio e="💬" t="Feedback em português" d="A IA explica seus erros na sua língua — você entende o porquê, não só o quê." />
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div style={{ ...container, padding: '48px 20px 8px', maxWidth: 760 }}>
+        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 28px' }}>Perguntas frequentes</h2>
+        {FAQ.map((f, i) => (
+          <details key={i} style={{ background: '#F6F8FB', borderRadius: 14, padding: '16px 20px', marginBottom: 10, cursor: 'pointer' }}>
+            <summary style={{ fontSize: 15.5, fontWeight: 700, color: '#102A4C' }}>{f.q}</summary>
+            <p style={{ fontSize: 14.5, color: '#5B6B82', lineHeight: 1.6, margin: '10px 0 0' }}>{f.a}</p>
+          </details>
+        ))}
+      </div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'FAQPage',
+        mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+      }) }} />
 
       {/* CTA final */}
       <div style={{ ...container, padding: '60px 20px', textAlign: 'center' }}>

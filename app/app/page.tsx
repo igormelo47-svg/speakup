@@ -846,6 +846,54 @@ const expressoes = [
   {en:'In the long run',pt:'A longo prazo',ex:'It pays off in the long run.'},
   {en:'Take care',pt:'Se cuida',ex:'Bye! Take care!'},
 ]
+// "Como soa" aportuguesado — curado à mão para as palavras mais comuns do dicionário.
+// Só mostra quando a palavra está aqui (aproximação errada ensinaria errado).
+const COMO_SOA: Record<string, string> = {
+  house: 'ráuss', water: 'uórer', chair: 'tchér', table: 'têibol', window: 'uíndou',
+  door: 'dór', kitchen: 'quítchen', bed: 'béd', bathroom: 'béf-rum', bedroom: 'béd-rum',
+  lamp: 'lémp', mirror: 'míror', curtain: 'quérten', drawer: 'dróer', carpet: 'cárpet',
+  sofa: 'sôufa', clock: 'clóc', rug: 'râg', lawn: 'lón', garden: 'gárden',
+  food: 'fúud', bread: 'bréd', chicken: 'tchíquen', orange: 'órindj', apple: 'épol',
+  juice: 'djúss', cheese: 'tchíiz', rice: 'ráiss', beans: 'bíinz', meat: 'míit',
+  fish: 'fích', egg: 'égg', milk: 'mílk', sugar: 'chúgar', salt: 'sólt',
+  head: 'réd', hair: 'rér', eye: 'ái', mouth: 'máuf', teeth: 'tíif',
+  tooth: 'túuf', heart: 'rárt', hand: 'rénd', foot: 'fút', shoulder: 'chôulder',
+  stomach: 'stâmec', knee: 'níi', throat: 'frôut',
+  dog: 'dóg', cat: 'quét', bird: 'bêrd', horse: 'rórss', monkey: 'mânqui',
+  lion: 'láion', bear: 'bér', snake: 'snêic', turtle: 'têrtol', rabbit: 'rébit',
+  car: 'cár', bus: 'bâss', train: 'trêin', plane: 'plêin', airplane: 'érplein',
+  bicycle: 'báissicol', motorcycle: 'môutor-sáicol', subway: 'sâbuei', ship: 'chíp',
+  shirt: 'chért', shoes: 'chúuz', dress: 'dréss', pants: 'pénts', socks: 'sócs',
+  jacket: 'djéquet', skirt: 'squért', hat: 'rét', glasses: 'glésses', belt: 'bélt',
+  school: 'scúul', teacher: 'títcher', book: 'búc', pencil: 'pénsol', notebook: 'nôutbuc',
+  student: 'stúdent', classroom: 'cléss-rum', homework: 'rôum-uerc',
+  tree: 'tríi', flower: 'fláuer', sun: 'sân', moon: 'múun', beach: 'bíitch',
+  mountain: 'máunten', river: 'ríver', forest: 'fórest', island: 'áilend', sky: 'scái',
+  soccer: 'sóquer', basketball: 'bésquet-ból', volleyball: 'vôlibol', swimming: 'suíming',
+  doctor: 'dóctor', nurse: 'nêrss', lawyer: 'lóier', engineer: 'endjiníir',
+  driver: 'dráiver', chef: 'chéf', firefighter: 'fáier-fáiter',
+  happy: 'répi', sad: 'séd', angry: 'éngri', tired: 'táierd', scared: 'squérd',
+  excited: 'ecssáited', worried: 'uôrid', proud: 'práud',
+  red: 'réd', blue: 'blú', green: 'gríin', yellow: 'iélou', purple: 'pêrpol',
+  white: 'uáit', black: 'bléc', brown: 'bráun', gray: 'grêi', pink: 'pínc',
+  monday: 'mândei', tuesday: 'túzdei', wednesday: 'uénzdei', thursday: 'fêrzdei',
+  friday: 'fráidei', saturday: 'séterdei', sunday: 'sândei', january: 'djénueri',
+  february: 'fébrueri', august: 'óguest',
+  computer: 'compiúrer', phone: 'fôun', mouse: 'máuss', keyboard: 'quíbord',
+  internet: 'ínternet', screen: 'scríin', password: 'péss-uerd', email: 'ímeil',
+  medicine: 'médissin', hospital: 'róspital', headache: 'réd-eic', fever: 'fíver',
+  money: 'mâni', bank: 'bénc', credit: 'crédit', price: 'práiss', cash: 'quéch',
+  street: 'stríit', city: 'círi', building: 'bílding', square: 'squér', bridge: 'brídj',
+  travel: 'trévol', airport: 'érport', hotel: 'routél', ticket: 'tíquet', passport: 'pésport',
+  luggage: 'lâguidj', trip: 'tríp',
+  rain: 'rêin', snow: 'snôu', wind: 'uínd', cloud: 'cláud', storm: 'stórm',
+  hot: 'rót', cold: 'côuld', warm: 'uórm', weather: 'uéder',
+  world: 'uêrld', work: 'uêrc', three: 'fríi (língua nos dentes!)', thanks: 'fénks (língua nos dentes!)',
+  through: 'frú (língua nos dentes!)', together: 'tuguéder', beautiful: 'biúriful',
+  comfortable: 'cômf-tebol', vegetable: 'védj-tebol', chocolate: 'tchóc-let',
+  interesting: 'íntresting', restaurant: 'réstront', business: 'bíznes', clothes: 'clôuz',
+}
+
 // Escolhe a melhor voz em inglês do aparelho. A padrão costuma ser robótica; vozes
 // "Natural" (Windows/Edge) e "Google" (Android/Chrome) soam muito melhor.
 function melhorVozEN(): SpeechSynthesisVoice | null {
@@ -877,13 +925,20 @@ function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string}
   // Alguns registros já vêm com as barras (/x/) e outros não — normaliza para exibir /x/ uma única vez.
   const pron = (word.pron || '').replace(/^\/+|\/+$/g, '')
   const traducao = word.pt ? word.pt.charAt(0).toUpperCase() + word.pt.slice(1) : ''
+  const soa = COMO_SOA[(word.en || '').toLowerCase().trim()]
   return(
     <div onClick={speak} style={{background:`linear-gradient(150deg, ${color}12, var(--color-background-primary) 62%)`,border:'0.5px solid var(--color-border-tertiary)',borderLeft:`4px solid ${color}`,borderRadius:16,padding:'14px 15px',cursor:'pointer',boxShadow:'0 3px 10px rgba(0,0,0,0.06)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
         <div style={{fontSize:19,fontWeight:800,color:'var(--color-text-primary)',lineHeight:1.15}}>{word.en}</div>
-        <button onClick={e=>{e.stopPropagation();speak()}} style={{background:color+'1A',color,border:'none',borderRadius:'50%',width:32,height:32,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}><Ic e="🔊" c={color} s={15} /></button>
+        <div style={{display:'flex',gap:6,flexShrink:0}}>
+          <button onClick={e=>{e.stopPropagation();falarNavegador(word.en,0.55)}} aria-label="Ouvir devagar" style={{background:color+'0D',color,border:'none',borderRadius:'50%',width:32,height:32,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ic e="🐢" c={color} s={15} /></button>
+          <button onClick={e=>{e.stopPropagation();speak()}} aria-label="Ouvir" style={{background:color+'1A',color,border:'none',borderRadius:'50%',width:32,height:32,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ic e="🔊" c={color} s={15} /></button>
+        </div>
       </div>
-      <span style={{display:'inline-block',fontSize:11.5,color,fontStyle:'italic',fontWeight:600,marginTop:7,background:color+'14',padding:'2px 9px',borderRadius:10}}>/{pron}/</span>
+      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginTop:7}}>
+        <span style={{display:'inline-block',fontSize:11.5,color,fontStyle:'italic',fontWeight:600,background:color+'14',padding:'2px 9px',borderRadius:10}}>/{pron}/</span>
+        {soa && <span style={{display:'inline-block',fontSize:11.5,color:'#8A5A10',fontWeight:700,background:'#FEF3E2',padding:'2px 9px',borderRadius:10}}>🇧🇷 soa "{soa}"</span>}
+      </div>
       <div style={{fontSize:14,color:'var(--color-text-secondary)',marginTop:8}}>{traducao}</div>
     </div>
   )
@@ -1482,6 +1537,65 @@ const SONS_BR: { id: string; re: RegExp; dica: string }[] = [
   { id: 'oo', re: /oo/i, dica: 'o "oo" muda de palavra pra palavra: "food" é "u" longo (fuud), "book" é "u" curto (buk).' },
 ]
 
+// Caça-Erros do Brasileiro: as armadilhas clássicas de quem fala português — traduções
+// literais, falsos cognatos, preposições, make/do e pronúncia. Conteúdo curado; 5 por dia.
+const ERROS_BR: { cat: string; q: string; opts: string[]; ans: number; exp: string }[] = [
+  // Traduções literais
+  { cat: 'Tradução literal', q: 'Como dizer "Tenho 25 anos"?', opts: ['I have 25 years', 'I am 25 years old', 'I have 25 years old'], ans: 1, exp: 'Idade em inglês usa o verbo BE, não HAVE. "I have 25 years" é a tradução literal do português — o erro nº 1 do brasileiro.' },
+  { cat: 'Tradução literal', q: 'Você quer perguntar algo. "Fazer uma pergunta" é...', opts: ['make a question', 'ask a question', 'do a question'], ans: 1, exp: 'Pergunta se ASK: ask a question. "Make/do a question" não existem em inglês.' },
+  { cat: 'Tradução literal', q: '"Tenho certeza" =', opts: ['I have sure', 'I am sure', 'I have the certainty'], ans: 1, exp: '"Sure" é adjetivo, então usa BE: I am sure. "I have sure" é português com roupa de inglês.' },
+  { cat: 'Tradução literal', q: '"Estou com fome" =', opts: ['I am with hunger', 'I am hungry', 'I have hunger'], ans: 1, exp: 'Fome, sede, medo e sono viram adjetivos com BE: hungry, thirsty, afraid, sleepy.' },
+  { cat: 'Tradução literal', q: '"Ela concorda comigo" =', opts: ['She agrees with me', 'She is agree with me', 'She is according with me'], ans: 0, exp: 'AGREE já é o verbo: she agrees. "Is agree" vem do nosso "estar de acordo".' },
+  { cat: 'Tradução literal', q: '"Vou fazer uma festa" =', opts: ["I'm going to do a party", "I'm going to have a party", "I'm going to make a party"], ans: 1, exp: 'Festa se HAVE (ou throw): have a party. Make/do a party é literal do português.' },
+  { cat: 'Tradução literal', q: '"Estou esperando você" =', opts: ["I'm waiting you", "I'm waiting for you", "I'm hoping you"], ans: 1, exp: 'WAIT sempre pede FOR: wait for someone. E hope é ter esperança, não esperar alguém.' },
+  { cat: 'Tradução literal', q: '"Deixa eu ver..." =', opts: ['Let I see...', 'Let me see...', 'Leave I see...'], ans: 1, exp: 'Depois de LET vem o pronome objeto: let ME see, let HIM go, let US try.' },
+  // Falsos cognatos
+  { cat: 'Falso cognato', q: '"Pretendo viajar em julho" =', opts: ['I pretend to travel in July', 'I intend to travel in July', 'I prevent to travel in July'], ans: 1, exp: 'PRETEND é FINGIR! Pretender = intend / plan to. Falso cognato campeão de mico.' },
+  { cat: 'Falso cognato', q: 'Seu colega diz "Actually, the meeting is today". Actually significa...', opts: ['atualmente', 'na verdade', 'eventualmente'], ans: 1, exp: 'ACTUALLY = na verdade. Atualmente = currently / nowadays.' },
+  { cat: 'Falso cognato', q: 'Na porta está escrito PUSH. Você deve...', opts: ['puxar', 'empurrar', 'parar'], ans: 1, exp: 'PUSH = empurrar (o contrário do que parece!). Puxar = PULL. Todo brasileiro já errou essa porta.' },
+  { cat: 'Falso cognato', q: '"Ele é um ótimo cozinheiro" =', opts: ['He is a great cooker', 'He is a great cook', 'He is a great chef of kitchen'], ans: 1, exp: 'COOKER é o fogão! A pessoa é cook (ou chef).' },
+  { cat: 'Falso cognato', q: '"Meus parentes moram no Rio" =', opts: ['My parents live in Rio', 'My relatives live in Rio', 'My relations live in Rio'], ans: 1, exp: 'PARENTS = só pai e mãe. Parentes em geral = RELATIVES.' },
+  { cat: 'Falso cognato', q: '"A fábrica fechou" — fábrica =', opts: ['fabric', 'factory', 'farm'], ans: 1, exp: 'FABRIC é tecido! Fábrica = factory.' },
+  { cat: 'Falso cognato', q: 'Se você diz "I\'m constipated" para o médico, ele entende que você está...', opts: ['resfriado', 'com o intestino preso', 'constrangido'], ans: 1, exp: 'CONSTIPATED = intestino preso 😅. Resfriado = "I have a cold".' },
+  { cat: 'Falso cognato', q: 'Fantasia de carnaval em inglês é...', opts: ['costume', 'custom', 'fantasy'], ans: 0, exp: 'COSTUME = fantasia. CUSTOM = costume/hábito. E fantasy é fantasia de imaginação, não de vestir.' },
+  { cat: 'Falso cognato', q: '"Ela assistiu à palestra" — palestra =', opts: ['lecture', 'palace', 'speech class'], ans: 0, exp: 'Palestra = LECTURE. (E "assistir" é attend/watch — "assist" é ajudar, outro falso amigo!)' },
+  // 3ª pessoa e gramática
+  { cat: 'Gramática', q: '"Ela trabalha aqui" =', opts: ['She work here', 'She works here', 'She is work here'], ans: 1, exp: 'He/she/it ganha S no presente: works. Em português o verbo não muda assim — por isso esquecemos.' },
+  { cat: 'Gramática', q: '"Ele não gosta de café" =', opts: ["He don't like coffee", "He doesn't like coffee", 'He not like coffee'], ans: 1, exp: 'Com he/she/it a negação é DOESN\'T — e o verbo volta ao normal (like, sem s).' },
+  { cat: 'Gramática', q: '"As pessoas são legais" =', opts: ['The people is nice', 'People are nice', 'The persons are nice'], ans: 1, exp: 'PEOPLE já é plural (are) e dispensa "the" para generalizar.' },
+  { cat: 'Gramática', q: '"Eu gosto muito disso" =', opts: ['I like very much this', 'I really like this', 'I like very this'], ans: 1, exp: '"I like very much this" é ordem do português. Diga "I really like this" ou "I like this very much" (no final).' },
+  { cat: 'Gramática', q: '"Eu a conheço há anos" =', opts: ['I know her for years', "I've known her for years", 'I meet her for years'], ans: 1, exp: 'Algo que começou no passado e continua pede present perfect: I\'ve known her for years.' },
+  { cat: 'Gramática', q: '"Tem um mercado aqui perto" =', opts: ['Have a market near here', 'There is a market near here', 'It has a market near here'], ans: 1, exp: 'O nosso "tem" de existência é THERE IS/ARE — nunca "have" solto.' },
+  // Preposições
+  { cat: 'Preposição', q: '"Vi um vídeo na internet" =', opts: ['in the internet', 'on the internet', 'at the internet'], ans: 1, exp: 'Internet, TV e rádio usam ON: on the internet, on TV, on the radio.' },
+  { cat: 'Preposição', q: '"Estou no ônibus" =', opts: ["I'm in the bus", "I'm on the bus", "I'm at the bus"], ans: 1, exp: 'Transporte público usa ON: on the bus/train/plane. IN fica para o carro: in the car.' },
+  { cat: 'Preposição', q: '"Chego em casa às 7" =', opts: ['I arrive to home at 7', 'I get home at 7', 'I arrive in home at 7'], ans: 1, exp: 'GET HOME — sem preposição antes de home. E "arrive to" não existe (arrive in/at).' },
+  { cat: 'Preposição', q: '"Depende de você" =', opts: ['It depends of you', 'It depends on you', 'It depends from you'], ans: 1, exp: 'DEPEND pede ON: depends on you. O "of" é o nosso "de" se intrometendo.' },
+  { cat: 'Preposição', q: '"Sonhei com você" =', opts: ['I dreamed with you', 'I dreamed about you', 'I dreamed on you'], ans: 1, exp: 'DREAM ABOUT/OF someone. "Dream with" seria sonhar em dupla 😄.' },
+  { cat: 'Preposição', q: '"Ela é casada com um argentino" =', opts: ['married with an Argentinian', 'married to an Argentinian', 'married at an Argentinian'], ans: 1, exp: 'MARRIED TO someone. ("Married with children" = casado E com filhos.)' },
+  // Make / do / have / take
+  { cat: 'Make ou do?', q: '"Fazer a lição de casa" =', opts: ['make homework', 'do homework', 'take homework'], ans: 1, exp: 'Homework se DO. Regra prática: DO = tarefa/trabalho, MAKE = criar algo novo.' },
+  { cat: 'Make ou do?', q: '"Tirar uma foto" =', opts: ['make a photo', 'take a photo', 'do a photo'], ans: 1, exp: 'Foto se TAKE: take a photo/picture.' },
+  { cat: 'Make ou do?', q: '"Fazer uma prova" =', opts: ['make a test', 'take a test', 'do the proof'], ans: 1, exp: 'Prova se TAKE: take a test. Quem "makes the test" é o professor — ele a cria!' },
+  { cat: 'Make ou do?', q: '"Tomar café da manhã" =', opts: ['take the breakfast', 'have breakfast', 'drink breakfast'], ans: 1, exp: 'Refeições se HAVE: have breakfast/lunch/dinner.' },
+  { cat: 'Make ou do?', q: '"Fazer amigos" =', opts: ['do friends', 'make friends', 'get friends'], ans: 1, exp: 'Amizade se MAKE: make friends — você "constrói" a amizade.' },
+  { cat: 'Make ou do?', q: '"Ganhar dinheiro (trabalhando)" =', opts: ['win money', 'make money', 'gain money'], ans: 1, exp: 'Trabalhando você MAKE (ou earn) money. WIN é ganhar na loteria ou num jogo.' },
+  { cat: 'Make ou do?', q: '"Perdi o ônibus!" =', opts: ['I lost the bus!', 'I missed the bus!', 'I wasted the bus!'], ans: 1, exp: 'Perder transporte, aula ou evento = MISS. Lose é para objetos e jogos.' },
+  // Pronúncia (percepção)
+  { cat: 'Pronúncia', q: '"Three" (3) e "free" (grátis) começam com o mesmo som?', opts: ['Sim, os dois soam "fri"', 'Não: three começa com a língua entre os dentes (th)', 'Sim, os dois soam "tri"'], ans: 1, exp: 'O TH não existe em português — na boca do brasileiro vira F (ou T). Ponta da língua entre os dentes e sopre: THree ≠ Free.' },
+  { cat: 'Pronúncia', q: 'Como soa o "-ed" de "worked"?', opts: ['uork-ED, com sílaba extra', 'workt, som de T', 'workid'], ans: 1, exp: 'Depois de sons surdos (k, p, s, sh), o -ed soa T: workt, stopt. Sem sílaba extra!' },
+  { cat: 'Pronúncia', q: 'Quantas sílabas você FALA em "comfortable"?', opts: ['4: com-for-ta-ble', '3: cômf-tə-bol', '5: com-for-ta-bl-e'], ans: 1, exp: 'Fala-se "CÔMF-tə-bol" (3 sílabas). O brasileiro tende a ler todas as letras — o inglês engole várias.' },
+  { cat: 'Pronúncia', q: '"Beach" (praia) e "bitch" — qual a diferença na fala?', opts: ['Nenhuma, soam igual', 'O "ea" de beach é looongo: biiich', 'Beach termina com som de X'], ans: 1, exp: 'Vogal longa salva você do mico: beach = "biiich" (i longo). O i curto é a outra palavra 😬.' },
+  { cat: 'Pronúncia', q: 'O "h" de "hot" e "house" se pronuncia...', opts: ['mudo, como em "hora"', 'soprado, como um "rr" carioca leve', 'como G'], ans: 1, exp: 'O H inglês é aspirado (um sopro). Em português ele é mudo — por isso o brasileiro o come: "ot dog".' },
+  { cat: 'Pronúncia', q: '"School" se fala...', opts: ['is-cul (com i antes)', 'scul (direto no S)', 'chul'], ans: 1, exp: 'Nada de "i" antes do S! sCHool, sTop, sPeak — comece direto no S. O "is-top" é o sotaque BR clássico.' },
+  // Expressões
+  { cat: 'Expressão', q: '"Estou de folga hoje" =', opts: ["I'm in rest today", "I'm off today", "I'm on vacation of one day"], ans: 1, exp: '"I\'m off today" / "It\'s my day off" — curto e nativo.' },
+  { cat: 'Expressão', q: '"Vamos combinar alguma coisa!" =', opts: ["Let's combine something!", "Let's make plans!", "Let's match something!"], ans: 1, exp: 'COMBINE é misturar elementos. Marcar algo com alguém = make plans / arrange something.' },
+  { cat: 'Expressão', q: '"Tomara que dê certo!" =', opts: ['I wait it works!', 'I hope it works out!', 'I wish it works!'], ans: 1, exp: 'Torcer por algo = HOPE: I hope it works out. (Wait é esperar no relógio; wish pede passado.)' },
+  { cat: 'Expressão', q: 'Para pedir silêncio: "quiet", "quite" ou "quit"?', opts: ['Be quite', 'Be quiet', 'Be quit'], ans: 1, exp: 'QUIET = silencioso. QUITE = bastante. QUIT = desistir. Trio traiçoeiro na escrita!' },
+  { cat: 'Expressão', q: '"Vou pensar no assunto" (resposta educada) =', opts: ['I will think', "I'll think about it", 'I go to think it'], ans: 1, exp: '"I\'ll think about it" — o ABOUT IT é obrigatório para soar natural.' },
+]
+
 // A IA às vezes responde com markdown mesmo sem pedirmos. Renderiza o básico (**negrito**)
 // e remove separadores "---" em vez de mostrar os asteriscos crus na tela.
 function TextoIA({ text }: { text: string }) {
@@ -1565,6 +1679,9 @@ export default function AppPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null)
+  // Voz automática do simulador: a IA "fala" cada resposta (imersão). Persistido no aparelho.
+  const [autoVoz, setAutoVoz] = useState(true)
+  useEffect(() => { try { const v = localStorage.getItem('speakup_autovoz'); if (v !== null) setAutoVoz(v === '1') } catch (e) {} }, [])
   const [convMsgs, setConvMsgs] = useState<ConvMsg[]>([])
   const [convInput, setConvInput] = useState('')
   const [loadingConv, setLoadingConv] = useState(false)
@@ -1598,6 +1715,12 @@ export default function AppPage() {
   const [desAns, setDesAns] = useState(false)
   const [desAcertos, setDesAcertos] = useState(0)
   const [desResult, setDesResult] = useState(false)
+  const [errbrFeito, setErrbrFeito] = useState(false)
+  const [errQ, setErrQ] = useState(0)
+  const [errSel, setErrSel] = useState(-1)
+  const [errAns, setErrAns] = useState(false)
+  const [errAcertos, setErrAcertos] = useState(0)
+  const [errResult, setErrResult] = useState(false)
   // Revisão Inteligente (SRS): agenda cada lição concluída para voltar na hora certa.
   const [srsData, setSrsData] = useState<Record<string, { due: string; box: number }>>({})
   const [revQ, setRevQ] = useState(0)
@@ -1714,6 +1837,7 @@ export default function AppPage() {
 
   useEffect(() => {
     try { const d = localStorage.getItem('speakup_desafio'); setDesafioFeito(d === hojeStr) } catch (e) {}
+    try { const d = localStorage.getItem('speakup_errbr'); setErrbrFeito(d === hojeStr) } catch (e) {}
   }, [])
 
   useEffect(() => {
@@ -1852,6 +1976,17 @@ export default function AppPage() {
     try { localStorage.setItem('speakup_desafio', hoje) } catch (e) {}
     // Atenção: o cliente do Supabase só envia a requisição quando a promise é consumida (.then/await).
     if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hoje, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    try { track('desafio_concluido', { acertos: desAcertos }) } catch (e) {}
+  }
+
+  function finalizarErrosBr() {
+    const st = calcularStreakHoje()
+    const novoXp = xp + errAcertos * 5
+    const novasMoedas = moedas + 5 + errAcertos
+    aplicarStreak(st); setXp(novoXp); setMoedas(novasMoedas); setErrResult(true); setErrbrFeito(true)
+    try { localStorage.setItem('speakup_errbr', hojeStr) } catch (e) {}
+    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    try { track('errosbr_concluido', { acertos: errAcertos }) } catch (e) {}
   }
 
   // ---- Gamificação: moedas, baú do dia e loja ----
@@ -2185,7 +2320,7 @@ export default function AppPage() {
   function answer(i: number) {
     if (answered) return
     setAnswered(true); setSelected(i)
-    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); setXpFloat(10); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title) }
+    if (i === lessons[level][lessonIdx].q[qIdx].ans) { setXp(x => x + 10); setXpFloat(10); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto'); const respostaCerta = lessons[level][lessonIdx].q[qIdx].opts[lessons[level][lessonIdx].q[qIdx].ans]; setTimeout(() => { try { const u = new SpeechSynthesisUtterance(respostaCerta); u.lang = 'en-US'; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u) } catch (e) {} }, 450) } else { tocarSom('erro'); licaoErrosRef.current++; registrarErro(lessons[level][lessonIdx].title); guardarErroQ(lessons[level][lessonIdx].q[qIdx], lessons[level][lessonIdx].title) }
   }
 
   function nextQ() {
@@ -2419,6 +2554,7 @@ export default function AppPage() {
   function startScenario(scenario: Scenario) {
     if (!isPremium && simulacoesHoje >= FREE_LIMIT) { setTab('plans'); return }
     setSelectedScenario(scenario); setConvMsgs([{ role: 'ai', text: scenario.opener }]); setConvStarted(true); setConvInput('')
+    if (autoVoz) setTimeout(() => falarIngles(scenario.opener, 0), 400)
     const novo = `${hojeStr}:${simulacoesHoje + 1}`
     try { localStorage.setItem('speakup_sim_dia', novo) } catch (e) {} ; setSimDiaData(novo)
     if (userId) supabase.from('progresso').upsert({ user_id: userId, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
@@ -2435,7 +2571,8 @@ export default function AppPage() {
       const res = await callChat({ system: selectedScenario.systemPrompt + ' Responda em texto puro, sem formatação markdown (nada de asteriscos, --- ou #). ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
       if (res.status === 429) { setConvMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. Volte amanhã para continuar praticando. 🌟' }]); setLoadingConv(false); return }
       const data = await res.json()
-      setConvMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Could not respond.' }])
+      const resposta = data.content?.[0]?.text || 'Could not respond.'
+      setConvMsgs(m => { if (autoVoz) falarIngles(resposta, m.length); return [...m, { role: 'ai', text: resposta }] })
     } catch { setConvMsgs(m => [...m, { role: 'ai', text: 'Connection error. Please try again.' }]) }
     setLoadingConv(false)
   }
@@ -2479,20 +2616,47 @@ export default function AppPage() {
       return next
     })
   }
+  // ----- Banco de erros reais: as questões que o aluno errou voltam na Revisão -----
+  // Retrieval practice de verdade: errou → entra na fila; acertou 2x na revisão → sai.
+  function guardarErroQ(quest: Question, licao: string) {
+    try {
+      const raw = localStorage.getItem('speakup_erros_qs')
+      let lista: any[] = raw ? JSON.parse(raw) : []
+      const ix = lista.findIndex(e => e.q === quest.q)
+      if (ix >= 0) lista[ix].ok = 0
+      else lista.push({ q: quest.q, opts: quest.opts, ans: quest.ans, exp: quest.exp, ctx: quest.ctx, licao, ok: 0 })
+      lista = lista.slice(-30)
+      localStorage.setItem('speakup_erros_qs', JSON.stringify(lista))
+    } catch (e) {}
+  }
+  function resolverErroQ(qTexto: string, acertou: boolean) {
+    try {
+      const raw = localStorage.getItem('speakup_erros_qs')
+      let lista: any[] = raw ? JSON.parse(raw) : []
+      const ix = lista.findIndex(e => e.q === qTexto)
+      if (ix < 0) return
+      if (acertou) { lista[ix].ok = (lista[ix].ok || 0) + 1; if (lista[ix].ok >= 2) lista.splice(ix, 1) }
+      else lista[ix].ok = 0
+      localStorage.setItem('speakup_erros_qs', JSON.stringify(lista))
+    } catch (e) {}
+  }
+  const errosQs: any[] = (() => { try { const raw = localStorage.getItem('speakup_erros_qs'); return raw ? JSON.parse(raw) : [] } catch (e) { return [] } })()
   // Lições concluídas cuja revisão já venceu (due <= hoje) e que ainda existem.
   const todasLicoes = Object.values(lessons).flat()
   const revisoesDevidas = Object.keys(srsData)
     .filter(t => srsData[t].due <= hojeStr && todasLicoes.some(l => l.title === t))
-  // Monta até 6 questões vindas das lições a revisar (1-2 por lição), determinístico por dia.
-  const revisaoQuestions: Question[] = (() => {
-    const qs: Question[] = []
+  // Monta até 6 questões: primeiro os ERROS REAIS do aluno (até 3), depois as lições
+  // com revisão vencida (1-2 por lição), determinístico por dia.
+  const revisaoQuestions: (Question & { _erro?: boolean })[] = (() => {
+    const qs: (Question & { _erro?: boolean })[] = []
+    for (const e of errosQs.slice(0, 3)) qs.push({ q: e.q, opts: e.opts, ans: e.ans, exp: e.exp, ctx: e.ctx, _erro: true })
     for (const titulo of revisoesDevidas) {
       const lic = todasLicoes.find(l => l.title === titulo)
-      const pool = (lic?.q || [])
+      const pool = (lic?.q || []).filter(p => !qs.some(x => x.q === p.q))
       if (!pool.length) continue
       const k = daySeed % pool.length
       qs.push(pool[k])
-      if (pool.length > 1) qs.push(pool[(k + 1) % pool.length])
+      if (pool.length > 1 && qs.length < 6) qs.push(pool[(k + 1) % pool.length])
       if (qs.length >= 6) break
     }
     return qs.slice(0, 6)
@@ -2504,6 +2668,7 @@ export default function AppPage() {
     revisoesDevidas.forEach(t => agendarRevisao(t, acertouTudo))
     const novoXp = xp + revAcertos * 3
     setXp(novoXp)
+    try { track('revisao_concluida', { acertos: revAcertos, total: revisaoQuestions.length }) } catch (e) {}
   }
 
   const SONS_NOME: Record<string, string> = { th: 'o som "th" (think/this)', 'ed-final': 'a terminação "-ed" dos verbos', 'h-aspirado': 'o "h" aspirado (house/hot)', 'r-ingles': 'o "r" inglês', 'i-longo': 'vogais longas vs curtas (sheep/ship)', w: 'o som do "w" (wine≠vine)', 's-inicial': 'palavras começando com "s" + consoante (school)', oo: 'os sons de "oo" (food/book)' }
@@ -2712,10 +2877,17 @@ export default function AppPage() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
               </div>
             )}
-            {revisoesDevidas.length > 0 && (
+            {!errbrFeito && (
+              <div onClick={() => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} }} style={{ background: 'linear-gradient(135deg, #059669, #B45309)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 30 }}>🇧🇷</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Caça-Erros do Brasileiro</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>5 armadilhas que todo brasileiro cai — escape delas hoje</div></div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Jogar <Ic e="→" /></span>
+              </div>
+            )}
+            {(revisoesDevidas.length > 0 || errosQs.length > 0) && (
               <div onClick={() => { setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao') }} style={{ background: 'linear-gradient(135deg, #16A34A, #0F7A38)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e="🧠" color="#0F7A38" onDark box={44} size={24} />
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Revisão Inteligente</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{revisoesDevidas.length} {revisoesDevidas.length === 1 ? 'lição pronta' : 'lições prontas'} pra fixar de vez</div></div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Revisão Inteligente</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{errosQs.length > 0 ? `${errosQs.length} ${errosQs.length === 1 ? 'erro seu esperando revanche' : 'erros seus esperando revanche'}` : `${revisoesDevidas.length} ${revisoesDevidas.length === 1 ? 'lição pronta' : 'lições prontas'} pra fixar de vez`}</div></div>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Revisar <Ic e="→" /></span>
               </div>
             )}
@@ -3184,6 +3356,52 @@ export default function AppPage() {
         </div>
       )}
 
+      {tab === 'errbr' && (() => {
+        const qs = rotaDia(ERROS_BR, 5, 77).map(e => ({ ...e, ...embaralharQ({ q: e.q, opts: e.opts, ans: e.ans, exp: e.exp }) }))
+        const atual = qs[errQ]
+        return (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #059669, #B45309)', padding: '20px 16px 24px' }}>
+              <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ fontSize: 30 }}>🇧🇷</div><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Caça-Erros do Brasileiro</div></div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>As armadilhas clássicas de quem fala português — 5 novas por dia</div>
+            </div>
+            <div style={{ padding: 16 }}>
+              {!errResult ? (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Armadilha {errQ + 1} de {qs.length}</div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#E1F5EE', padding: '3px 10px', borderRadius: 12 }}>{atual.cat}</span>
+                  </div>
+                  <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: '#059669', height: '100%', width: `${errQ / qs.length * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{atual.q}</div>
+                  {atual.opts.map((opt: string, i: number) => {
+                    const correta = errAns && i === atual.ans
+                    const errada = errAns && i === errSel && i !== atual.ans
+                    return (
+                      <button key={i} onClick={() => { if (errAns) return; setErrSel(i); setErrAns(true); tocarSom(i === atual.ans ? 'acerto' : 'erro'); if (i === atual.ans) setErrAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : '1px solid var(--color-border-tertiary)', background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: errAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit' }}><span>{opt}</span>{correta ? <Ic e="✓" c={green} /> : errada ? <Ic e="✗" c="#C0392B" /> : null}</button>
+                    )
+                  })}
+                  {errAns && (<div style={{ background: '#FEF3E2', borderRadius: 12, padding: 13, marginBottom: 12, fontSize: 13, color: '#8A5A10', lineHeight: 1.55 }}><Ic e="🇧🇷" /> {atual.exp}</div>)}
+                  {errAns && atual.opts[atual.ans] && /[a-z]/i.test(atual.opts[atual.ans]) && !/[ãõçáéíóú]/i.test(atual.opts[atual.ans]) && (
+                    <button onClick={() => speakEN(atual.opts[atual.ans], 9200 + errQ)} style={{ width: '100%', padding: 11, background: '#E1F5EE', color: '#0F6E56', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', marginBottom: 12, fontFamily: 'inherit' }}><Ic e="🔊" /> Ouvir a forma certa</button>
+                  )}
+                  <button disabled={!errAns} onClick={() => { if (errQ < qs.length - 1) { setErrQ(errQ + 1); setErrSel(-1); setErrAns(false) } else { finalizarErrosBr() } }} style={{ width: '100%', padding: 15, marginTop: 4, background: !errAns ? 'var(--color-background-secondary)' : '#059669', color: !errAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !errAns ? 'default' : 'pointer' }}>{errQ < qs.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver resultado <Ic e="🎯" /></>}</button>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', paddingTop: 12 }}>
+                  <div style={{ fontSize: 56 }}>{errAcertos === qs.length ? '🏆' : errAcertos >= 3 ? '🎉' : '💪'}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Você escapou de {errAcertos}/{qs.length} armadilhas</div>
+                  <div style={{ fontSize: 16, color: '#059669', fontWeight: 700, marginTop: 6 }}>+{errAcertos * 5} XP · +{5 + errAcertos} 🪙</div>
+                  <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, margin: '14px auto 0' }}>{errAcertos === qs.length ? 'Perfeito! Nenhuma armadilha te pegou hoje. 🌟' : 'Essas pegadinhas derrubam até quem é avançado. Amanhã tem 5 novas!'}</div>
+                  <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {tab === 'revisao' && (
         <div>
           <div style={{ background: 'linear-gradient(135deg, #16A34A, #0F7A38)', padding: '20px 16px 24px' }}>
@@ -3201,7 +3419,10 @@ export default function AppPage() {
               </div>
             ) : !revResult ? (
               <div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Revisão {revQ + 1} de {revisaoQuestions.length}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Revisão {revQ + 1} de {revisaoQuestions.length}</div>
+                  {revisaoQuestions[revQ]._erro && <span style={{ fontSize: 11, fontWeight: 700, color: '#B45309', background: '#FEF3E2', padding: '3px 10px', borderRadius: 12 }}>🎯 Você errou essa — hora da revanche</span>}
+                </div>
                 <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 18, overflow: 'hidden' }}><div style={{ background: '#16A34A', height: '100%', width: `${revQ / revisaoQuestions.length * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
                 {revisaoQuestions[revQ].ctx ? (<div style={{ background: 'var(--color-background-secondary)', borderLeft: '3px solid #16A34A', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>{revisaoQuestions[revQ].ctx}</div>) : null}
                 <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 18, lineHeight: 1.4 }}>{revisaoQuestions[revQ].q}</div>
@@ -3209,7 +3430,7 @@ export default function AppPage() {
                   const correta = revAns && i === revisaoQuestions[revQ].ans
                   const errada = revAns && i === revSel && i !== revisaoQuestions[revQ].ans
                   return (
-                    <button key={i} onClick={() => { if (revAns) return; setRevSel(i); setRevAns(true); if (i === revisaoQuestions[revQ].ans) setRevAcertos(a => a + 1) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : (revSel === i ? '2px solid #16A34A' : '1px solid var(--color-border-tertiary)'), background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: revAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
+                    <button key={i} onClick={() => { if (revAns) return; setRevSel(i); setRevAns(true); const ok = i === revisaoQuestions[revQ].ans; if (ok) setRevAcertos(a => a + 1); tocarSom(ok ? 'acerto' : 'erro'); if (revisaoQuestions[revQ]._erro) resolverErroQ(revisaoQuestions[revQ].q, ok) }} style={{ width: '100%', textAlign: 'left', padding: 14, marginBottom: 10, borderRadius: 12, border: correta ? '2px solid #16A34A' : errada ? '2px solid #C0392B' : (revSel === i ? '2px solid #16A34A' : '1px solid var(--color-border-tertiary)'), background: correta ? '#E3F3EA' : errada ? '#FBEAE8' : 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontSize: 15, cursor: revAns ? 'default' : 'pointer', fontWeight: (correta || errada) ? 600 : 400 }}>{opt}{correta ? <> <Ic e="✓" /></> : errada ? <> <Ic e="✗" /></> : ''}</button>
                   )
                 })}
                 {revAns && revisaoQuestions[revQ].exp && (<div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12, padding: '0 4px', lineHeight: 1.5 }}><Ic e="💡" /> {revisaoQuestions[revQ].exp}</div>)}
@@ -3404,8 +3625,13 @@ export default function AppPage() {
               </div>
               {selectedScenario && (
                 <div style={{ background: '#F1EFE8', padding: '10px 16px', borderBottom: '0.5px solid var(--color-border-tertiary)' }}>
-                  <div style={{ fontSize: 11, color: '#5F5E5A', fontWeight: 500, marginBottom: 4 }}><Ic e="💡" /> Dicas:</div>
-                  {selectedScenario.tips.map((tip, i) => <div key={i} style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 2 }}>• {tip}</div>)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: '#5F5E5A', fontWeight: 500, marginBottom: 4 }}><Ic e="💡" /> Dicas:</div>
+                      {selectedScenario.tips.map((tip, i) => <div key={i} style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 2 }}>• {tip}</div>)}
+                    </div>
+                    <button onClick={() => { const novo = !autoVoz; setAutoVoz(novo); try { localStorage.setItem('speakup_autovoz', novo ? '1' : '0') } catch (e) {} }} style={{ flexShrink: 0, background: autoVoz ? purple : 'var(--color-background-primary)', color: autoVoz ? '#fff' : '#5F5E5A', border: autoVoz ? 'none' : '1px solid var(--color-border-tertiary)', borderRadius: 20, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}><Ic e="🔊" c={autoVoz ? '#fff' : '#5F5E5A'} /> Voz {autoVoz ? 'ON' : 'OFF'}</button>
+                  </div>
                 </div>
               )}
               <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
@@ -3696,6 +3922,23 @@ export default function AppPage() {
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8, animation: 'su_risefade 0.5s ease 0.2s both' }}>Lição concluída!</div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 10, animation: 'su_risefade 0.5s ease 0.32s both' }}>Você ganhou</div>
                 <div style={{ display: 'inline-block', fontSize: 36, fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, #F5A623, #E08A1E)', padding: '8px 28px', borderRadius: 30, marginBottom: 24, boxShadow: '0 6px 18px rgba(239,159,39,0.4)', animation: 'su_xppop 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both' }}>+30 XP</div>
+                {!lembretesAtivos && (
+                  <div style={{ background: blueLight, borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, animation: 'su_risefade 0.5s ease 0.5s both' }}>
+                    <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="🔔" c={blue} /></div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: blueDark }}>Não deixe o fogo apagar</div>
+                      <div style={{ fontSize: 12, color: blue, marginTop: 2 }}>Um lembrete por dia para manter sua sequência viva.</div>
+                    </div>
+                    <button onClick={() => { ativarLembretes(); try { track('lembretes_prompt_finish') } catch (e) {} }} style={{ flexShrink: 0, background: blue, color: '#fff', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ativar</button>
+                  </div>
+                )}
+                <div style={{ animation: 'su_risefade 0.5s ease 0.6s both' }}>
+                  <button onClick={async () => {
+                    const texto = `Estou aprendendo inglês com um professor de IA no Vonai 🇧🇷 Já concluí ${doneLessons} ${doneLessons === 1 ? 'lição' : 'lições'}${streak > 1 ? ` e estou há ${streak} dias seguidos` : ''}! Vem estudar comigo: https://speakup-dusky.vercel.app`
+                    try { track('compartilhou_licao') } catch (e) {}
+                    try { if (navigator.share) { await navigator.share({ text: texto }) } else { await navigator.clipboard.writeText(texto); alert('Texto copiado! Cole onde quiser compartilhar. 📋') } } catch (e) {}
+                  }} style={{ width: '100%', padding: 13, background: 'var(--color-background-primary)', color: blue, border: `1.5px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>📣 Compartilhar meu progresso</button>
+                </div>
                 <div style={{ animation: 'su_risefade 0.5s ease 0.6s both' }}>
                   <button onClick={() => { setView('list'); setAnswered(false); setSelected(-1) }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10 }}>Continuar aprendendo <Ic e="→" /></button>
                   <button onClick={() => setTab('home')} style={{ width: '100%', padding: 14, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 15, cursor: 'pointer' }}>Voltar ao início</button>
@@ -3869,6 +4112,7 @@ export default function AppPage() {
                       {playing ? (<div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 38 }}>{[0,1,2,3,4].map(b => <span key={b} style={{ width: 5, height: 34, background: '#fff', borderRadius: 3, animation: `su_eq 0.7s ease-in-out ${b * 0.12}s infinite` }} />)}</div>) : <Ic e="🔊" c="#fff" s={38} />}
                     </div>
                     <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 14, fontWeight: 500 }}>{lisAns ? 'Ouça de novo se quiser' : 'Toque para ouvir · quantas vezes precisar'}</div>
+                    <button onClick={() => falarNavegador(ex.en, 0.55)} style={{ marginTop: 10, background: blueLight, color: blueDark, border: 'none', borderRadius: 20, padding: '7px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><Ic e="🐢" /> Ouvir devagar</button>
                     {lisAns && <div style={{ marginTop: 16, padding: '13px 15px', background: blueLight, borderRadius: 12, textAlign: 'left', borderLeft: `4px solid ${blue}` }}><div style={{ fontSize: 14.5, fontWeight: 700, color: blueDark }}>"{ex.en}"</div><div style={{ fontSize: 13, color: blue, marginTop: 5 }}>{ex.pt}</div></div>}
                   </div>
                   </>) })()}
