@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vonai — O custo</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:#000; overflow:hidden; }
+  #palco { position:relative; width:100vw; height:100vh; background:radial-gradient(ellipse at 50% 25%, #1C1408 0%, #070502 75%); font-family:'Nunito',sans-serif; overflow:hidden; }
+  .cena { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8vw; text-align:center; opacity:0; }
+  .c1 { animation:cena 4.6s both 0.3s; }
+  .c2 { animation:cena 5.6s both 5.1s; }
+  .c3 { animation:cena 5.2s both 10.9s; }
+  .c4 { animation:cenaFim 4.8s both 16.3s; }
+  @keyframes cena { 0%{opacity:0} 8%{opacity:1} 90%{opacity:1} 100%{opacity:0} }
+  @keyframes cenaFim { 0%{opacity:0} 8%{opacity:1} 100%{opacity:1} }
+  .titulo { font-size:8.8vw; font-weight:900; color:#F4EDE0; line-height:1.3; }
+  .contador { font-size:16vw; font-weight:900; color:#FFD98A; margin-top:4vw; font-variant-numeric:tabular-nums; }
+  .sub { font-size:4.8vw; color:#A08C64; font-weight:700; margin-top:2.5vw; }
+  .item { display:flex; align-items:center; gap:3.5vw; background:rgba(255,217,138,0.07); border:1px solid rgba(255,217,138,0.25); border-radius:4vw; padding:3.2vw 4.5vw; margin-top:3vw; width:84vw; text-align:left; opacity:0; transform:translateX(-30px); }
+  .item .e { font-size:8vw; } .item .t { font-size:4.9vw; font-weight:800; color:#F4EDE0; line-height:1.3; }
+  .i1 { animation:entra 0.6s both 5.9s; } .i2 { animation:entra 0.6s both 7.0s; } .i3 { animation:entra 0.6s both 8.1s; } .i4 { animation:entra 0.6s both 9.2s; }
+  @keyframes entra { to { opacity:1; transform:none; } }
+  .versus { width:84vw; border-radius:4.5vw; padding:4.5vw; margin-top:3vw; opacity:0; }
+  .v1 { background:rgba(255,90,72,0.1); border:1px solid rgba(255,90,72,0.4); animation:entra 0.7s both 11.7s; }
+  .v2 { background:rgba(159,225,203,0.1); border:1px solid rgba(159,225,203,0.5); animation:entra 0.7s both 13.1s; }
+  .versus .quem { font-size:4.4vw; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; }
+  .v1 .quem { color:#FF8A80; } .v2 .quem { color:#9FE1CB; }
+  .versus .preco { font-size:9.5vw; font-weight:900; color:#F4EDE0; margin-top:1vw; }
+  .versus .det { font-size:4.2vw; color:#A08C64; font-weight:700; margin-top:1vw; }
+  .logo { font-size:10vw; font-weight:900; color:#fff; opacity:0; animation:entra 0.8s both 16.7s; }
+  .logo span { background:#FFD98A; color:#7A5A12; border-radius:2vw; padding:0 2.2vw; margin-left:0.8vw; }
+  .fim { font-size:7.2vw; font-weight:800; color:#F4EDE0; line-height:1.4; margin-top:4vw; opacity:0; animation:entra 0.8s both 17.4s; }
+  .fim b { color:#FFD98A; }
+  .pill { display:inline-block; background:#FFD98A; color:#5C4308; border-radius:100px; padding:2.4vw 7vw; font-size:6vw; font-weight:900; margin-top:5vw; opacity:0; animation:entra 0.7s both 18.2s, pulsa 1.2s ease-in-out 19s infinite; }
+  @keyframes pulsa { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+  .barra { position:absolute; top:0; left:0; height:0.9vw; background:#FFD98A; animation:prog 21.5s linear infinite; z-index:5; }
+  @keyframes prog { from{width:0} to{width:100%} }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div class="barra"></div>
+
+  <div class="cena c1">
+    <div class="titulo">Quanto o inglês<br>que você NÃO fala<br>já te custou?</div>
+    <div class="contador" id="cnt">R$ 0</div>
+    <div class="sub">faça as contas comigo 👇</div>
+  </div>
+
+  <div class="cena c2">
+    <div class="titulo" style="font-size:6.8vw">Na sua conta já entrou:</div>
+    <div class="item i1"><span class="e">💼</span><span class="t">A vaga com salário maior que pedia inglês</span></div>
+    <div class="item i2"><span class="e">✈️</span><span class="t">A viagem em que você ficou mudo</span></div>
+    <div class="item i3"><span class="e">📈</span><span class="t">A promoção que foi pra quem "se vira"</span></div>
+    <div class="item i4"><span class="e">🎓</span><span class="t">Os cursos que você pagou e abandonou</span></div>
+  </div>
+
+  <div class="cena c3">
+    <div class="titulo" style="font-size:6.8vw">Agora compare:</div>
+    <div class="versus v1">
+      <div class="quem">Professor particular</div>
+      <div class="preco">R$ 150–250<span style="font-size:4.5vw">/hora</span></div>
+      <div class="det">1 ou 2 encontros por semana, hora marcada</div>
+    </div>
+    <div class="versus v2">
+      <div class="quem">Vonai — professor de IA</div>
+      <div class="preco">R$ 0,99<span style="font-size:4.5vw">/dia</span></div>
+      <div class="det">24 horas por dia · corrige em português · nunca julga</div>
+    </div>
+  </div>
+
+  <div class="cena c4">
+    <div class="logo">Von<span>ai</span></div>
+    <div class="fim">Não falar inglês é caro.<br><b>Aprender ficou barato.</b></div>
+    <div class="pill">Testar grátis por 2 dias</div>
+  </div>
+</div>
+<script>
+  // contador emocional da cena 1: sobe até R$ 38.000 (perdas acumuladas simbólicas)
+  function roda() {
+    let v = 0; const alvo = 38000; const t0 = Date.now();
+    const id = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / 2600);
+      v = Math.round(alvo * (1 - Math.pow(1 - p, 3)));
+      const el = document.getElementById('cnt');
+      if (el) el.textContent = 'R$ ' + v.toLocaleString('pt-BR');
+      if (p >= 1) clearInterval(id);
+    }, 40);
+  }
+  setTimeout(roda, 1300);
+  setInterval(() => {
+    document.querySelectorAll('.cena,.barra,.item,.versus,.logo,.fim,.pill').forEach(el => { el.style.animation='none'; void el.offsetWidth; el.style.animation=''; });
+    setTimeout(roda, 1300);
+  }, 21500);
+</script>
+</body>
+</html>

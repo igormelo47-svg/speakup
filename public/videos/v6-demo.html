@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vonai — Demo ao vivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:#000; overflow:hidden; }
+  #palco { position:relative; width:100vw; height:100vh; background:linear-gradient(170deg, #0E1B2C 0%, #050A12 100%); font-family:'Nunito',sans-serif; overflow:hidden; }
+  .cena { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:7vw; text-align:center; opacity:0; }
+  .c1 { animation:cena 3.8s both 0.3s; }
+  .c2 { animation:cena 9.4s both 4.3s; }
+  .c3 { animation:cena 4s both 13.9s; }
+  .c4 { animation:cenaFim 4.4s both 18.1s; }
+  @keyframes cena { 0%{opacity:0} 7%{opacity:1} 92%{opacity:1} 100%{opacity:0} }
+  @keyframes cenaFim { 0%{opacity:0} 7%{opacity:1} 100%{opacity:1} }
+  .titulo { font-size:8.8vw; font-weight:900; color:#E8EEF4; line-height:1.3; }
+  .titulo b { color:#FFD98A; }
+  .sub { font-size:4.8vw; color:#7B8FA6; font-weight:700; margin-top:3vw; }
+  /* celular com o app "de verdade" */
+  .fone { width:78vw; background:#103D77; border-radius:7vw; padding:2.2vw; opacity:0; animation:zoom 0.8s cubic-bezier(0.16,1,0.3,1) both 4.9s; }
+  @keyframes zoom { from{opacity:0; transform:scale(0.85) translateY(40px)} to{opacity:1; transform:none} }
+  .tela { background:#F2F5F8; border-radius:5.4vw; padding:3.5vw; text-align:left; }
+  .cab { display:flex; align-items:center; gap:2.5vw; padding-bottom:2.5vw; border-bottom:1px solid #E0E6EE; }
+  .ava { width:9vw; height:9vw; border-radius:50%; background:#185FA5; display:flex; align-items:center; justify-content:center; font-size:5vw; }
+  .cab .n { font-size:4.2vw; font-weight:900; color:#16212C; }
+  .cab .s { font-size:3vw; color:#16A34A; font-weight:700; }
+  .msg { border-radius:3.5vw; padding:2.6vw 3.4vw; font-size:3.9vw; font-weight:700; margin-top:2.6vw; max-width:88%; opacity:0; line-height:1.45; }
+  .aluno { background:#534AB7; color:#fff; margin-left:auto; border-bottom-right-radius:1vw; animation:pop 0.5s both 6.2s; }
+  .voMsg { background:#fff; color:#16212C; border:1px solid #E0E6EE; border-bottom-left-radius:1vw; animation:pop 0.5s both 8.2s; }
+  .voMsg .pt { font-size:3.3vw; color:#6B7A8C; font-style:italic; border-top:1px dashed #D5DDE7; margin-top:2vw; padding-top:2vw; font-weight:700; }
+  .digitando { display:inline-flex; gap:1vw; background:#fff; border:1px solid #E0E6EE; border-radius:3.5vw; padding:2.6vw 3.4vw; margin-top:2.6vw; opacity:0; animation:pop 0.4s both 7.0s, some 0.3s both 8.1s; }
+  .digitando span { width:1.8vw; height:1.8vw; border-radius:50%; background:#9CB4CC; animation:dot 1s infinite; }
+  .digitando span:nth-child(2) { animation-delay:0.2s; } .digitando span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes dot { 0%,100%{opacity:0.3} 50%{opacity:1} }
+  @keyframes some { to { opacity:0; height:0; padding:0; margin:0; } }
+  @keyframes pop { from{opacity:0; transform:translateY(16px) scale(0.94)} to{opacity:1; transform:none} }
+  .legenda { font-size:5.4vw; color:#E8EEF4; font-weight:800; margin-top:4vw; opacity:0; animation:pop 0.6s both 11.2s; }
+  .legenda b { color:#9FE1CB; }
+  .prova { display:flex; align-items:center; gap:3vw; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:4vw; padding:3.4vw 4.5vw; margin-top:3vw; width:84vw; text-align:left; opacity:0; }
+  .prova .e { font-size:8vw; } .prova .t { font-size:4.8vw; font-weight:800; color:#E8EEF4; line-height:1.35; }
+  .p1 { animation:pop 0.6s both 14.4s; } .p2 { animation:pop 0.6s both 15.3s; } .p3 { animation:pop 0.6s both 16.2s; }
+  .logo { font-size:10vw; font-weight:900; color:#fff; opacity:0; animation:pop 0.8s both 18.5s; }
+  .logo span { background:#FFD98A; color:#7A5A12; border-radius:2vw; padding:0 2.2vw; margin-left:0.8vw; }
+  .fim { font-size:7.2vw; font-weight:800; color:#E8EEF4; line-height:1.4; margin-top:4vw; opacity:0; animation:pop 0.8s both 19.2s; }
+  .fim b { color:#FFD98A; }
+  .pill { display:inline-block; background:#FFD98A; color:#103D77; border-radius:100px; padding:2.4vw 7vw; font-size:6vw; font-weight:900; margin-top:5vw; opacity:0; animation:pop 0.7s both 20s, pulsa 1.2s ease-in-out 20.8s infinite; }
+  @keyframes pulsa { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+  .barra { position:absolute; top:0; left:0; height:0.9vw; background:#FFD98A; animation:prog 23s linear infinite; z-index:5; }
+  @keyframes prog { from{width:0} to{width:100%} }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div class="barra"></div>
+
+  <div class="cena c1">
+    <div class="titulo">Todo anúncio<br>PROMETE.<br><br>Deixa eu te<br><b>MOSTRAR.</b></div>
+    <div class="sub">isso é o app funcionando, de verdade 👇</div>
+  </div>
+
+  <div class="cena c2">
+    <div class="fone">
+      <div class="tela">
+        <div class="cab">
+          <div class="ava">🎓</div>
+          <div><div class="n">Vô · seu professor de IA</div><div class="s">● online agora</div></div>
+        </div>
+        <div class="msg aluno">I want improve my english</div>
+        <div class="digitando"><span></span><span></span><span></span></div>
+        <div class="msg voMsg">Great start! Small fix: "I want <b>TO</b> improve my English." Let's practice together?
+          <div class="pt">🇧🇷 Em inglês, depois de "want" sempre vem "to". Erro comum de brasileiro — anotei aqui para revisarmos depois!</div>
+        </div>
+      </div>
+    </div>
+    <div class="legenda">Corrigiu na hora. Explicou em português.<br><b>E vai lembrar do seu erro amanhã.</b></div>
+  </div>
+
+  <div class="cena c3">
+    <div class="titulo" style="font-size:7vw">Por que confiar?</div>
+    <div class="prova p1"><span class="e">🧠</span><span class="t">IA que memoriza seus erros e monta sua aula</span></div>
+    <div class="prova p2"><span class="e">🗣️</span><span class="t">Voz humana + avaliação real de pronúncia</span></div>
+    <div class="prova p3"><span class="e">🇧🇷</span><span class="t">Método criado para os erros do brasileiro</span></div>
+  </div>
+
+  <div class="cena c4">
+    <div class="logo">Von<span>ai</span></div>
+    <div class="fim">Não acredite em mim.<br><b>Teste você mesmo. É grátis.</b></div>
+    <div class="pill">Baixar e testar agora</div>
+  </div>
+</div>
+<script>
+  setInterval(() => { document.querySelectorAll('.cena,.barra,.fone,.msg,.digitando,.legenda,.prova,.logo,.fim,.pill').forEach(el => { el.style.animation='none'; void el.offsetWidth; el.style.animation=''; }); }, 23000);
+</script>
+</body>
+</html>

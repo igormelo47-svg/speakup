@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vonai — A história</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:#000; overflow:hidden; }
+  #palco { position:relative; width:100vw; height:100vh; background:radial-gradient(ellipse at 50% 30%, #14263E 0%, #05080D 75%); font-family:'Nunito',sans-serif; overflow:hidden; }
+  .cena { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8vw; text-align:center; opacity:0; }
+  .c1 { animation: cena 4.4s both 0.3s; }
+  .c2 { animation: cena 4.2s both 4.9s; }
+  .c3 { animation: cena 4.6s both 9.3s; }
+  .c4 { animation: cena 4.2s both 14.1s; }
+  .c5 { animation: cenaFim 4.6s both 18.5s; }
+  @keyframes cena { 0%{opacity:0} 8%{opacity:1} 90%{opacity:1} 100%{opacity:0} }
+  @keyframes cenaFim { 0%{opacity:0} 8%{opacity:1} 100%{opacity:1} }
+  .linha { display:block; font-size:8.6vw; font-weight:800; color:#E8EEF4; line-height:1.45; opacity:0; transform:translateY(24px); }
+  .anos { font-size:6vw; font-weight:900; color:#7B8FA6; letter-spacing:0.35em; text-transform:uppercase; margin-bottom:4vw; opacity:0; transform:translateY(24px); }
+  .c1 .anos { animation:sobe 0.8s both 0.7s; } .c1 .l1 { animation:sobe 0.8s both 1.3s; } .c1 .l2 { animation:sobe 0.8s both 2.5s; color:#FF8A80; }
+  .c2 .anos { animation:sobe 0.8s both 5.3s; } .c2 .l1 { animation:sobe 0.8s both 5.9s; } .c2 .l2 { animation:sobe 0.8s both 7.1s; color:#FF8A80; }
+  .c3 .anos { animation:sobe 0.8s both 9.7s; color:#FFD98A; } .c3 .l1 { animation:sobe 0.8s both 10.3s; } .c3 .l2 { animation:sobe 0.8s both 11.5s; color:#9FE1CB; }
+  .c4 .l1 { animation:sobe 0.8s both 14.5s; } .c4 .l2 { animation:sobe 0.8s both 15.6s; }
+  @keyframes sobe { to { opacity:1; transform:none; } }
+  .selo { display:inline-block; background:rgba(255,217,138,0.12); border:1px solid rgba(255,217,138,0.5); color:#FFD98A; border-radius:100px; padding:1.8vw 5vw; font-size:4.2vw; font-weight:800; margin:1.4vw; opacity:0; }
+  .s1 { animation:sobe 0.6s both 16.6s; } .s2 { animation:sobe 0.6s both 17.1s; } .s3 { animation:sobe 0.6s both 17.6s; }
+  .logo { font-size:10vw; font-weight:900; color:#fff; opacity:0; animation:sobe 0.8s both 18.9s; }
+  .logo span { background:#FFD98A; color:#7A5A12; border-radius:2vw; padding:0 2.2vw; margin-left:0.8vw; }
+  .fim { font-size:7.4vw; font-weight:800; color:#E8EEF4; line-height:1.4; margin-top:4vw; opacity:0; animation:sobe 0.8s both 19.6s; }
+  .fim b { color:#FFD98A; }
+  .pill { display:inline-block; background:#FFD98A; color:#103D77; border-radius:100px; padding:2.4vw 7vw; font-size:6vw; font-weight:900; margin-top:5vw; opacity:0; animation:sobe 0.7s both 20.4s, pulsa 1.2s ease-in-out 21.2s infinite; }
+  @keyframes pulsa { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+  .barra { position:absolute; top:0; left:0; height:0.9vw; background:#FFD98A; animation:prog 23s linear infinite; z-index:5; }
+  @keyframes prog { from{width:0} to{width:100%} }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div class="barra"></div>
+
+  <div class="cena c1">
+    <span class="anos">Aos 15</span>
+    <span class="linha l1">Ele travou ao ler<br>em voz alta na aula.</span>
+    <span class="linha l2">A sala inteira riu.</span>
+  </div>
+
+  <div class="cena c2">
+    <span class="anos">Aos 25</span>
+    <span class="linha l1">Recusou a entrevista<br>dos sonhos.</span>
+    <span class="linha l2">Era em inglês.</span>
+  </div>
+
+  <div class="cena c3">
+    <span class="anos">Hoje</span>
+    <span class="linha l1">Ele conversa em inglês<br>todos os dias.</span>
+    <span class="linha l2">E ninguém nunca mais riu.</span>
+  </div>
+
+  <div class="cena c4">
+    <span class="linha l1" style="font-size:7.6vw">O que mudou?<br>Ele encontrou um professor<br>que <b style="color:#FFD98A">não julga</b>.</span>
+    <span class="linha l2" style="font-size:6vw; color:#7B8FA6">Um professor de inteligência artificial,<br>disponível 24h, feito para brasileiro.</span>
+    <div style="margin-top:4vw">
+      <span class="selo s1">🤖 IA de última geração</span>
+      <span class="selo s2">🗣️ Voz humana real</span>
+      <span class="selo s3">🇧🇷 Correção em português</span>
+    </div>
+  </div>
+
+  <div class="cena c5">
+    <div class="logo">Von<span>ai</span></div>
+    <div class="fim">A vergonha de falar inglês<br><b>acaba hoje.</b></div>
+    <div class="pill">Baixar grátis — 2 dias Premium</div>
+  </div>
+</div>
+<script>
+  setInterval(() => { document.querySelectorAll('.cena,.barra,.linha,.anos,.selo,.logo,.fim,.pill').forEach(el => { el.style.animation='none'; void el.offsetWidth; el.style.animation=''; }); }, 23000);
+</script>
+</body>
+</html>
