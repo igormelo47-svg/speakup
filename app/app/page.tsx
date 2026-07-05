@@ -3408,13 +3408,6 @@ export default function AppPage() {
               <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2 }}>Dispute o topo do ranking com outros alunos</div></div>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ver <Ic e="→" /></span>
             </div>
-            {bauDia !== hojeStr && (
-              <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.35)' }}>
-                <div style={{ fontSize: 34, animation: 'su_bob 1.6s ease-in-out infinite' }}>🎁</div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque para abrir e ganhar moedas 🪙</div></div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
-              </div>
-            )}
             {histDone.length < HISTORIAS.length && (
               <div onClick={() => { setHistSel(null); setTab('historias') }} style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ fontSize: 30 }}>📖</div>
@@ -3422,11 +3415,6 @@ export default function AppPage() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ler <Ic e="→" /></span>
               </div>
             )}
-            <div onClick={compartilharIndicacao} style={{ background: 'var(--color-background-primary)', border: '1.5px dashed #B45309', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 28 }}>🎁</div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>Convide um amigo</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Ele ganha +2 dias Premium, você ganha 100 🪙{(perfilIa.indicacoes || 0) > 0 ? ` · ${perfilIa.indicacoes} ${perfilIa.indicacoes === 1 ? 'amigo trazido' : 'amigos trazidos'}` : ''}</div></div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#B45309', background: '#FEF3E2', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
-            </div>
             {!errbrFeito && (
               <div onClick={() => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} }} style={{ background: 'linear-gradient(135deg, #059669, #B45309)', borderRadius: 16, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ fontSize: 30 }}>🇧🇷</div>
@@ -3579,6 +3567,18 @@ export default function AppPage() {
                 <div style={{ flex: 1, fontSize: 13, color: '#15803D', fontWeight: 600 }}>Lembretes diários ativados <Ic e="✓" /></div>
               </div>
             )}
+            {bauDia !== hojeStr && (
+              <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 16, padding: 14, marginTop: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.35)' }}>
+                <div style={{ fontSize: 34, animation: 'su_bob 1.6s ease-in-out infinite' }}>🎁</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque para abrir e ganhar moedas 🪙</div></div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
+              </div>
+            )}
+            <div onClick={compartilharIndicacao} style={{ background: 'var(--color-background-primary)', border: '1.5px dashed #B45309', borderRadius: 16, padding: 14, marginTop: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 28 }}>🎁</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>Convide um amigo</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Ele ganha +2 dias Premium, você ganha 100 🪙{(perfilIa.indicacoes || 0) > 0 ? ` · ${perfilIa.indicacoes} ${perfilIa.indicacoes === 1 ? 'amigo trazido' : 'amigos trazidos'}` : ''}</div></div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#B45309', background: '#FEF3E2', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
+            </div>
             {(() => {
               const conquistas = conquistasDef
               const ganhas = conquistas.filter(c => c.ok).length
