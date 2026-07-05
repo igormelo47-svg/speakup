@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vonai — Anúncio 2: Trava na hora de falar</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #000; overflow: hidden; }
+  #palco { position: relative; width: 100vw; height: 100vh; background: linear-gradient(170deg, #6A5ACD 0%, #2E2560 100%); font-family: 'Nunito', sans-serif; overflow: hidden; }
+  .cena { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 7vw; text-align: center; opacity: 0; }
+  .c1 { animation: cena 3.6s both 0.2s; }
+  .c2 { animation: cena 3.8s both 3.8s; }
+  .c3 { animation: cena 6.2s both 7.6s; }
+  .c4 { animation: cenaFim 4.2s both 13.8s; }
+  @keyframes cena { 0% { opacity: 0; transform: translateY(50px) scale(0.96); } 9% { opacity: 1; transform: none; } 88% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+  @keyframes cenaFim { 0% { opacity: 0; transform: translateY(50px) scale(0.96); } 9% { opacity: 1; transform: none; } 100% { opacity: 1; } }
+  .grande { font-size: 11vw; font-weight: 900; color: #fff; line-height: 1.18; }
+  .medio { font-size: 7.6vw; font-weight: 800; color: #fff; line-height: 1.35; }
+  .destaque { color: #FFD98A; }
+  .pill { display: inline-block; background: #FFD98A; color: #3C2E7A; border-radius: 100px; padding: 2.2vw 6vw; font-size: 6.5vw; font-weight: 900; margin-top: 5vw; animation: pulsa 1.1s ease-in-out infinite; }
+  @keyframes pulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  .logo { font-size: 9vw; font-weight: 900; color: #fff; }
+  .logo span { background: #FFD98A; color: #7A5A12; border-radius: 2vw; padding: 0 2.2vw; margin-left: 0.8vw; }
+  .barra { position: absolute; top: 0; left: 0; height: 1vw; background: #FFD98A; animation: prog 18s linear infinite; z-index: 5; }
+  @keyframes prog { from { width: 0; } to { width: 100%; } }
+  .balao { border-radius: 5vw; padding: 3.4vw 4.5vw; font-size: 5.2vw; font-weight: 800; text-align: left; max-width: 82vw; margin-top: 3vw; opacity: 0; }
+  .aluno { background: #fff; color: #3C2E7A; border-bottom-right-radius: 1vw; align-self: flex-end; animation: chega 0.6s cubic-bezier(0.16,1,0.3,1) both 8.4s; }
+  .vo { background: rgba(255,255,255,0.16); color: #fff; border-bottom-left-radius: 1vw; align-self: flex-start; animation: chega 0.6s cubic-bezier(0.16,1,0.3,1) both 9.6s; }
+  .vo small { display: block; color: #D6CFFF; font-size: 4vw; margin-top: 2vw; border-top: 1px dashed rgba(255,255,255,0.35); padding-top: 2vw; font-weight: 700; }
+  @keyframes chega { from { opacity: 0; transform: translateY(30px) scale(0.9); } to { opacity: 1; transform: none; } }
+  .sub { font-size: 4.5vw; color: #D6CFFF; font-weight: 700; margin-top: 2.5vw; }
+  .emoji-treme { font-size: 18vw; animation: treme 0.4s linear infinite; display: inline-block; }
+  @keyframes treme { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div class="barra"></div>
+
+  <div class="cena c1">
+    <div class="emoji-treme">🥶</div>
+    <div class="grande" style="margin-top:3vw">Sabe LER inglês…<br>mas <span class="destaque">TRAVA</span> na<br>hora de falar?</div>
+  </div>
+
+  <div class="cena c2">
+    <div class="medio">Não é falta de capacidade.<br><br>É falta de um lugar<br><span class="destaque">seguro pra errar</span> —<br>sem plateia, sem julgamento.</div>
+  </div>
+
+  <div class="cena c3">
+    <div class="medio" style="font-size:6.5vw">Com o <span class="destaque">Vô</span>, você erra à vontade.<br>E ele corrige com carinho:</div>
+    <div class="balao aluno">I have 25 years 😅</div>
+    <div class="balao vo">Nice! Small thing: we say "I'm 25 years old". Try again!
+      <small>🇧🇷 Em inglês a idade usa o verbo BE, não HAVE. Erro clássico de brasileiro — e você nunca mais vai cometer.</small>
+    </div>
+    <div class="sub" style="animation: chega 0.6s both 11.4s; opacity:0">Quantas vezes você precisar. 24 horas por dia.</div>
+  </div>
+
+  <div class="cena c4">
+    <div class="logo">Von<span>ai</span></div>
+    <div class="medio" style="margin-top:5vw">Destrave seu inglês<br>falando com quem<br><span class="destaque">não te julga</span>.</div>
+    <div class="pill">👉 Comece GRÁTIS — 2 dias</div>
+  </div>
+</div>
+<script>
+  setInterval(() => { const p = document.getElementById('palco'); p.querySelectorAll('.cena,.barra,.balao,.sub').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }); }, 18000);
+</script>
+</body>
+</html>

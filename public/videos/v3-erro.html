@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vonai — Anúncio 3: I have 25 years</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #000; overflow: hidden; }
+  #palco { position: relative; width: 100vw; height: 100vh; background: linear-gradient(170deg, #059669 0%, #7A4A12 130%); font-family: 'Nunito', sans-serif; overflow: hidden; }
+  .cena { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 7vw; text-align: center; opacity: 0; }
+  .c1 { animation: cena 3.4s both 0.2s; }
+  .c2 { animation: cena 3.6s both 3.6s; }
+  .c3 { animation: cena 6.4s both 7.2s; }
+  .c4 { animation: cenaFim 4.4s both 13.6s; }
+  @keyframes cena { 0% { opacity: 0; transform: translateY(50px) scale(0.96); } 9% { opacity: 1; transform: none; } 88% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+  @keyframes cenaFim { 0% { opacity: 0; transform: translateY(50px) scale(0.96); } 9% { opacity: 1; transform: none; } 100% { opacity: 1; } }
+  .gigante { font-size: 13vw; font-weight: 900; color: #fff; line-height: 1.12; }
+  .medio { font-size: 7.8vw; font-weight: 800; color: #fff; line-height: 1.32; }
+  .destaque { color: #FFD98A; }
+  .carimbo { display: inline-block; border: 1.6vw solid #FF5A48; color: #FF5A48; border-radius: 3vw; padding: 1vw 4vw; font-size: 9vw; font-weight: 900; transform: rotate(-8deg); margin-top: 4vw; animation: carimba 0.5s cubic-bezier(0.16,1,0.3,1) both 1.4s; background: rgba(0,0,0,0.15); }
+  @keyframes carimba { from { opacity: 0; transform: rotate(-8deg) scale(2.4); } to { opacity: 1; transform: rotate(-8deg) scale(1); } }
+  .certo { display: inline-block; background: #fff; color: #0F6E56; border-radius: 4vw; padding: 3vw 6vw; font-size: 8.5vw; font-weight: 900; margin-top: 4vw; animation: chega 0.6s cubic-bezier(0.16,1,0.3,1) both 8.2s; opacity: 0; }
+  .chip { background: rgba(255,255,255,0.16); border-radius: 100px; padding: 1.8vw 4.2vw; font-size: 4.4vw; font-weight: 800; color: #fff; margin: 1.1vw; display: inline-block; opacity: 0; }
+  .k1 { animation: chega 0.5s both 10.2s; } .k2 { animation: chega 0.5s both 10.7s; } .k3 { animation: chega 0.5s both 11.2s; }
+  @keyframes chega { from { opacity: 0; transform: translateY(26px) scale(0.9); } to { opacity: 1; transform: none; } }
+  .pill { display: inline-block; background: #FFD98A; color: #0F4D3A; border-radius: 100px; padding: 2.2vw 6vw; font-size: 6.2vw; font-weight: 900; margin-top: 5vw; animation: pulsa 1.1s ease-in-out infinite; }
+  @keyframes pulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  .logo { font-size: 9vw; font-weight: 900; color: #fff; }
+  .logo span { background: #FFD98A; color: #7A5A12; border-radius: 2vw; padding: 0 2.2vw; margin-left: 0.8vw; }
+  .barra { position: absolute; top: 0; left: 0; height: 1vw; background: #FFD98A; animation: prog 18s linear infinite; z-index: 5; }
+  @keyframes prog { from { width: 0; } to { width: 100%; } }
+  .sub { font-size: 4.6vw; color: rgba(255,255,255,0.85); font-weight: 700; margin-top: 3vw; }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div class="barra"></div>
+
+  <div class="cena c1">
+    <div class="gigante">"I have<br>25 years."</div>
+    <div class="carimbo">ERRADO ❌</div>
+  </div>
+
+  <div class="cena c2">
+    <div class="medio">Quase <span class="destaque">todo brasileiro</span><br>já falou isso.<br><br>E o pior: ninguém avisa. 🙈</div>
+  </div>
+
+  <div class="cena c3">
+    <div class="medio">O certo é:</div>
+    <div class="certo">✓ I'm 25 years old</div>
+    <div class="medio" style="margin-top:5vw; font-size:6.4vw">O <span class="destaque">Caça-Erros do Vonai</span> te livra<br>das armadilhas que só<br>brasileiro cai:</div>
+    <div style="margin-top:3vw">
+      <span class="chip k1">push ≠ puxe 🚪</span>
+      <span class="chip k2">actually ≠ atualmente</span>
+      <span class="chip k3">pretend ≠ pretender</span>
+    </div>
+  </div>
+
+  <div class="cena c4">
+    <div class="logo">Von<span>ai</span></div>
+    <div class="medio" style="margin-top:5vw">5 armadilhas novas<br>todo dia. <span class="destaque">Grátis</span><br>por 2 dias.</div>
+    <div class="pill">👉 Jogue o CAÇA-ERROS</div>
+  </div>
+</div>
+<script>
+  setInterval(() => { const p = document.getElementById('palco'); p.querySelectorAll('.cena,.barra,.carimbo,.certo,.chip').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }); }, 18000);
+</script>
+</body>
+</html>
