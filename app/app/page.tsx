@@ -3574,10 +3574,10 @@ export default function AppPage() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
               </div>
             )}
-            <div onClick={compartilharIndicacao} style={{ background: 'var(--color-background-primary)', border: '1.5px dashed #B45309', borderRadius: 16, padding: 14, marginTop: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div onClick={compartilharIndicacao} style={{ background: 'linear-gradient(135deg, #F97362, #D8432A)', borderRadius: 16, padding: 14, marginTop: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(216,67,42,0.3)' }}>
               <div style={{ fontSize: 28 }}>🎁</div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>Convide um amigo</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Ele ganha +2 dias Premium, você ganha 100 🪙{(perfilIa.indicacoes || 0) > 0 ? ` · ${perfilIa.indicacoes} ${perfilIa.indicacoes === 1 ? 'amigo trazido' : 'amigos trazidos'}` : ''}</div></div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#B45309', background: '#FEF3E2', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Convide um amigo</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Ele ganha +2 dias Premium, você ganha 100 🪙{(perfilIa.indicacoes || 0) > 0 ? ` · ${perfilIa.indicacoes} ${perfilIa.indicacoes === 1 ? 'amigo trazido' : 'amigos trazidos'}` : ''}</div></div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#B23415', background: '#fff', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
             </div>
             {(() => {
               const conquistas = conquistasDef
