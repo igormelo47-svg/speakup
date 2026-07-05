@@ -2389,6 +2389,7 @@ export default function AppPage() {
       if (mediaRecRef.current) { try { mediaRecRef.current.stop() } catch (e) {} ; return }
       recognitionRef.current?.stop(); return
     }
+    silenciarVozes() // não gravar a voz do próprio app junto com a do aluno
     // Whisper primeiro (quando configurado); senão, reconhecimento do navegador.
     sttDisponivel().then(ok => { if (ok) gravarPronWhisper(target); else gravarPronNavegador(target) })
   }
@@ -2765,37 +2766,62 @@ export default function AppPage() {
     setListening(false)
   }
 
-  function micChat() {
+  // Corta qualquer voz tocando antes de abrir o microfone — senão o celular ouve o
+  // próprio alto-falante e transcreve a fala do app junto com a do aluno.
+  function silenciarVozes() {
+    try { window.speechSynthesis?.cancel() } catch (e) {}
+    if (ttsAudioRef.current) { try { ttsAudioRef.current.pause() } catch (e) {} ttsAudioRef.current = null }
+    setSpeakingId(-1)
+  }
+
+  // Ditado por voz compartilhado (chat/simulador). Cada reinício após pausa cria uma
+  // SESSÃO NOVA do reconhecimento (instância nova) e consolida o que já foi dito —
+  // reusar a mesma instância no Android faz o motor reentregar os finais antigos e
+  // o texto sair repetido várias vezes.
+  function ouvirEDigitar(baseInicial: string, aplicar: (texto: string) => void) {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
-    if (listening) { pararMic(); return }
-    const base = chatInput ? chatInput + ' ' : ''
-    const rec = new SR()
-    rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
-    rec.onresult = (e: any) => {
-      // Reconstrói a frase inteira a cada evento — evita palavras repetidas (bug do Android,
-      // que reenvia resultados já finais com o resultIndex voltando a 0).
-      let txt = ''
-      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
-      setChatInput((base + txt).replace(/\s+/g, ' ').trim())
-    }
-    rec.onerror = (e: any) => {
-      // Permissão negada: avisa o aluno em vez de falhar em silêncio.
-      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
-        pararMic(); alert('Preciso da permissão do microfone. 🎤\n\nToque no cadeado 🔒 ao lado do endereço (ou em Ajustes do aparelho → Vonai → Microfone) e permita, depois toque no microfone de novo.')
-      }
-      // 'no-speech'/'aborted': ignora — o onend reinicia e a gravação não morre numa pausa.
-    }
-    rec.onend = () => {
-      // O Android encerra a sessão sozinho após pausas. Se o aluno ainda está gravando,
-      // reinicia para ele poder falar frases longas sem o microfone "morrer" no meio.
-      if (micAtivoRef.current) { try { rec.start() } catch (e) { setListening(false) } }
-      else setListening(false)
-    }
-    recognitionRef.current = rec
+    silenciarVozes()
     micAtivoRef.current = true
     setListening(true)
-    rec.start()
+    let base = baseInicial ? baseInicial.replace(/\s+/g, ' ').trim() + ' ' : ''
+    let ultimo = ''
+    const novaSessao = () => {
+      const rec = new SR()
+      rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
+      rec.onresult = (e: any) => {
+        // Reconstrói a frase da SESSÃO a cada evento (evita repetição por resultIndex
+        // voltando a 0) e ignora eventos idênticos ao anterior.
+        let txt = ''
+        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
+        txt = txt.replace(/\s+/g, ' ').trim()
+        if (!txt || txt === ultimo) return
+        ultimo = txt
+        aplicar((base + txt).replace(/\s+/g, ' ').trim())
+      }
+      rec.onerror = (e: any) => {
+        if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
+          pararMic(); alert('Preciso da permissão do microfone. 🎤\n\nToque no cadeado 🔒 ao lado do endereço (ou em Ajustes do aparelho → Vonai → Microfone) e permita, depois toque no microfone de novo.')
+        }
+      }
+      rec.onend = () => {
+        if (micAtivoRef.current) {
+          // Consolida a sessão que acabou e abre uma nova, limpa — sem finais fantasmas.
+          base = (base + ultimo).replace(/\s+/g, ' ').trim()
+          base = base ? base + ' ' : ''
+          ultimo = ''
+          try { novaSessao() } catch (e) { setListening(false) }
+        } else setListening(false)
+      }
+      recognitionRef.current = rec
+      rec.start()
+    }
+    novaSessao()
+  }
+
+  function micChat() {
+    if (listening) { pararMic(); return }
+    ouvirEDigitar(chatInput, t => setChatInput(t))
   }
 
   // Chama /api/chat sempre com o token de login (a rota exige usuário autenticado).
@@ -2984,32 +3010,10 @@ export default function AppPage() {
     speakEN(eng.length ? eng.join('. ') : t, id)
   }
 
-  function toggleMic(setter: (fn: (prev: string) => string) => void) {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
+  // Microfone do simulador: mesmo motor anti-repetição do chat (ouvirEDigitar).
+  function toggleMic(_setter?: unknown) {
     if (listening) { pararMic(); return }
-    micAtivoRef.current = false
-    const rec = new SR()
-    rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
-    let base = ''; setter(prev => { base = prev ? prev + ' ' : ''; return prev })
-    rec.onresult = (e: any) => {
-      let txt = ''
-      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
-      setter(() => (base + txt).replace(/\s+/g, ' ').trim())
-    }
-    rec.onerror = (e: any) => {
-      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
-        pararMic(); alert('Preciso da permissão do microfone. 🎤\n\nToque no cadeado 🔒 ao lado do endereço (ou em Ajustes do aparelho → Vonai → Microfone) e permita, depois toque no microfone de novo.')
-      }
-    }
-    rec.onend = () => {
-      if (micAtivoRef.current) { try { rec.start() } catch (e) { setListening(false) } }
-      else setListening(false)
-    }
-    recognitionRef.current = rec
-    micAtivoRef.current = true
-    setListening(true)
-    rec.start()
+    ouvirEDigitar(convInput, t => setConvInput(t))
   }
 
   function startScenario(scenario: Scenario) {
