@@ -1821,6 +1821,29 @@ function separaPT(text: string): { en: string; pt: string } {
 }
 function soIngles(text: string): string { return separaPT(text).en }
 
+// Rede de segurança do microfone: o reconhecimento de voz do Android às vezes
+// re-entrega o que já disse, gerando "where where is where is the...". Esta função
+// colapsa blocos imediatamente repetidos (de qualquer tamanho), transformando
+// "where is the most where is the most beautiful" em "where is the most beautiful".
+function colapsarRepeticao(text: string): string {
+  if (!text) return text
+  const w = text.split(/\s+/).filter(Boolean)
+  const out: string[] = []
+  for (const word of w) {
+    out.push(word)
+    const n = out.length
+    // procura o maior bloco k tal que os últimos 2k formem [X][X]; remove uma cópia.
+    for (let k = Math.floor(n / 2); k >= 1; k--) {
+      let dup = true
+      for (let j = 0; j < k; j++) {
+        if (out[n - 2 * k + j].toLowerCase() !== out[n - k + j].toLowerCase()) { dup = false; break }
+      }
+      if (dup) { out.splice(n - k, k); break }
+    }
+  }
+  return out.join(' ')
+}
+
 // A IA às vezes responde com markdown mesmo sem pedirmos. Renderiza o básico (**negrito**)
 // e remove separadores "---" em vez de mostrar os asteriscos crus na tela.
 function TextoIA({ text }: { text: string }) {
@@ -2785,32 +2808,34 @@ export default function AppPage() {
     setSpeakingId(-1)
   }
 
-  // Ditado por voz compartilhado (chat/simulador). Chave anti-repetição:
-  // só FIRMAMOS resultados marcados como `isFinal`. O texto provisório (interim) é
-  // apenas exibido, nunca acumulado — antes, ao reiniciar a sessão após uma pausa,
-  // o interim era comprometido e depois re-ouvido, duplicando as palavras.
+  // Ditado por voz compartilhado (chat/simulador). Três camadas anti-repetição:
+  // (1) usa e.resultIndex — processa só o que MUDOU, não reconstrói do zero;
+  // (2) `finalTranscript` acumula APENAS trechos isFinal, uma única vez cada, e
+  //     sobrevive aos reinícios de sessão do Android (não perde nem duplica);
+  // (3) colapsarRepeticao() como rede de segurança: mesmo que o motor do celular
+  //     re-entregue trechos, blocos repetidos são removidos antes de exibir.
   function ouvirEDigitar(baseInicial: string, aplicar: (texto: string) => void) {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
     silenciarVozes()
     micAtivoRef.current = true
     setListening(true)
-    // `firmado` = tudo que já virou final (base inicial + sessões anteriores).
-    let firmado = baseInicial ? baseInicial.replace(/\s+/g, ' ').trim() : ''
-    const juntar = (a: string, b: string) => (a + ' ' + b).replace(/\s+/g, ' ').trim()
+    const prefixo = baseInicial ? baseInicial.replace(/\s+/g, ' ').trim() + ' ' : ''
+    let finalTranscript = '' // só finais, acumulados ao longo de TODAS as sessões (mantém espaço no fim)
+    // Exibição: colapsa repetições SEM mutar o acumulado (não perde o espaço separador).
+    const paraExibir = (interim: string) => colapsarRepeticao((prefixo + finalTranscript + ' ' + interim).replace(/\s+/g, ' ').trim())
     const novaSessao = () => {
       const rec = new SR()
       rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
-      let sessionFinal = '' // finais desta sessão (reconstruídos do índice 0 a cada evento)
       rec.onresult = (e: any) => {
-        let finais = '', interim = ''
-        for (let i = 0; i < e.results.length; i++) {
-          const r = e.results[i]
-          if (r.isFinal) finais += r[0].transcript + ' '
-          else interim += r[0].transcript + ' '
+        let interim = ''
+        // resultIndex: começa no primeiro resultado que mudou (não reprocessa os antigos).
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const seg = e.results[i][0].transcript
+          if (e.results[i].isFinal) finalTranscript += seg + ' '
+          else interim += seg + ' '
         }
-        sessionFinal = finais.trim()
-        aplicar(juntar(juntar(firmado, sessionFinal), interim.trim()))
+        aplicar(paraExibir(interim.trim()))
       }
       rec.onerror = (e: any) => {
         if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
@@ -2818,11 +2843,12 @@ export default function AppPage() {
         }
       }
       rec.onend = () => {
-        // Firma SÓ os finais da sessão (interim é descartado — se o aluno seguir falando,
-        // é reconhecido de novo, sem duplicar). Abre uma sessão nova e limpa.
-        firmado = juntar(firmado, sessionFinal)
+        // Só na troca de sessão o acumulado é compactado — e o espaço final é RECOLOCADO
+        // para a próxima palavra não colar na anterior.
+        const limpo = colapsarRepeticao(finalTranscript.replace(/\s+/g, ' ').trim())
+        finalTranscript = limpo ? limpo + ' ' : ''
         if (micAtivoRef.current) { try { novaSessao() } catch (e) { setListening(false) } }
-        else { setListening(false); aplicar(firmado) }
+        else { setListening(false); aplicar(colapsarRepeticao((prefixo + finalTranscript).replace(/\s+/g, ' ').trim())) }
       }
       recognitionRef.current = rec
       rec.start()
@@ -2875,7 +2901,7 @@ export default function AppPage() {
       setChatMsgs(m => [...m, { role: 'ai', text: 'Estou um pouco sobrecarregado agora. 😅 Tente de novo daqui a pouco.' }])
       return
     }
-    const msg = chatInput; setChatInput('')
+    const msg = colapsarRepeticao(chatInput.trim()); setChatInput('')
     const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
@@ -3040,7 +3066,7 @@ export default function AppPage() {
     if (!convInput.trim() || loadingConv || !selectedScenario) return
     if (listening) pararMic() // ao enviar o áudio, para de gravar
     try { track('simulador_mensagem', { cenario: selectedScenario.title }) } catch (e) {}
-    const msg = convInput; setConvInput('')
+    const msg = colapsarRepeticao(convInput.trim()); setConvInput('')
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
@@ -3582,6 +3608,9 @@ export default function AppPage() {
             {(() => {
               const conquistas = conquistasDef
               const ganhas = conquistas.filter(c => c.ok).length
+              // Na home mostra só 4: as conquistadas primeiro, completando com as próximas
+              // a desbloquear (o resto fica em "ver tudo", na aba Evolução).
+              const amostra = [...conquistas].sort((a, b) => (a.ok === b.ok ? 0 : a.ok ? -1 : 1)).slice(0, 4)
               return (
                 <div onClick={() => setTab('evolucao')} style={{ background: 'var(--color-background-primary)', borderRadius: 12, border: '0.5px solid var(--color-border-tertiary)', padding: 12, marginTop: 10, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -3589,7 +3618,7 @@ export default function AppPage() {
                     <div style={{ fontSize: 11, fontWeight: 600, color: blue }}>{ganhas}/{conquistas.length} · ver tudo <Ic e="→" /></div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                    {conquistas.map((c, i) => (
+                    {amostra.map((c, i) => (
                       <div key={i} style={{ textAlign: 'center' }}>
                         <div style={{ position: 'relative', width: 40, height: 40, margin: '0 auto', borderRadius: '50%', background: c.ok ? goldLight : 'var(--color-background-secondary)', border: c.ok ? `1.5px solid ${gold}` : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ filter: c.ok ? 'none' : 'grayscale(1)', opacity: c.ok ? 1 : 0.4 }}><Ic e={c.e} s={19} c={c.ok ? gold : undefined} /></span>
