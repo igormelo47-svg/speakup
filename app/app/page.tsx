@@ -1810,6 +1810,17 @@ const ERROS_BR: { cat: string; q: string; opts: string[]; ans: number; exp: stri
   { cat: 'Expressão', q: '"Vou pensar no assunto" (resposta educada) =', opts: ['I will think', "I'll think about it", 'I go to think it'], ans: 1, exp: '"I\'ll think about it" — o ABOUT IT é obrigatório para soar natural.' },
 ]
 
+// O Simulador responde em inglês + uma linha "[PT] ..." com a tradução/correção.
+// Estes helpers separam as duas partes para exibir (inglês em cima, PT embaixo)
+// e para a voz ler SÓ o inglês.
+function separaPT(text: string): { en: string; pt: string } {
+  const t = (text || '').replace(/\r/g, '')
+  const i = t.search(/\[PT\]/i)
+  if (i === -1) return { en: t.trim(), pt: '' }
+  return { en: t.slice(0, i).trim(), pt: t.slice(i).replace(/\[PT\]\s*/i, '').trim() }
+}
+function soIngles(text: string): string { return separaPT(text).en }
+
 // A IA às vezes responde com markdown mesmo sem pedirmos. Renderiza o básico (**negrito**)
 // e remove separadores "---" em vez de mostrar os asteriscos crus na tela.
 function TextoIA({ text }: { text: string }) {
@@ -2774,30 +2785,32 @@ export default function AppPage() {
     setSpeakingId(-1)
   }
 
-  // Ditado por voz compartilhado (chat/simulador). Cada reinício após pausa cria uma
-  // SESSÃO NOVA do reconhecimento (instância nova) e consolida o que já foi dito —
-  // reusar a mesma instância no Android faz o motor reentregar os finais antigos e
-  // o texto sair repetido várias vezes.
+  // Ditado por voz compartilhado (chat/simulador). Chave anti-repetição:
+  // só FIRMAMOS resultados marcados como `isFinal`. O texto provisório (interim) é
+  // apenas exibido, nunca acumulado — antes, ao reiniciar a sessão após uma pausa,
+  // o interim era comprometido e depois re-ouvido, duplicando as palavras.
   function ouvirEDigitar(baseInicial: string, aplicar: (texto: string) => void) {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
     silenciarVozes()
     micAtivoRef.current = true
     setListening(true)
-    let base = baseInicial ? baseInicial.replace(/\s+/g, ' ').trim() + ' ' : ''
-    let ultimo = ''
+    // `firmado` = tudo que já virou final (base inicial + sessões anteriores).
+    let firmado = baseInicial ? baseInicial.replace(/\s+/g, ' ').trim() : ''
+    const juntar = (a: string, b: string) => (a + ' ' + b).replace(/\s+/g, ' ').trim()
     const novaSessao = () => {
       const rec = new SR()
       rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
+      let sessionFinal = '' // finais desta sessão (reconstruídos do índice 0 a cada evento)
       rec.onresult = (e: any) => {
-        // Reconstrói a frase da SESSÃO a cada evento (evita repetição por resultIndex
-        // voltando a 0) e ignora eventos idênticos ao anterior.
-        let txt = ''
-        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' '
-        txt = txt.replace(/\s+/g, ' ').trim()
-        if (!txt || txt === ultimo) return
-        ultimo = txt
-        aplicar((base + txt).replace(/\s+/g, ' ').trim())
+        let finais = '', interim = ''
+        for (let i = 0; i < e.results.length; i++) {
+          const r = e.results[i]
+          if (r.isFinal) finais += r[0].transcript + ' '
+          else interim += r[0].transcript + ' '
+        }
+        sessionFinal = finais.trim()
+        aplicar(juntar(juntar(firmado, sessionFinal), interim.trim()))
       }
       rec.onerror = (e: any) => {
         if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
@@ -2805,13 +2818,11 @@ export default function AppPage() {
         }
       }
       rec.onend = () => {
-        if (micAtivoRef.current) {
-          // Consolida a sessão que acabou e abre uma nova, limpa — sem finais fantasmas.
-          base = (base + ultimo).replace(/\s+/g, ' ').trim()
-          base = base ? base + ' ' : ''
-          ultimo = ''
-          try { novaSessao() } catch (e) { setListening(false) }
-        } else setListening(false)
+        // Firma SÓ os finais da sessão (interim é descartado — se o aluno seguir falando,
+        // é reconhecido de novo, sem duplicar). Abre uma sessão nova e limpa.
+        firmado = juntar(firmado, sessionFinal)
+        if (micAtivoRef.current) { try { novaSessao() } catch (e) { setListening(false) } }
+        else { setListening(false); aplicar(firmado) }
       }
       recognitionRef.current = rec
       rec.start()
@@ -3033,11 +3044,12 @@ export default function AppPage() {
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
-      const res = await callChat({ system: selectedScenario.systemPrompt + ' Responda em texto puro, sem formatação markdown (nada de asteriscos, --- ou #). ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
+      const res = await callChat({ system: selectedScenario.systemPrompt + ' REGRAS DE FORMATO (obrigatórias): Responda CURTO — no máximo 2 ou 3 frases em inglês, como numa conversa falada de verdade; nada de parágrafos longos. Termine com UMA pergunta curta para manter a conversa. Depois do inglês, escreva uma ÚLTIMA linha que começa exatamente com "[PT]" seguida da tradução em português do que você disse (e, se o aluno cometeu um erro importante, acrescente nessa linha uma correção gentil de uma frase). Texto puro, sem markdown. ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
       if (res.status === 429) { setConvMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. Volte amanhã para continuar praticando. 🌟' }]); setLoadingConv(false); return }
       const data = await res.json()
       const resposta = data.content?.[0]?.text || 'Could not respond.'
-      setConvMsgs(m => { if (autoVoz) falarIngles(resposta, m.length); return [...m, { role: 'ai', text: resposta }] })
+      // Só o inglês vai para a voz (a linha [PT] é a tradução, não deve ser lida).
+      setConvMsgs(m => { if (autoVoz) falarIngles(soIngles(resposta), m.length); return [...m, { role: 'ai', text: resposta }] })
     } catch { setConvMsgs(m => [...m, { role: 'ai', text: 'Connection error. Please try again.' }]) }
     setLoadingConv(false)
   }
@@ -4308,13 +4320,19 @@ export default function AppPage() {
                 </div>
               )}
               <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
-                {convMsgs.map((m, i) => (
+                {convMsgs.map((m, i) => {
+                  const parts = m.role === 'ai' ? separaPT(m.text) : { en: m.text, pt: '' }
+                  return (
                   <div key={i} style={{ maxWidth: '88%', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                     {m.role === 'ai' && <div style={{ fontSize: 10, color: purple, fontWeight: 500, marginBottom: 4, marginLeft: 2 }}><Ic e={selectedScenario?.icon} /> {selectedScenario?.title}</div>}
-                    <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? purple : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
-                    {m.role === 'ai' && <button onClick={() => falarIngles(m.text, i)} style={{ marginTop: 5, marginLeft: 2, background: speakingId === i ? purple : purpleLight, color: speakingId === i ? '#fff' : purple, border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir</>}</button>}
+                    <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? purple : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none' }}>
+                      {m.role === 'ai' ? <TextoIA text={parts.en} /> : m.text}
+                      {m.role === 'ai' && parts.pt && <div style={{ marginTop: 8, paddingTop: 8, borderTop: '0.5px dashed var(--color-border-tertiary)', fontSize: 12.5, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>🇧🇷 {parts.pt}</div>}
+                    </div>
+                    {m.role === 'ai' && <button onClick={() => falarIngles(parts.en, i)} style={{ marginTop: 5, marginLeft: 2, background: speakingId === i ? purple : purpleLight, color: speakingId === i ? '#fff' : purple, border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir</>}</button>}
                   </div>
-                ))}
+                  )
+                })}
                 {loadingConv && <div style={{ alignSelf: 'flex-start', padding: '10px 14px', borderRadius: '14px 14px 14px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>digitando...</div>}
                 <div ref={convEndRef} />
               </div>

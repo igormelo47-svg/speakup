@@ -1,7 +1,7 @@
 // Service worker do Vonai: além de habilitar a instalação (beforeinstallprompt) e as
 // notificações push, guarda o app shell em cache para o app abrir e as lições
 // funcionarem mesmo sem internet (o conteúdo das lições viaja no bundle JS).
-const CACHE = 'vonai-shell-v1'
+const CACHE = 'vonai-shell-v2'
 
 self.addEventListener('install', function () { self.skipWaiting() })
 
