@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Vonai — recursos do app</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1080px; height:1080px; overflow:hidden; font-family:'Nunito',sans-serif; }
+  .post { width:1080px; height:1080px; position:relative; overflow:hidden; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:160px 78px 130px; }
+  .post.on { display:flex; }
+  .azul   { background:linear-gradient(150deg,#3E86E8 0%,#1E63C7 100%); }
+  .roxo   { background:linear-gradient(150deg,#7C5CE0 0%,#4B3FBF 100%); }
+  .verde  { background:linear-gradient(150deg,#1DB47E 0%,#0F7A56 100%); }
+  .coral  { background:linear-gradient(150deg,#FB7A5A 0%,#E0431F 100%); }
+  .rosa   { background:linear-gradient(150deg,#F26BA6 0%,#C42E72 100%); }
+  .ambar  { background:linear-gradient(150deg,#F6B23C 0%,#D98514 100%); }
+  .ciano  { background:linear-gradient(150deg,#22B8C4 0%,#0E7A88 100%); }
+  .indigo { background:linear-gradient(150deg,#5B79E6 0%,#3040A8 100%); }
+  .marca { position:absolute; top:52px; left:0; right:0; text-align:center; font-size:44px; font-weight:900; color:rgba(255,255,255,0.9); }
+  .marca span { background:#FFD98A; color:#7A5A12; border-radius:15px; padding:0 17px; margin-left:5px; }
+  .num { position:absolute; bottom:48px; right:56px; font-size:36px; font-weight:800; color:rgba(255,255,255,0.5); }
+  .ico { font-size:104px; line-height:1; margin-bottom:20px; filter:drop-shadow(0 8px 18px rgba(0,0,0,0.22)); }
+  .kick { font-size:36px; font-weight:900; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.92); background:rgba(255,255,255,0.16); border-radius:100px; padding:13px 38px; margin-bottom:28px; }
+  .h { font-size:76px; font-weight:900; color:#fff; line-height:1.16; }
+  .h b { color:#FFF3D6; }
+  .p { font-size:44px; font-weight:700; color:rgba(255,255,255,0.9); line-height:1.48; margin-top:26px; max-width:900px; }
+  .chip { display:inline-block; background:rgba(255,255,255,0.2); border-radius:100px; padding:18px 40px; font-size:40px; font-weight:800; color:#fff; margin:11px; }
+  .cartao { background:#fff; border-radius:40px; padding:36px 46px; margin-top:30px; max-width:880px; text-align:left; box-shadow:0 20px 50px rgba(0,0,0,0.22); }
+  .cartao .en { font-size:47px; font-weight:900; color:#16212C; }
+  .cartao .tr { font-size:37px; font-weight:700; color:#6B7A8C; font-style:italic; border-top:2px dashed #D5DDE7; margin-top:20px; padding-top:20px; }
+</style>
+</head>
+<body>
+
+<div class="post azul" data-n="1">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🗺️</div>
+  <div class="kick">no app</div>
+  <div class="h">Trilha do <b>A1 ao C2</b><br>com 400+ lições</div>
+  <div class="p">Uma jornada guiada do zero ao avançado. Você sempre sabe qual é o próximo passo — nunca fica perdido.</div>
+  <div class="num">1/9</div>
+</div>
+
+<div class="post roxo" data-n="2">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🎓</div>
+  <div class="kick">no app</div>
+  <div class="h">Professor de IA<br><b>24 horas por dia</b></div>
+  <div class="p">Tire qualquer dúvida de inglês na hora, a qualquer momento. Ele responde em português e nunca perde a paciência.</div>
+  <div class="num">2/9</div>
+</div>
+
+<div class="post coral" data-n="3">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🎭</div>
+  <div class="kick">no app</div>
+  <div class="h">Simulador de<br><b>conversas reais</b></div>
+  <div class="p">Treine antes da vida real acontecer:</div>
+  <div style="margin-top:20px"><span class="chip">💼 entrevista</span><span class="chip">✈️ viagem</span><span class="chip">🍽️ restaurante</span></div>
+  <div class="num">3/9</div>
+</div>
+
+<div class="post ciano" data-n="4">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🎤</div>
+  <div class="kick">no app</div>
+  <div class="h">Treino de<br><b>pronúncia</b></div>
+  <div class="cartao">
+    <div class="en">"Three, please." <span style="color:#16A34A">✓ 92%</span></div>
+    <div class="tr">🇧🇷 O "th" não existe em português — língua entre os dentes!</div>
+  </div>
+  <div class="p">Fale e receba nota + dica na hora.</div>
+  <div class="num">4/9</div>
+</div>
+
+<div class="post verde" data-n="5">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🇧🇷</div>
+  <div class="kick">no app</div>
+  <div class="h">Caça-Erros do<br><b>Brasileiro</b></div>
+  <div class="p">5 armadilhas novas todo dia que só brasileiro cai: "I have 25 years", push ≠ puxe, pretend ≠ pretender.</div>
+  <div class="num">5/9</div>
+</div>
+
+<div class="post ambar" data-n="6">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">📖</div>
+  <div class="kick">no app</div>
+  <div class="h">Histórias<br><b>interativas</b></div>
+  <div class="p">Mini-novelas com áudio, tradução ao toque e perguntas no meio. Você lê rindo e aprende sem perceber.</div>
+  <div class="num">6/9</div>
+</div>
+
+<div class="post indigo" data-n="7">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🔁</div>
+  <div class="kick">no app</div>
+  <div class="h">Revisão<br><b>inteligente</b></div>
+  <div class="p">As palavras e seus erros voltam na hora certa — pouco antes de você esquecer. É ciência a favor da sua memória.</div>
+  <div class="num">7/9</div>
+</div>
+
+<div class="post rosa" data-n="8">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🔥</div>
+  <div class="kick">no app</div>
+  <div class="h">Fogo, ligas<br>e <b>conquistas</b></div>
+  <div class="p">Sequência diária, ranking semanal, missões e recompensas. Estudar vira hábito — e hábito vira fluência.</div>
+  <div class="num">8/9</div>
+</div>
+
+<div class="post azul" data-n="9">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="ico">🎁</div>
+  <div class="kick">tudo isso por</div>
+  <div class="h">Menos de<br><b>R$ 1 por dia</b></div>
+  <div class="p">Comece com 2 dias de Premium grátis, sem cartão. Todas as ferramentas, num app só.</div>
+  <div style="margin-top:16px"><span class="chip" style="background:#FFD98A;color:#103D77">👉 Link na bio</span></div>
+  <div class="num">9/9</div>
+</div>
+
+<script>
+  const n = new URLSearchParams(location.search).get('n') || '1';
+  const alvo = document.querySelector('.post[data-n="' + n + '"]');
+  if (alvo) alvo.classList.add('on');
+</script>
+</body>
+</html>
