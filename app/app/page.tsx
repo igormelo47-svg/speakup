@@ -2879,6 +2879,22 @@ export default function AppPage() {
   }
 
   // Chama /api/chat sempre com o token de login (a rota exige usuário autenticado).
+  // Ponte com o app iOS nativo (o freelancer injeta window.VonaiNative no WebView).
+  // Expõe o id da conta pro RevenueCat amarrar a compra ao usuário. Inerte na web/Android.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    ;(window as any).VONAI_USER_ID = userId || ''
+    const nat = (window as any).VonaiNative
+    if (nat && typeof nat.setUser === 'function' && userId) { try { nat.setUser(userId) } catch (e) {} }
+  }, [userId])
+  // Abre a assinatura: dentro do app iOS usa o pagamento NATIVO da Apple (via RevenueCat);
+  // na web/Android abre o checkout do Kiwify. Contrato: window.VonaiNative.subscribe('mensal'|'anual').
+  function abrirAssinatura(plano: 'mensal' | 'anual') {
+    const nat = (typeof window !== 'undefined') ? (window as any).VonaiNative : null
+    if (nat && nat.platform === 'ios' && typeof nat.subscribe === 'function') { try { nat.subscribe(plano) } catch (e) {} ; return }
+    window.open(plano === 'mensal' ? KIWIFY_MENSAL : KIWIFY_ANUAL, '_blank')
+  }
+
   async function callChat(payload: any) {
     let token = ''
     try { const { data } = await supabase.auth.getSession(); token = data.session?.access_token || '' } catch (e) {}
@@ -3261,8 +3277,8 @@ export default function AppPage() {
                 </div>
               ))}
             </div>
-            <button onClick={() => window.open(KIWIFY_MENSAL, '_blank')} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}>Assinar plano mensal — R$29,90/mês</button>
-            <button onClick={() => window.open(KIWIFY_ANUAL, '_blank')} style={{ width: '100%', padding: 15, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Assinar plano anual — R$289,80/ano 🔥</button>
+            <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}>Assinar plano mensal — R$29,90/mês</button>
+            <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 15, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Assinar plano anual — R$289,80/ano 🔥</button>
             <div style={{ fontSize: 12, color: green, textAlign: 'center', fontWeight: 600, marginTop: 8 }}>No anual você economiza R$69 por ano</div>
             <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>Pagamento seguro via Kiwify · Pix, cartão ou boleto</div>
             <div style={{ fontSize: 12, color: '#8a5a00', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>
@@ -4291,7 +4307,7 @@ export default function AppPage() {
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$29,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
               </div>
-              <button onClick={() => window.open(KIWIFY_MENSAL, '_blank')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar mensalmente <Ic e="→" /></button>
+              <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar mensalmente <Ic e="→" /></button>
             </div>
             <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> MELHOR OFERTA</div>
@@ -4299,7 +4315,7 @@ export default function AppPage() {
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>Economize R$69/ano</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>R$289,80</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · R$24,15/mês</div></div>
               </div>
-              <button onClick={() => window.open(KIWIFY_ANUAL, '_blank')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
+              <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
             </div>
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento</div>
           </div>
