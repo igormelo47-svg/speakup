@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+// Webhook do RevenueCat (assinaturas via App Store / Google Play).
+// Quando a Apple confirma o pagamento, o RevenueCat chama esta rota e a gente libera o Premium.
+// Espelha o kiwify-webhook — só muda a fonte do evento.
+//
+// Configuração no painel do RevenueCat (Project > Integrations > Webhooks):
+//   URL:            https://vonai.com.br/api/revenuecat-webhook
+//   Authorization:  o mesmo valor de REVENUECAT_AUTH (defina nas env da Vercel)
+//
+// IMPORTANTE (o app iOS precisa fazer): chamar Purchases.logIn(<supabase user.id>)
+// para que o `app_user_id` do evento seja o id da conta Vonai. Assim casamos a compra
+// à conta certa. Se isso faltar, caímos no e-mail ($email nos subscriber_attributes).
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Eventos que DÃO acesso Premium.
+const CONCEDE = new Set([
+  'INITIAL_PURCHASE', 'RENEWAL', 'UNCANCELLATION', 'NON_RENEWING_PURCHASE',
+  'PRODUCT_CHANGE', 'SUBSCRIPTION_EXTENDED', 'TRANSFER',
+])
+// Eventos que TIRAM o acesso. (CANCELLATION não entra: o aluno mantém o Premium até
+// expirar de fato — o RevenueCat manda um EXPIRATION quando termina.)
+const REVOGA = new Set(['EXPIRATION'])
+
+export async function POST(req: NextRequest) {
+  // Autenticação: header Authorization igual ao segredo configurado no RevenueCat.
+  const auth = req.headers.get('authorization') || ''
+  if (!process.env.REVENUECAT_AUTH || auth !== process.env.REVENUECAT_AUTH) {
+    return new NextResponse('unauthorized', { status: 401 })
+  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !service) return NextResponse.json({ error: 'missing env' }, { status: 500 })
+
+  let body: any = {}
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'bad request' }, { status: 400 }) }
+
+  const ev = body?.event || {}
+  const tipo = String(ev?.type || '').toUpperCase()
+  if (!tipo || tipo === 'TEST') return NextResponse.json({ ok: true, ignored: tipo || 'sem tipo' })
+
+  const concede = CONCEDE.has(tipo)
+  const revoga = REVOGA.has(tipo)
+  if (!concede && !revoga) return NextResponse.json({ ok: true, ignored: tipo }) // CANCELLATION, BILLING_ISSUE, etc.
+
+  // Candidatos a id da conta Vonai (só os que são UUID de verdade; ignora o id anônimo do RC).
+  const ids: string[] = [ev?.app_user_id, ev?.original_app_user_id, ...(Array.isArray(ev?.aliases) ? ev.aliases : [])]
+    .filter((x: any) => typeof x === 'string' && UUID.test(x))
+  const uniq = Array.from(new Set(ids))
+  const email: string | null = ev?.subscriber_attributes?.['$email']?.value || null
+
+  const admin = createClient(url, service)
+  const novo = { is_premium: concede, updated_at: new Date().toISOString() }
+  let casou = 0
+
+  // 1) Casa pela conta (user_id) — caminho preferido.
+  for (const id of uniq) {
+    const { count } = await admin.from('progresso').update(novo, { count: 'exact' }).eq('user_id', id).select('user_id')
+    casou += count || 0
+  }
+  // 2) Se não achou por conta, tenta pelo e-mail (case-insensitive).
+  if (casou === 0 && email) {
+    const { count } = await admin.from('progresso').update(novo, { count: 'exact' }).ilike('email', email).select('user_id')
+    casou += count || 0
+  }
+
+  return NextResponse.json({ ok: true, tipo, concede, revoga, contas_atualizadas: casou })
+}
+
+export async function GET() {
+  return NextResponse.json({ ok: true, info: 'RevenueCat webhook ativo. Use POST.' })
+}
