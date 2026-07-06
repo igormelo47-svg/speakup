@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Vonai — render de 1 post</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1080px; height:1080px; overflow:hidden; font-family:'Nunito',sans-serif; }
+  .post { width:1080px; height:1080px; position:relative; overflow:hidden; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:97px; }
+  .post.on { display:flex; }
+  .azul { background:linear-gradient(150deg,#2E72D6 0%,#103D77 100%); }
+  .escuro { background:radial-gradient(ellipse at 50% 30%,#14263E 0%,#070D16 80%); }
+  .roxo { background:linear-gradient(150deg,#6A5ACD 0%,#3A2E80 100%); }
+  .verde { background:linear-gradient(150deg,#059669 0%,#0B4A38 100%); }
+  .coral { background:linear-gradient(150deg,#F97362 0%,#B23415 100%); }
+  .marca { position:absolute; top:43px; left:0; right:0; text-align:center; font-size:47px; font-weight:900; color:rgba(255,255,255,0.85); }
+  .marca span { background:#FFD98A; color:#7A5A12; border-radius:15px; padding:0 17px; margin-left:5px; }
+  .num { position:absolute; bottom:43px; right:54px; font-size:37px; font-weight:800; color:rgba(255,255,255,0.4); }
+  .kicker { font-size:43px; font-weight:900; letter-spacing:0.3em; text-transform:uppercase; color:#FFD98A; margin-bottom:38px; }
+  .h { font-size:93px; font-weight:900; color:#fff; line-height:1.22; }
+  .h b { color:#FFD98A; }
+  .p { font-size:50px; font-weight:700; color:rgba(255,255,255,0.82); line-height:1.5; margin-top:38px; max-width:885px; }
+  .chip { display:inline-block; background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.25); border-radius:100px; padding:19px 47px; font-size:43px; font-weight:800; color:#fff; margin:13px; }
+  .cartao { background:#fff; border-radius:54px; padding:48px 59px; margin-top:48px; max-width:885px; text-align:left; }
+  .cartao .en { font-size:58px; font-weight:900; color:#16212C; }
+  .cartao .tr { font-size:43px; font-weight:700; color:#6B7A8C; font-style:italic; border-top:2px dashed #D5DDE7; margin-top:27px; padding-top:27px; }
+  .errado { display:inline-block; border:13px solid #FF8A80; color:#FF8A80; border-radius:27px; padding:16px 54px; font-size:86px; font-weight:900; transform:rotate(-6deg); background:rgba(0,0,0,0.18); margin-top:22px; }
+  .certo { display:inline-block; background:#fff; color:#0F6E56; border-radius:38px; padding:26px 59px; font-size:75px; font-weight:900; margin-top:43px; }
+  .masc { width:280px; height:280px; margin-bottom:32px; }
+  .pillcta { display:inline-block; background:#FFD98A; color:#103D77; border-radius:100px; padding:28px 81px; font-size:60px; font-weight:900; margin-top:54px; }
+</style>
+</head>
+<body>
+<div class="post azul" data-n="1">
+  <div class="marca">Von<span>ai</span></div>
+  <svg class="masc" viewBox="0 0 64 64" fill="none"><path d="M16 14 Q32 7 48 14 L48 19 Q32 13 16 19 Z" fill="#122A4C"/><path d="M32 1 L59 10 L32 19 L5 10 Z" fill="#16212C"/><circle cx="32" cy="10" r="2.2" fill="#FFD98A"/><path d="M57 11 L57 21" stroke="#FFD98A" stroke-width="2" stroke-linecap="round"/><circle cx="57" cy="23.5" r="2.6" fill="#FFD98A"/><rect x="7" y="11" width="50" height="45" rx="19" fill="#fff"/><path d="M18 32 Q24 25 30 32" stroke="#185FA5" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M34 32 Q40 25 46 32" stroke="#185FA5" stroke-width="3.6" fill="none" stroke-linecap="round"/><circle cx="24" cy="31" r="9.6" stroke="#FFD98A" stroke-width="2.2" fill="none"/><circle cx="40" cy="31" r="9.6" stroke="#FFD98A" stroke-width="2.2" fill="none"/><path d="M22 42 Q32 52 42 42" stroke="#185FA5" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg>
+  <div class="h">Seu professor<br>particular de inglês.<br><b>24 horas. Com IA.</b></div>
+  <div class="p">Feito para brasileiro, do zero ao avançado.</div>
+  <div class="num">1/9</div>
+</div>
+<div class="post escuro" data-n="2">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kicker">memória</div>
+  <div class="h">Ele <b>lembra</b> de você.</div>
+  <div class="p">O Vô guarda seus erros, seus acertos e seu objetivo — e monta a próxima aula em cima do que VOCÊ precisa. Nenhuma aula é igual à de outra pessoa.</div>
+  <div style="margin-top:38px"><span class="chip">🧠 memoriza seus erros</span><span class="chip">🎯 aula personalizada</span></div>
+  <div class="num">2/9</div>
+</div>
+<div class="post verde" data-n="3">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kicker">caça-erros do brasileiro</div>
+  <div class="errado">"I have 25 years" ❌</div>
+  <div class="certo">✓ I'm 25 years old</div>
+  <div class="p">5 armadilhas novas por dia que SÓ brasileiro cai. Escape delas jogando.</div>
+  <div class="num">3/9</div>
+</div>
+<div class="post roxo" data-n="4">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kicker">simulador de conversas</div>
+  <div class="h">Treine a vida real<br><b>antes dela acontecer.</b></div>
+  <div style="margin-top:38px"><span class="chip">💼 entrevista de emprego</span><span class="chip">✈️ aeroporto</span><span class="chip">🚕 uber</span><span class="chip">🍽️ restaurante</span></div>
+  <div class="p">Converse com a IA, erre à vontade e receba a correção em português.</div>
+  <div class="num">4/9</div>
+</div>
+<div class="post escuro" data-n="5">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kicker">pronúncia</div>
+  <div class="h">Fale. E descubra<br><b>como você soou.</b></div>
+  <div class="cartao">
+    <div class="en">"Three, please." <span style="color:#16A34A">✓ 92%</span></div>
+    <div class="tr">🇧🇷 Dica: o "th" não existe em português — ponha a língua entre os dentes. "Three" ≠ "free".</div>
+  </div>
+  <div class="p">Avaliação palavra por palavra + dicas para os sons que travam o brasileiro.</div>
+  <div class="num">5/9</div>
+</div>
+<div class="post azul" data-n="6">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kicker">histórias interativas</div>
+  <div class="h">Aprenda com<br><b>mini-novelas.</b></div>
+  <div class="p">Histórias com áudio, tradução ao toque e perguntas no meio — com finais que você não espera. Você lê rindo e aprende sem perceber.</div>
+  <div style="margin-top:38px"><span class="chip">☕ The Coffee Order</span><span class="chip">🧳 The Wrong Suitcase</span></div>
+  <div class="num">6/9</div>
+</div>
+<div class="post roxo" data-n="7">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kicker">trilha completa</div>
+  <div class="h"><b>400+ lições.</b><br>Do zero ao avançado.</div>
+  <div class="p">Trilha guiada do A1 ao C2 com fogo diário 🔥, ligas semanais, missões e conquistas. Estudar vira hábito — e hábito vira fluência.</div>
+  <div class="num">7/9</div>
+</div>
+<div class="post coral" data-n="8">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kicker">feito para brasileiro</div>
+  <div class="h">Tudo explicado<br><b>em português.</b></div>
+  <div class="p">Correções, dicas e traduções na sua língua. Você entende o PORQUÊ do erro — não só decora a resposta. É assim que se aprende de verdade.</div>
+  <div class="num">8/9</div>
+</div>
+<div class="post azul" data-n="9">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="h">Comece <b>grátis</b>.<br>2 dias Premium.<br>Sem cartão.</div>
+  <div class="p">Menos de R$ 1 por dia depois. Seu inglês não pode esperar mais um ano.</div>
+  <div class="pillcta">👉 Link na bio</div>
+  <div class="num">9/9</div>
+</div>
+<script>
+  const n = new URLSearchParams(location.search).get('n') || '1';
+  const alvo = document.querySelector('.post[data-n="' + n + '"]');
+  if (alvo) alvo.classList.add('on');
+</script>
+</body>
+</html>

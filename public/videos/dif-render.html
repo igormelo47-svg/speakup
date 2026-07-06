@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Vonai — diferenciais</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1080px; height:1080px; overflow:hidden; font-family:'Nunito',sans-serif; }
+  .post { width:1080px; height:1080px; position:relative; overflow:hidden; display:none; flex-direction:column; padding:70px 66px; background:linear-gradient(165deg,#0E1B2C 0%,#05090F 100%); }
+  .post.on { display:flex; }
+  .marca { text-align:center; font-size:42px; font-weight:900; color:rgba(255,255,255,0.85); }
+  .marca span { background:#FFD98A; color:#7A5A12; border-radius:14px; padding:0 16px; margin-left:5px; }
+  .kick { text-align:center; font-size:34px; font-weight:900; letter-spacing:0.2em; text-transform:uppercase; color:#FFD98A; margin-top:12px; }
+  .titulo { text-align:center; font-size:62px; font-weight:900; color:#fff; line-height:1.16; margin-top:26px; }
+  .titulo b { color:#FFD98A; }
+  .grid { flex:1; display:flex; flex-direction:column; justify-content:center; gap:26px; margin-top:26px; }
+  .card { border-radius:32px; padding:38px 44px; }
+  .eles { background:rgba(255,138,128,0.09); border:2px solid rgba(255,138,128,0.35); }
+  .nos { background:rgba(159,225,203,0.1); border:2px solid rgba(159,225,203,0.55); }
+  .lab { display:inline-flex; align-items:center; gap:14px; font-size:31px; font-weight:900; letter-spacing:0.05em; text-transform:uppercase; }
+  .eles .lab { color:#FF8A80; } .nos .lab { color:#9FE1CB; }
+  .icone { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:27px; }
+  .eles .icone { background:rgba(255,138,128,0.2); } .nos .icone { background:rgba(159,225,203,0.2); }
+  .txt { font-size:42px; font-weight:800; color:#E8EEF4; line-height:1.38; margin-top:16px; }
+  .txt b { color:#fff; }
+  .rodape { text-align:center; font-size:40px; font-weight:800; color:rgba(255,255,255,0.6); margin-top:24px; }
+  .num { position:absolute; bottom:38px; right:52px; font-size:34px; font-weight:800; color:rgba(255,255,255,0.35); }
+</style>
+</head>
+<body>
+<div class="post" data-n="1">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kick">por que somos diferentes · 1</div>
+  <div class="titulo">Eles ensinam<br>inglês. Nós<br>ensinamos <b>VOCÊ.</b></div>
+  <div class="grid">
+    <div class="card eles"><div class="lab"><span class="icone">🤖</span>Os outros apps</div><div class="txt">Mesma aula, mesma sequência<br>para <b>milhões de pessoas</b> iguais.</div></div>
+    <div class="card nos"><div class="lab"><span class="icone">🧠</span>O Vonai</div><div class="txt">Uma IA que <b>lembra dos seus erros</b><br>e monta a aula em cima do que VOCÊ precisa.</div></div>
+  </div>
+  <div class="num">1/6</div>
+</div>
+
+<div class="post" data-n="2">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kick">por que somos diferentes · 2</div>
+  <div class="titulo">Feito para o<br><b>brasileiro</b> — não<br>traduzido para ele.</div>
+  <div class="grid">
+    <div class="card eles"><div class="lab"><span class="icone">🌎</span>Apps gringos</div><div class="txt">Não sabem onde o <b>português</b><br>te derruba. Você erra sozinho.</div></div>
+    <div class="card nos"><div class="lab"><span class="icone">🇧🇷</span>O Vonai</div><div class="txt">Caça as armadilhas que SÓ brasileiro cai:<br><b>"I have 25 years", push ≠ puxe.</b></div></div>
+  </div>
+  <div class="num">2/6</div>
+</div>
+
+<div class="post" data-n="3">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kick">por que somos diferentes · 3</div>
+  <div class="titulo">Você <b>fala.</b><br>De verdade.<br>Desde o dia 1.</div>
+  <div class="grid">
+    <div class="card eles"><div class="lab"><span class="icone">👆</span>Só clicar</div><div class="txt">Muitos apps são só <b>arrastar e tocar.</b><br>Você nunca abre a boca.</div></div>
+    <div class="card nos"><div class="lab"><span class="icone">🗣️</span>O Vonai</div><div class="txt">Conversa por voz com a IA + <b>avaliação<br>de pronúncia</b> palavra por palavra.</div></div>
+  </div>
+  <div class="num">3/6</div>
+</div>
+
+<div class="post" data-n="4">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kick">por que somos diferentes · 4</div>
+  <div class="titulo">Correção que<br>você <b>entende.</b></div>
+  <div class="grid">
+    <div class="card eles"><div class="lab"><span class="icone">❓</span>Errado e pronto</div><div class="txt">Marca vermelho e segue.<br>Você <b>decora</b>, mas não entende.</div></div>
+    <div class="card nos"><div class="lab"><span class="icone">💬</span>O Vonai</div><div class="txt">Explica o <b>PORQUÊ do erro em português.</b><br>Você aprende de verdade — e não esquece.</div></div>
+  </div>
+  <div class="num">4/6</div>
+</div>
+
+<div class="post" data-n="5">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kick">por que somos diferentes · 5</div>
+  <div class="titulo">Um professor,<br><b>não uma tabela</b><br>de preços.</div>
+  <div class="grid">
+    <div class="card eles"><div class="lab"><span class="icone">💸</span>Professor particular</div><div class="txt">R$ 150–250 <b>por hora.</b><br>Hora marcada, 1x por semana.</div></div>
+    <div class="card nos"><div class="lab"><span class="icone">🎓</span>O Vonai</div><div class="txt">Seu professor de IA por <b>menos de<br>R$ 1 por dia.</b> 24h. Quando você quiser.</div></div>
+  </div>
+  <div class="num">5/6</div>
+</div>
+
+<div class="post" data-n="6">
+  <div class="marca">Von<span>ai</span></div>
+  <div class="kick">por que somos diferentes · 6</div>
+  <div class="titulo">Tudo num só app.<br><b>Sem enrolação.</b></div>
+  <div class="grid">
+    <div class="card eles"><div class="lab"><span class="icone">🧩</span>Vários apps</div><div class="txt">Um pra lição, outro pra pronúncia,<br>outro pra conversa. <b>Tudo separado.</b></div></div>
+    <div class="card nos"><div class="lab"><span class="icone">✅</span>O Vonai</div><div class="txt">Lições, professor, simulador, pronúncia,<br>histórias e revisão. <b>Tudo junto. Grátis por 2 dias.</b></div></div>
+  </div>
+  <div class="num">6/6</div>
+</div>
+
+<script>
+  const n = new URLSearchParams(location.search).get('n') || '1';
+  const alvo = document.querySelector('.post[data-n="' + n + '"]');
+  if (alvo) alvo.classList.add('on');
+</script>
+</body>
+</html>
