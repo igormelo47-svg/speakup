@@ -89,6 +89,14 @@ export async function POST(req: NextRequest) {
     }),
   })
 
+  // Se a Anthropic falhar (sobrecarga/5xx/chave inválida), devolve uma resposta
+  // amigável já no formato esperado — o aluno vê uma frase gentil, não "Erro.".
+  if (!res.ok) {
+    return NextResponse.json({
+      content: [{ type: 'text', text: 'Tô um pouco sobrecarregado agora 😅 Tenta de novo daqui a pouquinho, tá?' }],
+    })
+  }
+
   const data = await res.json()
   return NextResponse.json(data)
 }

@@ -36,10 +36,12 @@ export async function POST(req: NextRequest) {
   const cancelado = /(refund|reembols|charge_?back|cancel|expired|expirad)/.test(status)
 
   const admin = createClient(url, service)
+  // ilike (sem curingas) casa o e-mail sem diferenciar maiúsculas/minúsculas:
+  // evita travar quem pagou com "Igor@x.com" mas cadastrou "igor@x.com".
   if (pago) {
-    await admin.from('progresso').update({ is_premium: true, updated_at: new Date().toISOString() }).eq('email', email)
+    await admin.from('progresso').update({ is_premium: true, updated_at: new Date().toISOString() }).ilike('email', email)
   } else if (cancelado) {
-    await admin.from('progresso').update({ is_premium: false, updated_at: new Date().toISOString() }).eq('email', email)
+    await admin.from('progresso').update({ is_premium: false, updated_at: new Date().toISOString() }).ilike('email', email)
   }
   return NextResponse.json({ ok: true, email, status, pago, cancelado })
 }

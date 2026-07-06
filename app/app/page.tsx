@@ -593,31 +593,43 @@ const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem',
 const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#0EA5A5', work: '#4B3FBF', food: '#E8590C', home: '#B45309', verbs: '#7C3AED', feelings: '#DB2777', daily: '#0D9488', health: '#DC2626', tech: '#4F46E5', shopping: '#C026D3', weather: '#0284C7', family: '#EA580C', nature: '#16A34A', city: '#475569' }
 
 interface Msg { role: string; text: string }
-type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'ditado' | 'finish'
-// Ditado (ouvir e escrever): treina listening + escrita com os exemplos da própria lição.
-// Frases curtas e sem pontuação no meio, até 2 por lição para não cansar.
-function frasesDitado(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
-  return (examples || []).filter(e => {
-    const en = (e.en || '').trim()
-    if (!en || en.length > 60) return false
-    const n = en.split(/\s+/).filter(Boolean).length
-    if (n < 3 || n > 9) return false
-    if (/[.!?]/.test(en.replace(/[.!?]+$/, ''))) return false
-    return true
-  }).slice(0, 2)
+type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'traduzir' | 'ditado' | 'finish'
+const nPal = (s: string) => (s || '').trim().split(/\s+/).filter(Boolean).length
+// Quebra um exemplo em pares (en,pt) limpos e alinhados. Se a frase for composta
+// ("Já comi. Não estou com fome."), separa em orações — mas só aproveita quando EN e PT
+// têm o MESMO número de orações (garante que a tradução casa). Recupera muitos exemplos
+// que antes eram descartados inteiros, fazendo a produção aparecer em quase toda lição.
+function paresLimpos(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
+  const out: {en:string;pt:string}[] = []
+  for (const e of examples || []) {
+    const en = (e.en || '').trim(), pt = (e.pt || '').trim()
+    if (!en || !pt) continue
+    const partesEn = en.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean)
+    const partesPt = pt.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean)
+    if (partesEn.length === 1) { out.push({ en, pt }); continue }
+    if (partesEn.length === partesPt.length) {
+      for (let i = 0; i < partesEn.length; i++) out.push({ en: partesEn[i], pt: partesPt[i] })
+    }
+    // orações desalinhadas: descarta o exemplo (não arrisca tradução errada)
+  }
+  // sem pontuação interna nas orações finais (vírgula é permitida)
+  return out.filter(p => !/[.!?]/.test(p.en.replace(/[.!?]+$/, '')))
 }
-// Exercício "montar a frase": só usa exemplos de UMA frase só (3 a 10 palavras).
-// Frases com "." "?" "!" no meio costumam ter tradução PT incompleta -> descartadas.
+// Ditado (ouvir e escrever): treina listening + escrita. Frases de 3 a 10 palavras.
+function frasesDitado(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
+  return paresLimpos(examples).filter(p => { const n = nPal(p.en); return n >= 3 && n <= 10 && p.en.length <= 72 }).slice(0, 2)
+}
+// "Montar a frase" (tocar nas palavras): metade das frases produzíveis (3 a 12 palavras).
+function frasesProduziveis(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
+  return paresLimpos(examples).filter(p => { const n = nPal(p.en); return n >= 3 && n <= 12 }).slice(0, 4)
+}
 function frasesMontaveis(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
-  return (examples || []).filter(e => {
-    const en = (e.en || '').trim(); const pt = (e.pt || '').trim()
-    if (!en || !pt) return false
-    const n = en.split(/\s+/).filter(Boolean).length
-    if (n < 3 || n > 10) return false
-    const miolo = en.replace(/[.!?]+$/, '')
-    if (/[.!?]/.test(miolo)) return false
-    return true
-  }).slice(0, 3)
+  const p = frasesProduziveis(examples); return p.slice(0, Math.ceil(p.length / 2)).slice(0, 2)
+}
+// "Traduza" (digitar em inglês a partir do PT, sem áudio): a outra metade — o exercício
+// mais produtivo. Só aparece quando há 2+ frases, com frases diferentes das do "montar".
+function frasesTraduzir(examples: {en:string;pt:string}[]): {en:string;pt:string}[] {
+  const p = frasesProduziveis(examples); return p.slice(Math.ceil(p.length / 2)).slice(0, 2)
 }
 
 const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/JUkXkbf'
@@ -1883,6 +1895,9 @@ export default function AppPage() {
   const [ditIdx, setDitIdx] = useState(0)
   const [ditInput, setDitInput] = useState('')
   const [ditChecked, setDitChecked] = useState(false)
+  const [tradIdx, setTradIdx] = useState(0)
+  const [tradInput, setTradInput] = useState('')
+  const [tradChecked, setTradChecked] = useState(false)
   const [xp, setXp] = useState(0)
   const [xpHydrated, setXpHydrated] = useState(false)
   const [streak, setStreak] = useState(0)
@@ -2781,10 +2796,12 @@ export default function AppPage() {
       salvarProgresso(novoXp, novasLicoes, st)
       try { track('licao_concluida', { licao: titulo, nivel: level }) } catch (e) {}
       const monta = frasesMontaveis(lessons[level][lessonIdx].examples)
+      const trad = frasesTraduzir(lessons[level][lessonIdx].examples)
       setBuildIdx(0); setBuildPicked([]); setBuildChecked(false)
       setDitIdx(0); setDitInput(''); setDitChecked(false)
+      setTradIdx(0); setTradInput(''); setTradChecked(false)
       const dit = frasesDitado(lessons[level][lessonIdx].examples)
-      setView(monta.length ? 'build' : dit.length ? 'ditado' : 'finish')
+      setView(monta.length ? 'build' : trad.length ? 'traduzir' : dit.length ? 'ditado' : 'finish')
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1); setAjudaTxt(null) }
   }
 
@@ -4602,7 +4619,40 @@ export default function AppPage() {
                   {!buildChecked ? (
                     <button disabled={!cheio} onClick={() => { setBuildChecked(true); if (answer === toks.join(' ')) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: cheio ? '#6A5ACD' : 'var(--color-background-secondary)', color: cheio ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: cheio ? 'pointer' : 'default' }}>Verificar</button>
                   ) : (
-                    <button onClick={() => { if (!ultima) { setBuildIdx(buildIdx + 1); setBuildPicked([]); setBuildChecked(false) } else { const dit = frasesDitado(currentLesson?.examples || []); if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima frase <Ic e="→" /></>}</button>
+                    <button onClick={() => { if (!ultima) { setBuildIdx(buildIdx + 1); setBuildPicked([]); setBuildChecked(false) } else { const trad = frasesTraduzir(currentLesson?.examples || []); const dit = frasesDitado(currentLesson?.examples || []); if (trad.length) { setTradIdx(0); setTradInput(''); setTradChecked(false); setView('traduzir') } else if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima frase <Ic e="→" /></>}</button>
+                  )}
+                </div>
+              )
+            })()}
+            {view === 'traduzir' && (() => {
+              const exs = frasesTraduzir(currentLesson?.examples || [])
+              const alvo = (exs[tradIdx]?.en || '').trim()
+              const normT = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').replace(/\s+/g, ' ').trim()
+              const acertou = tradChecked && normT(tradInput) === normT(alvo)
+              const ultima = tradIdx >= exs.length - 1
+              return (
+                <div style={{ animation: 'su_fade 0.3s ease' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: '#B4530A', fontWeight: 700, background: '#FBEEDD', padding: '4px 12px', borderRadius: 20 }}><Ic e="✍️" /> Traduza · {tradIdx + 1}/{exs.length}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Escreva em inglês, de cabeça (sem áudio):</div>
+                  <div style={{ background: blueLight, borderRadius: 12, padding: '13px 15px', marginBottom: 14 }}><div style={{ fontSize: 16, fontWeight: 600, color: blueDark }}>{exs[tradIdx]?.pt}</div></div>
+                  <textarea value={tradInput} onChange={e => setTradInput(e.target.value)} disabled={tradChecked} rows={2} placeholder="Escreva aqui em inglês..."
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', border: `1.5px solid ${tradChecked ? (acertou ? '#16A34A' : '#E24B4A') : 'var(--color-border-tertiary)'}`, borderRadius: 12, fontSize: 16, fontFamily: 'inherit', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', resize: 'none', marginBottom: 14 }} />
+                  {tradChecked && (
+                    <div style={{ background: acertou ? '#E3F3EA' : '#FCEBEB', borderRadius: 12, padding: 13, marginBottom: 14, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span style={{ flexShrink: 0, marginTop: 2 }}><Mascote size={30} humor={acertou ? 'comemora' : 'triste'} /></span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: acertou ? '#16A34A' : '#C0392B' }}>{acertou ? '✅ Isso! +5 XP' : '👀 Quase!'}</div>
+                        {!acertou && <div style={{ fontSize: 13.5, color: 'var(--color-text-primary)', marginTop: 5 }}>Resposta: <b>{alvo}</b></div>}
+                        <button onClick={() => speakEN(alvo, 8700 + tradIdx)} style={{ marginTop: 8, background: 'none', border: 'none', color: blue, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}><Ic e="🔊" /> Ouvir</button>
+                      </div>
+                    </div>
+                  )}
+                  {!tradChecked ? (
+                    <button disabled={!tradInput.trim()} onClick={() => { setTradChecked(true); if (normT(tradInput) === normT(alvo)) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: tradInput.trim() ? '#C2610C' : 'var(--color-background-secondary)', color: tradInput.trim() ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: tradInput.trim() ? 'pointer' : 'default' }}>Verificar</button>
+                  ) : (
+                    <button onClick={() => { if (!ultima) { setTradIdx(tradIdx + 1); setTradInput(''); setTradChecked(false) } else { const dit = frasesDitado(currentLesson?.examples || []); if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima <Ic e="→" /></>}</button>
                   )}
                 </div>
               )

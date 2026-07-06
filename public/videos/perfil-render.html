@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Vonai — foto de perfil</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1080px; height:1080px; overflow:hidden; font-family:'Nunito',sans-serif; }
+  .quad { width:1080px; height:1080px; position:relative; display:none; align-items:center; justify-content:center; background:#0C2E56; }
+  .quad.on { display:flex; }
+  /* circulo-guia: tudo importante fica dentro dele (o Insta recorta em circulo) */
+  .disco { width:1080px; height:1080px; border-radius:50%; background:linear-gradient(155deg,#3E86E8 0%,#1450A8 62%, #0C2E56 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  /* variante A: mascote */
+  .masc { width:560px; height:560px; }
+  .nomeMini { font-size:98px; font-weight:900; color:#fff; margin-top:6px; letter-spacing:-1px; }
+  .nomeMini span { background:#FFD98A; color:#7A5A12; border-radius:26px; padding:0 26px; margin-left:8px; }
+  /* variante B: wordmark grande */
+  .word { font-size:250px; font-weight:900; color:#fff; letter-spacing:-6px; }
+  .word span { background:#FFD98A; color:#7A5A12; border-radius:44px; padding:0 44px; margin-left:14px; }
+  .tag { font-size:52px; font-weight:800; color:#B5D4F4; margin-top:34px; }
+</style>
+</head>
+<body>
+
+<div class="quad on" data-n="1">
+  <div class="disco">
+    <svg class="masc" viewBox="0 0 64 64" fill="none">
+      <path d="M16 14 Q32 7 48 14 L48 19 Q32 13 16 19 Z" fill="#0B2547"/>
+      <path d="M32 1 L59 10 L32 19 L5 10 Z" fill="#0A1B33"/>
+      <circle cx="32" cy="10" r="2.2" fill="#FFD98A"/>
+      <path d="M57 11 L57 21" stroke="#FFD98A" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="57" cy="23.5" r="2.6" fill="#FFD98A"/>
+      <rect x="7" y="11" width="50" height="45" rx="19" fill="#fff"/>
+      <path d="M18 32 Q24 25 30 32" stroke="#185FA5" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+      <path d="M34 32 Q40 25 46 32" stroke="#185FA5" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+      <circle cx="24" cy="31" r="9.6" stroke="#FFD98A" stroke-width="2.2" fill="none"/>
+      <circle cx="40" cy="31" r="9.6" stroke="#FFD98A" stroke-width="2.2" fill="none"/>
+      <path d="M14.4 29 L8.5 27" stroke="#FFD98A" stroke-width="2" stroke-linecap="round"/>
+      <path d="M49.6 29 L55.5 27" stroke="#FFD98A" stroke-width="2" stroke-linecap="round"/>
+      <path d="M22 42 Q32 52 42 42" stroke="#185FA5" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <circle cx="15.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55"/>
+      <circle cx="48.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55"/>
+    </svg>
+    <div class="nomeMini">Von<span>ai</span></div>
+  </div>
+</div>
+
+<div class="quad" data-n="2">
+  <div class="disco">
+    <div class="word">V<span>ai</span></div>
+    <div class="tag">inglês com IA</div>
+  </div>
+</div>
+
+<script>
+  const n = new URLSearchParams(location.search).get('n') || '1';
+  document.querySelectorAll('.quad').forEach(q => q.classList.remove('on'));
+  const alvo = document.querySelector('.quad[data-n="' + n + '"]');
+  if (alvo) alvo.classList.add('on');
+</script>
+</body>
+</html>
