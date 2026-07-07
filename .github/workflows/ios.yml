@@ -5,6 +5,7 @@
 #   ASC_ISSUER_ID       - Issuer ID (Usuários e Acesso > Integrações > API do App Store Connect)
 #   ASC_KEY_P8_BASE64   - conteúdo do arquivo .p8 da API em base64
 name: Build iOS
+# build #6: chave ASC Admin (8JXA3GB87D) com permissao de assinatura
 
 on:
   workflow_dispatch:
