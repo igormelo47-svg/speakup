@@ -1,0 +1,13 @@
+{
+  "appId": "com.vonai.app",
+  "appName": "Vonai",
+  "webDir": "www",
+  "server": {
+    "url": "https://speakup-dusky.vercel.app",
+    "allowNavigation": ["speakup-dusky.vercel.app", "vonai.com.br", "www.vonai.com.br", "*.supabase.co"]
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#2E72D6"
+  }
+}
