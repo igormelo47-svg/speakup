@@ -2308,9 +2308,12 @@ export default function AppPage() {
   const daySeed = Math.floor(Date.now() / 86400000)
   const desafioQuestions: Question[] = (() => {
     if (desafioPool.length < 5) return []
+    // Passo modular pode ciclar sem visitar todos os índices (quando o tamanho do pool
+    // é múltiplo do passo) — por isso o laço é LIMITADO e completa sequencialmente.
     const idxs: number[] = []
     let k = daySeed % desafioPool.length
-    while (idxs.length < 5) { if (!idxs.includes(k)) idxs.push(k); k = (k + 137) % desafioPool.length }
+    for (let p = 0; idxs.length < 5 && p < desafioPool.length; p++) { if (!idxs.includes(k)) idxs.push(k); k = (k + 137) % desafioPool.length }
+    for (let i = 0; idxs.length < 5 && i < desafioPool.length; i++) if (!idxs.includes(i)) idxs.push(i)
     return idxs.map(i => desafioPool[i])
   })()
 
@@ -2662,9 +2665,12 @@ export default function AppPage() {
   const provaQuestoes: Question[] = (() => {
     if (provaPool.length < 1) return []
     const n = Math.min(20, provaPool.length)
+    // Mesmo cuidado do desafio: laço limitado + preenchimento sequencial, para nunca
+    // travar quando o pool for múltiplo do passo (foi a causa do congelamento do app).
     const idxs: number[] = []
     let k = (semanaProva * 31 + 7) % provaPool.length
-    while (idxs.length < n) { if (!idxs.includes(k)) idxs.push(k); k = (k + 53) % provaPool.length }
+    for (let p = 0; idxs.length < n && p < provaPool.length; p++) { if (!idxs.includes(k)) idxs.push(k); k = (k + 53) % provaPool.length }
+    for (let i = 0; idxs.length < n && i < provaPool.length; i++) if (!idxs.includes(i)) idxs.push(i)
     return idxs.map(i => provaPool[i])
   })()
 
