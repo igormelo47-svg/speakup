@@ -8,6 +8,11 @@ name: Build iOS
 
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'ios-app/**'
+      - '.github/workflows/ios.yml'
 
 jobs:
   build:
