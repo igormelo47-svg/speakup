@@ -3068,13 +3068,39 @@ export default function AppPage() {
   }
 
   // Chama /api/chat sempre com o token de login (a rota exige usuário autenticado).
-  // Ponte com o app iOS nativo (o freelancer injeta window.VonaiNative no WebView).
-  // Expõe o id da conta pro RevenueCat amarrar a compra ao usuário. Inerte na web/Android.
+  // Ponte com o app iOS nativo. Expõe o id da conta e, dentro do Capacitor, registra
+  // a compra pela Apple usando o SDK nativo do RevenueCat. Inerte na web/Android.
   useEffect(() => {
     if (typeof window === 'undefined') return
     ;(window as any).VONAI_USER_ID = userId || ''
     const nat = (window as any).VonaiNative
     if (nat && typeof nat.setUser === 'function' && userId) { try { nat.setUser(userId) } catch (e) {} }
+    // Dentro do app iOS (Capacitor + plugin Purchases): monta a ponte de assinatura.
+    const cap = (window as any).Capacitor
+    const P = cap?.Plugins?.Purchases
+    const rcKey = process.env.NEXT_PUBLIC_RC_APPLE_KEY
+    if (!cap?.isNativePlatform?.() || !P || !rcKey || !userId) return
+    ;(async () => {
+      try {
+        await P.configure({ apiKey: rcKey, appUserID: userId })
+        ;(window as any).VonaiNative = {
+          platform: 'ios',
+          subscribe: async (plano: 'mensal' | 'anual') => {
+            try {
+              const { current } = await P.getOfferings()
+              const pkg = plano === 'anual'
+                ? (current?.annual || (current?.availablePackages || []).find((x: any) => x?.packageType === 'ANNUAL'))
+                : (current?.monthly || (current?.availablePackages || []).find((x: any) => x?.packageType === 'MONTHLY'))
+              if (!pkg) { alert('Plano indisponível no momento. Tente de novo em instantes.'); return }
+              await P.purchasePackage({ aPackage: pkg })
+              window.location.reload() // o webhook do RevenueCat já liberou o Premium no servidor
+            } catch (e: any) { if (!e?.userCancelled) alert('Não foi possível concluir a compra. Tente novamente.') }
+          },
+          restore: async () => { try { await P.restorePurchases(); window.location.reload() } catch (e) {} },
+          setUser: (id: string) => { try { P.logIn({ appUserID: id }) } catch (e) {} },
+        }
+      } catch (e) {}
+    })()
   }, [userId])
   // Abre a assinatura: dentro do app iOS usa o pagamento NATIVO da Apple (via RevenueCat);
   // na web/Android abre o checkout do Kiwify. Contrato: window.VonaiNative.subscribe('mensal'|'anual').

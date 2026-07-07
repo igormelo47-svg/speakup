@@ -1,0 +1,75 @@
+# Build e envio do app iOS (Capacitor) para o App Store Connect — SEM precisar de Mac.
+# Disparo manual (Actions > Build iOS > Run workflow).
+# Segredos necessários (Settings > Secrets and variables > Actions):
+#   ASC_KEY_ID          - ID da chave da API do App Store Connect
+#   ASC_ISSUER_ID       - Issuer ID (Usuários e Acesso > Integrações > API do App Store Connect)
+#   ASC_KEY_P8_BASE64   - conteúdo do arquivo .p8 da API em base64
+name: Build iOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependências do wrapper
+        run: npm ci || npm i
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync ios
+
+      - name: Gravar chave da API do App Store Connect
+        run: |
+          mkdir -p ~/private_keys
+          echo "${{ secrets.ASC_KEY_P8_BASE64 }}" | base64 --decode > ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
+      - name: Archive (assinatura automática pela API)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj \
+            -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath $PWD/App.xcarchive archive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }} \
+            DEVELOPMENT_TEAM=5Z746SKGLP \
+            MARKETING_VERSION=1.0.0 \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }}
+
+      - name: ExportOptions
+        run: |
+          cat > ExportOptions.plist << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>5Z746SKGLP</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Exportar e ENVIAR para o App Store Connect
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath $PWD/App.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath $PWD/export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }}

@@ -1,0 +1,12 @@
+{
+  "name": "vonai-ios",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Wrapper iOS (Capacitor) do Vonai - aponta para o site em producao",
+  "dependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
+    "@revenuecat/purchases-capacitor": "^13.2.1"
+  }
+}
