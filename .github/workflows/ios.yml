@@ -38,19 +38,14 @@ jobs:
           mkdir -p ~/private_keys
           echo "${{ secrets.ASC_KEY_P8_BASE64 }}" | base64 --decode > ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
 
-      - name: Archive (assinatura automática pela API)
+      - name: Archive (sem assinatura; assina no envio)
         run: |
           xcodebuild -project ios/App/App.xcodeproj \
             -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath $PWD/App.xcarchive archive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
-            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
-            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }} \
             DEVELOPMENT_TEAM=5Z746SKGLP \
-            CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGNING_ALLOWED=NO \
             MARKETING_VERSION=1.0.0 \
             CURRENT_PROJECT_VERSION=${{ github.run_number }}
 
