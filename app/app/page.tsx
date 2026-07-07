@@ -2090,6 +2090,9 @@ export default function AppPage() {
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
   const [isPremium, setIsPremium] = useState(BETA_GRATIS)
+  // App iOS (Capacitor): compra via Apple; sem mencionar pagamento externo (regra 3.1.1)
+  const [isIOSNative, setIsIOSNative] = useState(false)
+  useEffect(() => { if ((window as any).Capacitor?.isNativePlatform?.()) setIsIOSNative(true) }, [])
 
   const tocarSom = (tipo: 'acerto' | 'erro') => {
     try {
@@ -3493,11 +3496,13 @@ export default function AppPage() {
               ))}
             </div>
             <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}>Assinar plano mensal — R$29,90/mês</button>
-            <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 15, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Assinar plano anual — R$289,80/ano 🔥</button>
+            <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 15, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Assinar plano anual — {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano 🔥</button>
             <div style={{ fontSize: 12, color: green, textAlign: 'center', fontWeight: 600, marginTop: 8 }}>No anual você economiza R$69 por ano</div>
-            <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>Pagamento seguro via Kiwify · Pix, cartão ou boleto</div>
-            <div style={{ fontSize: 12, color: '#8a5a00', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>
-            <button onClick={() => window.location.reload()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Já assinei — atualizar</button>
+            <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto'}</div>
+            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a00', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            {isIOSNative
+              ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Restaurar compras</button>
+              : <button onClick={() => window.location.reload()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Já assinei — atualizar</button>}
             <button onClick={logout} style={{ width: '100%', padding: 12, marginTop: 10, background: 'none', color: '#8a97a5', border: 'none', fontSize: 13, cursor: 'pointer' }}>Sair da conta</button>
           </div>
         </div>
@@ -4528,11 +4533,12 @@ export default function AppPage() {
               <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> MELHOR OFERTA</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>Economize R$69/ano</div></div>
-                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>R$289,80</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · R$24,15/mês</div></div>
+                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>{isIOSNative ? 'R$289,90' : 'R$289,80'}</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · {isIOSNative ? 'R$24,16' : 'R$24,15'}/mês</div></div>
               </div>
               <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento</div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele a qualquer momento' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento'}</div>
+            {isIOSNative && <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 12, background: 'none', color: blue, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Restaurar compras</button>}
           </div>
         </div>
       )}
