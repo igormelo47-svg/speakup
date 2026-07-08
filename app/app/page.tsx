@@ -18,6 +18,11 @@ import {
   Image as ImageIcon, ArrowRight, ArrowLeft, Check, CircleCheck, BookText, Pause, Square,
   Volume2, MessageCircle, Settings, HelpingHand, Bell, Bird, Brain,
   Landmark, Key, Pill, Puzzle, Feather, Footprints, Moon, Gem, Headphones, Turtle,
+  Activity, Armchair, ArrowLeftRight, ArrowUpDown, Award, Boxes, CalendarCheck, CalendarClock,
+  CalendarDays, CheckCheck, Cloud, Combine, Compass, Copy, CreditCard, Equal, FastForward,
+  FlaskConical, Gauge, GitBranch, History, House, KeyRound, Layers, Megaphone,
+  MessageCircleQuestion, MessagesSquare, Move, Navigation, Package, Quote, RotateCcw,
+  SearchCheck, ShieldCheck, Split, Sunrise, Timer, ToggleLeft, Type, UserCheck, Watch,
 } from 'lucide-react'
 
 // Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
@@ -58,9 +63,27 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
   '🎧': Headphones, '🐢': Turtle, '🇧🇷': Flag,
 }
 
-// Renderiza um ícone do lucide a partir do emoji equivalente, mantendo tamanho/cor.
+// Lições do banco usam nomes do lucide como ícone (ex.: "Equal", "Hash") — mapa nome→componente.
+const NAME_ICONS: Record<string, LucideIcon> = {
+  Activity, Armchair, ArrowLeftRight, ArrowUpDown, Award, Boxes, Briefcase, Bus, Calendar,
+  CalendarCheck, CalendarClock, CalendarDays, CheckCheck, Clock, Cloud, Coffee, Combine,
+  Compass, Copy, CreditCard, Equal, FastForward, FlaskConical, Gauge, GitBranch, Globe,
+  Hand, Hash, Heart, HelpCircle, History, Home, Hourglass, House, Key, KeyRound, Layers,
+  Lightbulb, Link: LinkIcon, MapPin, Megaphone, MessageCircleQuestion, MessagesSquare,
+  Move, Music, Navigation, Package, Palette, PawPrint, Puzzle, Quote, Repeat, Rewind,
+  RotateCcw, Scale, Scissors, Search, SearchCheck, ShieldCheck, Shirt, ShoppingBag,
+  Shuffle, Smile, Sparkles, Split, Star, Sunrise, Timer, ToggleLeft, TrendingUp,
+  TriangleAlert, Trophy, Type, UserCheck, Users, Utensils, UtensilsCrossed, Watch, Wrench, Zap,
+}
+
+// Renderiza um ícone a partir do emoji (ou nome lucide vindo do banco), mantendo tamanho/cor.
+// Emoji sem equivalente mapeado cai no próprio emoji nativo (colorido) — nunca em "?".
 function Ic({ e, s = '1em', c, sw = 2.25, style }: { e?: string; s?: number | string; c?: string; sw?: number; style?: CSSProperties }) {
-  const Cmp = (e && EMOJI_ICONS[e]) || HelpCircle
+  const Cmp = e ? (EMOJI_ICONS[e] || NAME_ICONS[e]) : undefined
+  if (!Cmp) {
+    const emoji = e && !/^[A-Za-z]+$/.test(e) ? e : '📘'
+    return <span style={{ fontSize: s, lineHeight: 1, verticalAlign: '-0.125em', flexShrink: 0, display: 'inline-block', ...style }}>{emoji}</span>
+  }
   return <Cmp size={s} color={c} strokeWidth={sw} style={{ verticalAlign: '-0.125em', flexShrink: 0, display: 'inline-block', ...style }} />
 }
 
