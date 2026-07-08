@@ -1,3 +1,6 @@
+-- ⚠️ OBSOLETO (08/07/2026): NAO RODE ESTE ARQUIVO DE NOVO. Ele recriaria as licoes SEM acentos
+-- e desfaria as correcoes de qualidade. O arquivo fix_qualidade_licoes.sql ja corrigiu tudo no banco.
+
 -- ============================================================================
 -- Vonai - Lote C1 (30 licoes avancadas ineditas, ordem 4001-4030)
 -- Cole no Supabase -> SQL Editor -> RUN. Seguro rodar mais de uma vez.
