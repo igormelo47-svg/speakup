@@ -2460,13 +2460,18 @@ export default function AppPage() {
   // Sequência: qualquer estudo do dia conta (lição concluída ou desafio). Guarda o último dia
   // ativo em localStorage; se pulou um dia e tem proteção (freeze), gasta uma para manter o fogo.
   function calcularStreakHoje() {
-    const hoje = dataLocal(0), ontem = dataLocal(1), anteontem = dataLocal(2)
+    const hoje = dataLocal(0), ontem = dataLocal(1)
     let last: string | null = null
     try { last = localStorage.getItem('speakup_ultima_atividade') || localStorage.getItem('speakup_desafio') } catch (e) {}
     let novoStreak: number, freezesRestantes = streakFreezes, usouFreeze = false
     if (last === hoje) novoStreak = Math.max(streak, 1)
     else if (last === ontem) novoStreak = streak + 1
-    else if (last === anteontem && streakFreezes > 0) { novoStreak = streak + 1; freezesRestantes = streakFreezes - 1; usouFreeze = true }
+    else if (last) {
+      // Dias de falha desde a última atividade; cada proteção cobre 1 dia (até o estoque).
+      const faltas = Math.round((new Date(hoje).getTime() - new Date(last).getTime()) / 86400000) - 1
+      if (faltas >= 1 && faltas <= streakFreezes) { novoStreak = streak + 1; freezesRestantes = streakFreezes - faltas; usouFreeze = true }
+      else novoStreak = 1
+    }
     else novoStreak = 1
     try { localStorage.setItem('speakup_ultima_atividade', hoje) } catch (e) {}
     return { novoStreak, freezesRestantes, usouFreeze }
@@ -2543,8 +2548,8 @@ export default function AppPage() {
     tocarSom('acerto')
   }
   function comprarStreakFreeze() {
-    const custo = 50
-    if (moedas < custo) return
+    const custo = 50, maxFreezes = 2
+    if (moedas < custo || streakFreezes >= maxFreezes) return
     const novoM = moedas - custo, novoF = streakFreezes + 1
     setMoedas(novoM); setStreakFreezes(novoF)
     if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novoM, streak_freezes: novoF, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
@@ -3581,9 +3586,9 @@ export default function AppPage() {
               <div style={{ fontSize: 34 }}>🛡️</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: '#16212c' }}>Proteção de sequência</div>
-                <div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Se faltar um dia, sua sequência não zera. Você tem: <b>{streakFreezes}</b></div>
+                <div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Se faltar um dia, sua sequência não zera. Você tem: <b>{streakFreezes}/2</b></div>
               </div>
-              <button onClick={comprarStreakFreeze} disabled={moedas < 50} style={{ background: moedas >= 50 ? blue : '#e5eaef', color: moedas >= 50 ? '#fff' : '#8a97a4', border: 'none', borderRadius: 20, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: moedas >= 50 ? 'pointer' : 'default', flexShrink: 0 }}>50 🪙</button>
+              <button onClick={comprarStreakFreeze} disabled={moedas < 50 || streakFreezes >= 2} style={{ background: moedas >= 50 && streakFreezes < 2 ? blue : '#e5eaef', color: moedas >= 50 && streakFreezes < 2 ? '#fff' : '#8a97a4', border: 'none', borderRadius: 20, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: moedas >= 50 && streakFreezes < 2 ? 'pointer' : 'default', flexShrink: 0 }}>{streakFreezes >= 2 ? 'Máx.' : '50 🪙'}</button>
             </div>
             <button onClick={() => setLojaModal(false)} style={{ width: '100%', padding: 12, marginTop: 14, background: 'none', color: '#5c6b7a', border: 'none', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
           </div>
