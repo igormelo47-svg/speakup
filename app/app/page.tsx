@@ -2144,6 +2144,8 @@ export default function AppPage() {
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
   const [isPremium, setIsPremium] = useState(BETA_GRATIS)
+  // Fim do trial (timestamp) para a faixa de upsell que aparece DURANTE o teste.
+  const [trialExpira, setTrialExpira] = useState<number | null>(null)
   // App iOS (Capacitor): compra via Apple; sem mencionar pagamento externo (regra 3.1.1)
   const [isIOSNative, setIsIOSNative] = useState(false)
   useEffect(() => { if ((window as any).Capacitor?.isNativePlatform?.()) setIsIOSNative(true) }, [])
@@ -2791,7 +2793,7 @@ export default function AppPage() {
       try {
         const { data: profRows } = await supabase.from('profiles').select('trial_expira').eq('id', user.id).limit(1)
         const texp = profRows?.[0]?.trial_expira
-        if (texp) emTrial = new Date(texp).getTime() > Date.now()
+        if (texp) { const t = new Date(texp).getTime(); emTrial = t > Date.now(); setTrialExpira(t) }
       } catch (e) {}
       let pendingXp = 0
       try {
@@ -3879,6 +3881,20 @@ export default function AppPage() {
                       )
                     })}
                   </div>
+                </div>
+              )
+            })()}
+            {/* Upsell DURANTE o trial: o aluno é "premium" no teste, então sem isto ele
+                bateria no paywall de surpresa. Mostra urgência no último dia. */}
+            {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
+              const horas = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
+              const urgente = horas <= 24
+              const quando = horas <= 24 ? `Acaba em ${horas}h` : `Acaba em ${Math.ceil(horas / 24)} dias`
+              return (
+                <div onClick={() => setTab('plans')} style={{ background: urgente ? 'linear-gradient(135deg, #C0392B, #E24B4A)' : 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <IcBadge e={urgente ? '⏰' : '⭐'} color={urgente ? '#E24B4A' : gold} onDark box={44} size={24} />
+                  <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'} <Ic e={urgente ? '🔥' : '✨'} /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Assine e não perca seu progresso</div></div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
                 </div>
               )
             })()}
