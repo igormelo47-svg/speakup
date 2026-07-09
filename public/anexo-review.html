@@ -1,0 +1,15 @@
+<!doctype html>
+<!-- Ponte temporária para anexar os vídeos de review no App Store Connect.
+     Carregada num iframe dentro do ASC: busca os mp4 (same-origin, sem CSP)
+     e envia os bytes ao pai via postMessage. Apagar após o envio. -->
+<meta charset="utf-8">
+<script>
+(async () => {
+  for (const nome of ['review-video-1.mp4', 'review-video-2.mp4']) {
+    const r = await fetch('/' + nome)
+    const buf = await r.arrayBuffer()
+    parent.postMessage({ mp4: true, name: nome, buffer: buf }, '*')
+  }
+  parent.postMessage({ mp4done: true }, '*')
+})()
+</script>
