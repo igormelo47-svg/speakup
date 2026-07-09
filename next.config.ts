@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         source: "/assinatura-review.png",
         headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
       },
+      {
+        // vídeos de resposta ao App Review (temporários) — mesmo truque de anexo via fetch
+        source: "/review-video-:n.mp4",
+        headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+      },
     ];
   },
 };
