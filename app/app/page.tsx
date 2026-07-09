@@ -2175,6 +2175,10 @@ export default function AppPage() {
   const [onboarded, setOnboarded] = useState(false)
   const [hist, setHist] = useState<Record<string, number>>({})
   const [feedbackModal, setFeedbackModal] = useState(false)
+  // Exclusão de conta iniciada no app (App Store, guideline 5.1.1(v)).
+  const [excluirModal, setExcluirModal] = useState(false)
+  const [excluindoConta, setExcluindoConta] = useState(false)
+  const [excluirErro, setExcluirErro] = useState('')
   const [avalModal, setAvalModal] = useState(false)
   // Modo escuro (opt-in): classe .dark no <html> troca as variáveis de cor do globals.css.
   const [temaEscuro, setTemaEscuro] = useState(false)
@@ -2909,6 +2913,24 @@ export default function AppPage() {
 
   async function logout() { await supabase.auth.signOut(); router.push('/login') }
 
+  // Apaga a conta e todos os dados do aluno (permanente) — exigência da App Store 5.1.1(v).
+  async function excluirConta() {
+    if (excluindoConta) return
+    setExcluindoConta(true); setExcluirErro('')
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token || ''
+      const r = await fetch('/api/excluir-conta', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      if (!r.ok) throw new Error(String(r.status))
+      try { localStorage.clear() } catch (e) {}
+      await supabase.auth.signOut()
+      window.location.href = '/login'
+    } catch (e) {
+      setExcluirErro('Não foi possível excluir agora. Tente de novo em instantes ou fale com o suporte: igormelo47@gmail.com')
+      setExcluindoConta(false)
+    }
+  }
+
   // ---- Indicação: se o aluno chegou por um link ?ref=, credita o bônus (1x, servidor valida).
   useEffect(() => {
     if (!xpHydrated || !userId) return
@@ -3568,6 +3590,19 @@ export default function AppPage() {
               ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Restaurar compras</button>
               : <button onClick={() => window.location.reload()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Já assinei — atualizar</button>}
             <button onClick={logout} style={{ width: '100%', padding: 12, marginTop: 10, background: 'none', color: '#8a97a5', border: 'none', fontSize: 13, cursor: 'pointer' }}>Sair da conta</button>
+            {/* Exclusão precisa ser alcançável também daqui (5.1.1(v)): quem expirou fica bloqueado no paywall. */}
+            <button onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ width: '100%', padding: 8, background: 'none', color: '#b0273f', border: 'none', fontSize: 12, cursor: 'pointer' }}>Excluir minha conta e dados</button>
+            {excluirModal && (
+              <div onClick={() => !excluindoConta && setExcluirModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c', marginBottom: 6 }}>🗑️ Excluir sua conta</div>
+                  <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.6, marginBottom: 14 }}>Isso apaga <b>permanentemente</b> sua conta e todos os seus dados. <b>Não dá para desfazer.</b></div>
+                  {excluirErro && <div style={{ fontSize: 12.5, color: '#DC2626', background: '#FEF2F2', borderRadius: 10, padding: '10px 12px', marginBottom: 12, lineHeight: 1.5 }}>{excluirErro}</div>}
+                  <button onClick={excluirConta} disabled={excluindoConta} style={{ width: '100%', padding: 14, background: '#DC2626', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: excluindoConta ? 0.6 : 1, fontFamily: 'inherit' }}>{excluindoConta ? 'Excluindo…' : 'Excluir permanentemente'}</button>
+                  <button onClick={() => setExcluirModal(false)} disabled={excluindoConta} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: '#8a97a5', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -3950,6 +3985,9 @@ export default function AppPage() {
             })()}
             <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
               <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Vonai · enviar feedback <Ic e="💬" /></span>
+              <div style={{ marginTop: 8 }}>
+                <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Excluir minha conta</span>
+              </div>
             </div>
           </div>
         </div>
@@ -3975,6 +4013,24 @@ export default function AppPage() {
               <button onClick={enviarFeedback} style={{ width: '100%', padding: 14, marginTop: 12, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Enviar <Ic e="→" /></button>
               <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
             </>)}
+          </div>
+        </div>
+      )}
+
+      {excluirModal && (
+        <div onClick={() => !excluindoConta && setExcluirModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <span style={{ fontSize: 24 }}><Ic e="🗑️" c="#DC2626" /></span>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c' }}>Excluir sua conta</div>
+            </div>
+            <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.6, marginBottom: 14 }}>
+              Isso apaga <b>permanentemente</b> sua conta e todos os seus dados: e-mail, nome, XP, lições concluídas, sequência, moedas e histórico. <b>Não dá para desfazer.</b>
+              {isPremium && <><br /><br />Se você tem assinatura ativa, cancele também na plataforma onde assinou (Ajustes do iPhone ou Kiwify) — excluir a conta não cancela a cobrança.</>}
+            </div>
+            {excluirErro && <div style={{ fontSize: 12.5, color: '#DC2626', background: '#FEF2F2', borderRadius: 10, padding: '10px 12px', marginBottom: 12, lineHeight: 1.5 }}>{excluirErro}</div>}
+            <button onClick={excluirConta} disabled={excluindoConta} style={{ width: '100%', padding: 14, background: '#DC2626', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: excluindoConta ? 0.6 : 1, fontFamily: 'inherit' }}>{excluindoConta ? 'Excluindo…' : 'Excluir permanentemente'}</button>
+            <button onClick={() => setExcluirModal(false)} disabled={excluindoConta} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
           </div>
         </div>
       )}

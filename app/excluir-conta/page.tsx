@@ -15,7 +15,13 @@ export default function ExcluirConta() {
         associados a ela a qualquer momento, sem custo.
       </p>
 
-      <h2 style={h2}>Como solicitar</h2>
+      <h2 style={h2}>Como excluir pelo app (imediato)</h2>
+      <p>
+        Entre no app, role até o fim da tela inicial e toque em <b>“Excluir minha conta”</b>.
+        Confirme e pronto: a conta e todos os dados são apagados <b>na hora</b>, permanentemente.
+      </p>
+
+      <h2 style={h2}>Sem acesso ao app?</h2>
       <p>
         Envie um e-mail para <b>igormelo47@gmail.com</b> com o assunto{' '}
         <b>“Excluir minha conta”</b>, informando o <b>e-mail cadastrado</b> no app.
