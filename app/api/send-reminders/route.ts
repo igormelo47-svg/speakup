@@ -21,8 +21,14 @@ export async function GET(req: NextRequest) {
   // Dia no fuso do Brasil, igual ao que o app grava em ultima_atividade.
   const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   const { data: subs } = await admin.from('push_subscriptions').select('user_id, subscription')
-  const { data: prog } = await admin.from('progresso').select('user_id, ultima_atividade, streak')
-  const estudouHoje = new Set((prog || []).filter((p: any) => p.ultima_atividade === hoje).map((p: any) => p.user_id))
+  const { data: prog } = await admin.from('progresso').select('user_id, ultima_atividade, streak, dias_ativos')
+  // Usou hoje = marcador do dia em dias_ativos (gravado a cada abertura) OU a data de
+  // ultima_atividade. Ela é timestamptz — comparar a string inteira com 'YYYY-MM-DD'
+  // nunca casava, e o lembrete ia até para quem já tinha estudado.
+  const estudouHoje = new Set((prog || []).filter((p: any) =>
+    (Array.isArray(p.dias_ativos) && p.dias_ativos.includes(hoje)) ||
+    String(p.ultima_atividade || '').slice(0, 10) === hoje
+  ).map((p: any) => p.user_id))
   const streakDe = new Map((prog || []).map((p: any) => [p.user_id, p.streak || 0]))
 
   // Mensagem personalizada: quanto maior a sequência em risco, mais forte o apelo.

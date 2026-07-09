@@ -3559,6 +3559,11 @@ export default function AppPage() {
             <div style={{ fontSize: 12, color: green, textAlign: 'center', fontWeight: 600, marginTop: 8 }}>No anual você economiza R$69 por ano</div>
             <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto'}</div>
             {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a00', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
+            <div style={{ fontSize: 11.5, color: '#8a97a5', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
+              Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
+              <a href="/termos" style={{ color: blue }}>Termos de Uso</a> · <a href="/privacidade" style={{ color: blue }}>Política de Privacidade</a>
+            </div>
             {isIOSNative
               ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Restaurar compras</button>
               : <button onClick={() => window.location.reload()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Já assinei — atualizar</button>}
@@ -4597,6 +4602,11 @@ export default function AppPage() {
               <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
             </div>
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele a qualquer momento' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento'}</div>
+            {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
+            <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.6, marginTop: 10 }}>
+              Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
+              <a href="/termos" style={{ color: blue }}>Termos de Uso</a> · <a href="/privacidade" style={{ color: blue }}>Política de Privacidade</a>
+            </div>
             {isIOSNative && <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 12, background: 'none', color: blue, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Restaurar compras</button>}
           </div>
         </div>

@@ -1,7 +1,7 @@
 # 🔔 Lembretes diários (Web Push) — ativação
 
 O código já está pronto: o aluno vê o botão **"Ativar lembretes diários"** na Home; e todo dia,
-às 9h (BRT), quem **não estudou** recebe uma notificação no celular. Faltam 3 passos de configuração.
+às 20h (BRT), quem **não estudou** recebe uma notificação no celular. Faltam 3 passos de configuração.
 
 > No iPhone, a notificação só funciona se o aluno **"Adicionar à Tela de Início"** (instalar o PWA).
 > No Android/Chrome funciona direto.
@@ -25,7 +25,7 @@ Em **Vercel → Settings → Environment Variables**, adicione:
 
 ## Passo 3 — Redeploy
 Depois de salvar as variáveis, faça um **Redeploy** na Vercel (ou um novo `git push`).
-O agendamento diário (`vercel.json` → cron `0 12 * * *` = 9h BRT) é ativado automaticamente.
+O agendamento diário (`vercel.json` → cron `0 23 * * *` = 20h BRT) é ativado automaticamente.
 
 ## Como testar
 1. Abra o app no celular (Android/Chrome, ou iPhone com o app instalado na tela inicial).
@@ -33,6 +33,6 @@ O agendamento diário (`vercel.json` → cron `0 12 * * *` = 9h BRT) é ativado 
 3. Para testar o envio na hora (sem esperar as 9h), na Vercel vá em **Settings → Cron Jobs → Run** (dispara manualmente), ou aguarde o horário.
 
 ## Ajustar o horário
-No `vercel.json`, `"0 12 * * *"` = 12:00 UTC (9h de Brasília). Ex.: para 8h BRT use `0 11 * * *`.
+No `vercel.json`, `"0 23 * * *"` = 23:00 UTC (20h de Brasília). Ex.: para 9h BRT use `0 12 * * *`.
 
 > Plano Hobby da Vercel permite cron **1x por dia** — suficiente para o lembrete diário.

@@ -44,6 +44,51 @@ group by dia_cadastro
 order by dia_cadastro desc
 limit 30;
 
+-- ---- Retenção D1 / D7 / D30 AGREGADA (um número único de cada, para
+-- comparar com as metas: D1 ≥ 25%, D7 ≥ 12%, D30 ≥ 8%).
+-- Cada taxa só conta alunos "elegíveis" (cadastrados há tempo suficiente
+-- para poderem ter voltado) e usa janela (D7 = voltou em algum dos dias
+-- 5-7; D30 = dias 25-30), mais estável com poucos alunos que o dia exato.
+with base as (
+  select
+    user_id,
+    (criado_em at time zone 'America/Sao_Paulo')::date as dia_cadastro,
+    dias_ativos
+  from progresso
+  where criado_em is not null
+),
+hoje as (select (now() at time zone 'America/Sao_Paulo')::date as d),
+flags as (
+  select
+    b.dia_cadastro,
+    b.dias_ativos ? to_char(b.dia_cadastro + 1, 'YYYY-MM-DD') as d1,
+    b.dias_ativos ?| array[
+      to_char(b.dia_cadastro + 5, 'YYYY-MM-DD'),
+      to_char(b.dia_cadastro + 6, 'YYYY-MM-DD'),
+      to_char(b.dia_cadastro + 7, 'YYYY-MM-DD')
+    ] as d7,
+    b.dias_ativos ?| array[
+      to_char(b.dia_cadastro + 25, 'YYYY-MM-DD'),
+      to_char(b.dia_cadastro + 26, 'YYYY-MM-DD'),
+      to_char(b.dia_cadastro + 27, 'YYYY-MM-DD'),
+      to_char(b.dia_cadastro + 28, 'YYYY-MM-DD'),
+      to_char(b.dia_cadastro + 29, 'YYYY-MM-DD'),
+      to_char(b.dia_cadastro + 30, 'YYYY-MM-DD')
+    ] as d30
+  from base b
+)
+select
+  count(*) filter (where dia_cadastro <= (select d from hoje) - 1)  as coorte_d1,
+  round(100.0 * count(*) filter (where d1 and dia_cadastro <= (select d from hoje) - 1)
+        / nullif(count(*) filter (where dia_cadastro <= (select d from hoje) - 1), 0), 1)  as d1_pct,
+  count(*) filter (where dia_cadastro <= (select d from hoje) - 7)  as coorte_d7,
+  round(100.0 * count(*) filter (where d7 and dia_cadastro <= (select d from hoje) - 7)
+        / nullif(count(*) filter (where dia_cadastro <= (select d from hoje) - 7), 0), 1)  as d7_pct,
+  count(*) filter (where dia_cadastro <= (select d from hoje) - 30) as coorte_d30,
+  round(100.0 * count(*) filter (where d30 and dia_cadastro <= (select d from hoje) - 30)
+        / nullif(count(*) filter (where dia_cadastro <= (select d from hoje) - 30), 0), 1) as d30_pct
+from flags;
+
 -- ---- Distribuição de engajamento: quantos dias cada aluno usou nos últimos 30
 select
   case
