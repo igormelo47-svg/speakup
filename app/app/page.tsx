@@ -3578,21 +3578,28 @@ export default function AppPage() {
                 </div>
               ))}
             </div>
-            {/* Anual em DESTAQUE (card principal): preço por mês + total + economia. */}
-            <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: `linear-gradient(135deg, ${gold}, #DAA520)`, borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(218,165,32,0.35)', marginBottom: 10 }}>
+            {/* Os DOIS planos em destaque: mensal (entrada acessível) + anual (melhor valor). */}
+            <div onClick={() => abrirAssinatura('mensal')} style={{ background: '#ffffff', border: `1.5px solid ${blue}`, borderRadius: 14, padding: 16, cursor: 'pointer', marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div><div style={{ fontSize: 15, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Cancele quando quiser</div></div>
+                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 24, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
+              </div>
+              <div style={{ width: '100%', padding: 12, background: blue, color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Assinar plano mensal <Ic e="→" /></div>
+            </div>
+            <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: `linear-gradient(135deg, ${gold}, #DAA520)`, borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(218,165,32,0.35)' }}>
               <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: '#16A34A', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em' }}>MELHOR OFERTA · -19%</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Plano Anual</span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>economize R$69/ano</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Plano Anual <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>· economize R$69</span></div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: 6 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{isIOSNative ? 'R$24,16' : 'R$24,15'}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>/mês</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>cobrado {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano</div>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: 6 }}>
-                <span style={{ fontSize: 30, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{isIOSNative ? 'R$24,16' : 'R$24,15'}</span>
-                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>/mês</span>
-              </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>cobrado {isIOSNative ? 'R$289,90' : 'R$289,80'} uma vez por ano</div>
               <div style={{ width: '100%', marginTop: 12, padding: 12, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Assinar plano anual <Ic e="🔥" /></div>
             </div>
-            <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 13, background: 'none', color: '#5c6b7a', border: '1px solid #d7dee6', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Ou plano mensal — R$29,90/mês</button>
             <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto'}</div>
             {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a00', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
             {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
