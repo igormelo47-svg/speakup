@@ -5130,6 +5130,18 @@ export default function AppPage() {
                     <button onClick={() => { ativarLembretes(); try { track('lembretes_prompt_finish') } catch (e) {} }} style={{ flexShrink: 0, background: blue, color: '#fff', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ativar</button>
                   </div>
                 )}
+                {/* Nudge de assinatura no MOMENTO DA VITÓRIA (só durante o trial): a emoção
+                    de acabar de concluir a lição é o melhor gatilho de conversão. */}
+                {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
+                  <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.55s both' }}>
+                    <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Você está indo muito bem! 🔥</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>Assine o Premium e continue evoluindo, sem interrupções.</div>
+                    </div>
+                    <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
+                  </div>
+                )}
                 <div style={{ animation: 'su_risefade 0.5s ease 0.6s both' }}>
                   <button onClick={async () => {
                     const texto = `Estou aprendendo inglês com um professor de IA no Vonai 🇧🇷 Já concluí ${doneLessons} ${doneLessons === 1 ? 'lição' : 'lições'}${streak > 1 ? ` e estou há ${streak} dias seguidos` : ''}! Vem estudar comigo: https://speakup-dusky.vercel.app`
