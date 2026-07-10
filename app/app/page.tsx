@@ -2968,7 +2968,10 @@ export default function AppPage() {
 
   // ---- Pedido de avaliação na loja: só no "momento feliz" (5 lições ou 3 dias de fogo),
   // uma única vez. 👎 vira feedback privado (protege a nota pública).
-  const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.vercel.speakup_dusky.twa'
+  // Loja certa por plataforma: no app iOS abre a App Store (o Google Play quebra no iPhone).
+  const STORE_URL = isIOSNative
+    ? 'https://apps.apple.com/app/id6788121941?action=write-review'
+    : 'https://play.google.com/store/apps/details?id=app.vercel.speakup_dusky.twa'
   useEffect(() => {
     if (!xpHydrated) return
     if (doneLessons < 5 && streak < 3) return
@@ -2983,7 +2986,7 @@ export default function AppPage() {
     try { track('aval_' + acao) } catch (e) {}
     if (acao === 'avaliou') {
       try { localStorage.setItem('speakup_aval', 'avaliou') } catch (e) {}
-      try { window.open(PLAY_URL, '_blank') } catch (e) {}
+      try { window.open(STORE_URL, '_blank') } catch (e) {}
     } else if (acao === 'melhorar') {
       try { localStorage.setItem('speakup_aval', 'feedback') } catch (e) {}
       setFeedbackEnviado(false); setFeedbackModal(true)
