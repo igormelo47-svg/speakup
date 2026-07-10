@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
-import InstallButton from '../InstallButton'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -150,10 +149,6 @@ export default function Login() {
             <a href="/privacidade" style={{ color: '#5B6B82' }}>Política de Privacidade</a>.
           </p>
         )}
-      </div>
-
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        <InstallButton dark />
       </div>
 
       <p style={{ textAlign: 'center', fontSize: 12, color: '#9DBBDD', marginTop: 22 }}>

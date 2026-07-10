@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import InstallButton from './InstallButton'
 
 export const metadata = {
   title: 'Vonai — Aprenda inglês conversando com IA',
@@ -52,7 +51,6 @@ export default function Home() {
               <Link href="/login" style={cta}>Começar grátis →</Link>
               <span style={{ fontSize: 14, color: '#B5D4F4' }}>✨ 2 dias grátis · sem cartão de crédito</span>
             </div>
-            <div style={{ maxWidth: 320 }}><InstallButton dark /></div>
           </div>
           {/* Mockup */}
           <div style={{ flex: '0 0 auto', margin: '0 auto' }}>
