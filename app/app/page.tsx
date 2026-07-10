@@ -3578,6 +3578,17 @@ export default function AppPage() {
                 </div>
               ))}
             </div>
+            {/* Prova social / sinais de confiança. HONESTO pré-lançamento: nada de número
+                de alunos inventado. Quando houver dados reais (avaliação da loja, nº de
+                alunos, depoimentos), trocar/adicionar aqui. */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {[['🇧🇷', 'Feito para brasileiros'], ['🔒', 'Pagamento seguro'], ['🚫', 'Cancele quando quiser']].map(([e, t], i) => (
+                <div key={i} style={{ flex: 1, background: '#ffffff', border: '0.5px solid #e5eaef', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18 }}><Ic e={e} /></div>
+                  <div style={{ fontSize: 10.5, color: '#5c6b7a', marginTop: 4, lineHeight: 1.2, fontWeight: 600 }}>{t}</div>
+                </div>
+              ))}
+            </div>
             {/* Os DOIS planos em destaque: mensal (entrada acessível) + anual (melhor valor). */}
             <div onClick={() => abrirAssinatura('mensal')} style={{ background: '#ffffff', border: `1.5px solid ${blue}`, borderRadius: 14, padding: 16, cursor: 'pointer', marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
