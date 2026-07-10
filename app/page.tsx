@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import NativeEntry from './NativeEntry'
 
 export const metadata = {
   title: 'Vonai — Aprenda inglês conversando com IA',
@@ -32,6 +33,7 @@ export default function Home() {
   const cta: React.CSSProperties = { display: 'inline-block', background: '#F5A623', color: '#fff', fontWeight: 700, fontSize: 16, padding: '14px 30px', borderRadius: 30, textDecoration: 'none', boxShadow: '0 6px 18px rgba(245,166,35,0.4)' }
   return (
     <div style={{ fontFamily: 'inherit', color: '#102A4C', background: '#fff' }}>
+      <NativeEntry />
       {/* Nav */}
       <div style={{ borderBottom: '1px solid #EEF1F6' }}>
         <div style={{ ...container, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>

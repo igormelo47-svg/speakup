@@ -18,8 +18,11 @@ export default function Login() {
   // Link de indicação (?ref=<id do amigo>): guarda o código para creditar o bônus após o cadastro.
   useEffect(() => {
     try {
-      const ref = new URLSearchParams(window.location.search).get('ref')
+      const params = new URLSearchParams(window.location.search)
+      const ref = params.get('ref')
       if (ref) { localStorage.setItem('speakup_ref', ref); setIndicado(true); setModo('cadastro') }
+      // vindo do app nativo (?novo=1): já abre no cadastro
+      if (params.get('novo')) setModo('cadastro')
     } catch (e) {}
   }, [])
 
