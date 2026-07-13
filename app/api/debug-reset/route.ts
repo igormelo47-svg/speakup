@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
   const admin = createClient(url, service)
   const diag: Record<string, unknown> = {}
 
-  // 1) conta descartável
+  // 1) conta descartável limpa (apaga se já existir de um teste anterior)
+  const { data: existing } = await admin.auth.admin.listUsers()
+  const jaTem = existing?.users?.find(u => u.email === EMAIL_TESTE)
+  if (jaTem) await admin.auth.admin.deleteUser(jaTem.id)
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email: EMAIL_TESTE, password: 'SenhaAntiga123!', email_confirm: true,
   })
@@ -46,16 +49,27 @@ export async function GET(req: NextRequest) {
   diag.temAccessToken = !!accessToken
   diag.erroNoFragmento = params.get('error_description') || params.get('error') || null
 
-  // 5) tenta trocar a senha COM esse token (o que o /reset faz via updateUser)
+  // 5) troca a senha por uma NOVA aleatória (o que o /reset faz via updateUser)
+  const novaSenha = 'Aluno' + Math.random().toString(36).slice(2, 10) + '!Ok'
   if (accessToken) {
     const r = await fetch(`${url}/auth/v1/user`, {
       method: 'PUT',
       headers: { apikey: anon, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'NovaSenha456!' }),
+      body: JSON.stringify({ password: novaSenha }),
     })
     diag.updateStatus = r.status
-    diag.updateBody = await r.text()
+    diag.updateBody = (await r.text()).slice(0, 120)
+    // 6) confirma logando com a senha nova
+    const login = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: anon, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: EMAIL_TESTE, password: novaSenha }),
+    })
+    diag.loginComSenhaNova = login.status === 200 ? 'ENTRA (200)' : `falhou ${login.status}`
   }
+
+  // 7) limpa a conta de teste
+  if (created?.user?.id) await admin.auth.admin.deleteUser(created.user.id)
 
   return NextResponse.json(diag)
 }
