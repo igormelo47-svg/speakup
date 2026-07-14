@@ -5580,9 +5580,9 @@ export default function AppPage() {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
           <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '5px 10px', borderRadius: 14, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
-              <span style={{ fontSize: 18 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
-              <span style={{ fontSize: 9, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500 }}>{label}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '6px 6px', borderRadius: 14, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
+              <span style={{ fontSize: 24 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
+              <span style={{ fontSize: 10.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</span>
             </div>
           </button>
           )
