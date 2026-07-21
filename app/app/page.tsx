@@ -5602,14 +5602,16 @@ export default function AppPage() {
 
       </div>
 
-      <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', padding: '2px 4px max(2px, calc(env(safe-area-inset-bottom) - 20px))', flexShrink: 0 }}>
+      {/* Barra mais alta e itens centralizados: padding vertical simétrico (8px) e, no iPhone,
+          o excedente do safe-area entra só como folga extra embaixo (zona do traço do iOS). */}
+      <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', padding: '8px 4px calc(8px + max(0px, env(safe-area-inset-bottom) - 16px))', flexShrink: 0 }}>
         {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '🦜', 'Professor']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
-          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, padding: '2px 5px', borderRadius: 9, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
-              <span style={{ fontSize: 15 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
-              <span style={{ fontSize: 8.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</span>
+          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: '3px 7px', borderRadius: 10, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
+              <span style={{ fontSize: 17, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
+              <span style={{ fontSize: 9.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</span>
             </div>
           </button>
           )
