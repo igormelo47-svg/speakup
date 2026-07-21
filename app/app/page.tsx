@@ -3955,16 +3955,16 @@ export default function AppPage() {
             {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
             {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
             {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
-            {cardExplorar('#FEF0E6', '🇧🇷', '#C2410C', 'Caça-Erros', 'Armadilhas do brasileiro', () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} })}
+            {cardExplorar('#EAF1FC', '🏆', '#2E72D6', 'Liga', 'Ranking da semana', () => { setTab('liga'); carregarLiga() })}
             {cardExplorar('#EDE9FE', '🎤', '#6A5ACD', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
             {cardExplorar('#FEF3E2', '🎧', '#B45309', 'Listening', 'Ouça e entenda', () => setTab('listening'))}
             {cardExplorar('#FDECEC', '📝', '#C0392B', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
             {cardExplorar('#EAF1FC', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
           </div>
-          <div onClick={() => { setTab('liga'); carregarLiga() }} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <IcBadge e="🏆" color="#103D77" onDark box={42} size={22} />
-            <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 11.5, color: '#B5D4F4', marginTop: 2 }}>Dispute o topo do ranking</div></div>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ver <Ic e="→" /></span>
+          <div onClick={() => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} }} style={{ background: 'linear-gradient(135deg, #059669, #B45309)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <IcBadge e="🇧🇷" color="#B45309" onDark box={42} size={22} />
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Caça-Erros do Brasileiro</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>5 armadilhas que todo brasileiro cai</div></div>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Jogar <Ic e="→" /></span>
           </div>
           {histDone.length < HISTORIAS.length && (
             <div onClick={() => { setHistSel(null); setTab('historias') }} style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
