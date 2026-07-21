@@ -3710,7 +3710,6 @@ export default function AppPage() {
     const proxL = (lessons[level] || []).find(l => !licoesConcluidas.includes(l.title))
     const treinouHoje = !isNovo && licoesHoje > 0 && simulacoesHoje > 0
     const xpHoje = Math.max(0, xp - xpInicioDia)
-    const nv = nivelDeXp(xp)
     const passos = [
       temRevisao ? { e: '🔁', t: 'Revisar seu erro' } : { e: '📖', t: proxL ? 'Aprender' : 'Revisar' },
       { e: '🎙️', t: 'Praticar falando' },
@@ -3738,23 +3737,59 @@ export default function AppPage() {
               <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 11px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
             </div>
           </div>
-          <div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 12 }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div>
-          {/* Tira compacta: streak · meta · nível (a gamificação continua, sem dominar a tela) */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, background: 'rgba(245,166,35,0.18)', borderRadius: 14, padding: '10px 8px', textAlign: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Ic e="🔥" s={16} c="#FF9A3D" /><span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{streak}</span></div>
-              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 3 }}>{streak === 1 ? 'dia' : 'dias'} seguidos</div>
-            </div>
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: '10px 8px', textAlign: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Ic e="🎯" s={16} c={xpHoje >= metaDiaria ? '#4ADE80' : '#EF6C4D'} /><span style={{ fontSize: 16, fontWeight: 800, color: xpHoje >= metaDiaria ? '#4ADE80' : '#fff' }}>{xpHoje}/{metaDiaria}</span></div>
-              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 3 }}>meta de hoje</div>
-            </div>
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: '10px 8px', textAlign: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Ic e="⭐" s={16} c="#FFD98A" /><span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{nv.nivel}</span></div>
-              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 3 }}>nível · {level}</div>
-            </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div>
+            <div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div>
           </div>
+          {/* Card grande de progresso (o que o Emmanuel achou mais bonito) */}
+          {(() => {
+            const lvlArr = lessons[level] || []
+            const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(l.title)).length
+            const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
+            const C = 188.5
+            const nv = nivelDeXp(xp)
+            return (
+            <div style={{ background: blueDark, borderRadius: 20, padding: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <div style={{ position: 'relative', width: 76, height: 76, flexShrink: 0 }}>
+                  <svg width="76" height="76" viewBox="0 0 76 76">
+                    <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="7" />
+                    <circle cx="38" cy="38" r="30" fill="none" stroke="#4ADE80" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${C * lvlPct / 100} ${C}`} transform="rotate(-90 38 38)" />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{level}</div>
+                    <div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 2 }}>{lvlPct}%</div>
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, color: '#BCD6F2', marginBottom: 9 }}>Seu progresso no nível {level}</div>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{xpShown}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>XP</div></div>
+                    <div><div style={{ fontSize: 18, fontWeight: 700, color: xpHoje > 0 ? '#4ADE80' : '#fff', lineHeight: 1 }}>+{xpHoje}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>hoje</div></div>
+                    <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{doneLessons}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>lições</div></div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,166,35,0.16)', borderRadius: 12, padding: '9px 12px', marginBottom: 14 }}>
+                <Ic e="🔥" c="#F5A623" s={22} />
+                <div style={{ flex: 1, fontSize: 13, color: '#fff', fontWeight: 600 }}>{streak} {streak === 1 ? 'dia' : 'dias'} de sequência</div>
+                {recorde > 0 && <div style={{ fontSize: 12, color: '#F5C97A', fontWeight: 600 }}><Ic e="🏆" /> recorde {recorde}</div>}
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="⭐" c="#FFD98A" /> Nível {nv.nivel}</div>
+                  <div style={{ fontSize: 11, color: '#BCD6F2', fontWeight: 600 }}>faltam {nv.need - nv.into} XP</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: 'linear-gradient(90deg,#FFD98A,#F5A623)', height: '100%', width: `${nv.pct}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
+                <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : '#BCD6F2', fontWeight: 600 }}>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= metaDiaria ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / metaDiaria * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+            </div>
+            )
+          })()}
         </div>
 
         <div style={{ padding: 16 }}>
@@ -3813,6 +3848,85 @@ export default function AppPage() {
             </div>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: '#103D77', background: '#fff', padding: '7px 13px', borderRadius: 22, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}><Ic e="💬" s={13} c="#103D77" /> Tirar dúvida</span>
           </div>
+
+          {/* Seu plano de hoje (mantido a pedido do Emmanuel) */}
+          {(() => {
+            const proxL = lessons[level]?.find(l => !l.done)
+            const tasks = [
+              { icon: '📖', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
+              { icon: '🧠', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
+              { icon: '🎭', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
+              { icon: '🔥', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
+            ]
+            const feitos = tasks.filter(t => t.feito).length
+            const tudo = feitos === tasks.length
+            return (
+              <div style={{ background: blueDark, borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}><Ic e="🎯" /> Seu plano de hoje</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: tudo ? '#4ADE80' : '#BCD6F2' }}>{feitos}/{tasks.length}</div>
+                </div>
+                <div style={{ fontSize: 11.5, color: tudo ? '#4ADE80' : (streak > 0 && feitos === 0) ? '#FFD98A' : '#9DBBDD', marginBottom: 12, fontWeight: (streak > 0 && feitos === 0) ? 600 : 400 }}>{tudo ? 'Mandou bem! Plano de hoje completo 🎉' : (streak > 0 && feitos === 0) ? `🔥 Não perca sua sequência de ${streak} ${streak === 1 ? 'dia' : 'dias'} — faça 1 tarefa!` : `Meta: ${perfilIa.objetivo || OBJETIVO_PADRAO}`}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {tasks.map((t, i) => (
+                    <div key={i} onClick={t.feito ? undefined : t.acao} style={{ background: t.feito ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12, cursor: t.feito ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', gap: 7, minHeight: 92 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: t.feito ? '#16A34A' : 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.feito ? <Ic e="✓" s={17} c="#fff" /> : <Ic e={t.icon} s={18} c="#fff" />}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', lineHeight: 1.2, textDecoration: t.feito ? 'line-through' : 'none', opacity: t.feito ? 0.75 : 1 }}>{t.titulo}</div>
+                      <div style={{ fontSize: 10.5, color: '#9DBBDD', lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{t.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Missões da semana (mantido a pedido do Emmanuel) */}
+          {(() => {
+            const weekNow = Math.floor(Date.now() / (7 * 86400000))
+            const claimed = missoes.week === weekNow ? missoes.claimed : []
+            const semXpAtual = Math.max(0, xp - semBaseRef.current)
+            const diasSemana = Object.keys(hist).filter(d => Math.floor(new Date(d + 'T00:00:00').getTime() / (7 * 86400000)) === weekNow && (hist[d] || 0) > 0).length
+            const lista = [
+              { id: 'xp', e: '⚡', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
+              { id: 'dias', e: '📅', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
+              { id: 'streak', e: '🔥', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
+            ]
+            const feitas = lista.filter(m => claimed.includes(m.id)).length
+            return (
+              <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}><Ic e="🎯" c={purple} /> Missões da semana</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: feitas === lista.length ? green : 'var(--color-text-secondary)' }}>{feitas}/{lista.length}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {lista.map(m => {
+                    const pct = Math.round(m.cur / m.alvo * 100)
+                    const completa = m.cur >= m.alvo
+                    const resgatada = claimed.includes(m.id)
+                    return (
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: resgatada ? 'rgba(22,163,74,0.14)' : 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={19} c={resgatada ? green : '#6A5ACD'} /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 5 }}>{m.nome}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 5, height: 7, overflow: 'hidden' }}><div style={{ background: completa ? green : '#6A5ACD', height: '100%', width: `${pct}%`, borderRadius: 5, transition: 'width 0.4s' }} /></div>
+                            <div style={{ fontSize: 10.5, color: 'var(--color-text-secondary)', fontWeight: 600, minWidth: 42, textAlign: 'right' }}>{m.cur}/{m.alvo}</div>
+                          </div>
+                        </div>
+                        {resgatada ? (
+                          <div style={{ fontSize: 11, fontWeight: 700, color: green, flexShrink: 0 }}><Ic e="✓" /> feito</div>
+                        ) : completa ? (
+                          <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'linear-gradient(135deg,#E0A62E,#B9861F)', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>+{m.reward} 🪙</button>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', flexShrink: 0 }}>+{m.reward} 🪙</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Convite grátis do trial / upsell — mantido, discreto */}
           {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
