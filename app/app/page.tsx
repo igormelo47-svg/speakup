@@ -1050,14 +1050,17 @@ function melhorVozEN(): SpeechSynthesisVoice | null {
   }
   return [...vs].sort((a, b) => nota(a) - nota(b))[0]
 }
-function falarNavegador(text: string, rate = 0.95, onend?: () => void) {
+function falarNavegador(text: string, rate = 0.95, onend?: () => void, lang = 'en-US') {
   if (typeof window === 'undefined' || !window.speechSynthesis) { onend?.(); return }
-  window.speechSynthesis.cancel()
-  const u = new SpeechSynthesisUtterance(text)
-  u.lang = 'en-US'; u.rate = rate
-  const v = melhorVozEN(); if (v) u.voice = v
-  if (onend) { u.onend = onend; u.onerror = onend }
-  window.speechSynthesis.speak(u)
+  try {
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = lang; u.rate = rate
+    if (/^en/i.test(lang)) { const v = melhorVozEN(); if (v) u.voice = v }
+    else { const v = window.speechSynthesis.getVoices().find(x => x.lang && x.lang.slice(0, 2).toLowerCase() === lang.slice(0, 2).toLowerCase()); if (v) u.voice = v }
+    if (onend) { u.onend = onend; u.onerror = onend }
+    window.speechSynthesis.speak(u)
+  } catch (e) { onend?.() }
 }
 
 function DictCard({word,color='#534AB7'}:{word:{en:string;pt:string;pron:string};color?:string}) {
@@ -2427,7 +2430,7 @@ export default function AppPage() {
       const fraco = fracos[fracos.length - 1]
       const sons = perfilIa.sons_dificeis || []
       let txt = `Oi${nome}! 👋 Sou seu professor pessoal de inglês. `
-      if (fraco) txt += `Da última vez, "${fraco}" te deu um pouco de trabalho — quer revisar isso ou praticar outra coisa hoje?`
+      if (fraco) txt += `Da última vez, '${fraco}' te deu um pouco de trabalho — quer revisar isso ou praticar outra coisa hoje?`
       else if (sons.length) txt += `Reparei que ${SONS_NOME[sons[sons.length - 1]] || 'um som'} ainda te desafia na pronúncia. Quer umas dicas, ou prefere praticar outra coisa?`
       else if (streak > 0) txt += `Você está com ${streak} ${streak === 1 ? 'dia' : 'dias'} de sequência, mandando bem! O que vamos praticar hoje?`
       else txt += 'O que você quer praticar hoje? Posso explicar gramática, vocabulário ou puxar uma conversa.'
@@ -3341,7 +3344,7 @@ export default function AppPage() {
     if (atual) prefetchTTS(atual.opts[atual.ans])
   }, [tab, errQ])
 
-  // Voz do app: neural com cache + pré-carregamento. Se a rede demorar mais de 3s,
+  // Voz do app: neural com cache + pré-carregamento. Se a rede demorar mais de 1,5s,
   // a voz do navegador assume NA HORA (nada de espera) e o áudio neural fica pronto
   // no cache para a próxima vez.
   async function speakEN(text: string, id: number) {
@@ -3353,7 +3356,7 @@ export default function AppPage() {
     const fim = () => setSpeakingId(s => (s === id ? -1 : s))
     if (ttsServidorRef.current && text.length <= 290) {
       let usouFallback = false
-      const timer = setTimeout(() => { usouFallback = true; falarNavegador(text, 0.95, fim) }, 3000)
+      const timer = setTimeout(() => { usouFallback = true; falarNavegador(text, 0.95, fim) }, 1500)
       try {
         const resp = await obterTTS(text)
         clearTimeout(timer)
@@ -3371,6 +3374,19 @@ export default function AppPage() {
     falarNavegador(text, 0.95, fim)
   }
 
+  // Lê a mensagem inteira em português (voz do navegador). Usada quando a mensagem
+  // não tem inglês para extrair — o botão de áudio SEMPRE responde com voz.
+  function falarPortugues(text: string, id: number) {
+    if (typeof window === 'undefined') return
+    try { window.speechSynthesis?.cancel() } catch (e) {}
+    if (ttsAudioRef.current) { try { ttsAudioRef.current.pause() } catch (e) {} ttsAudioRef.current = null }
+    if (speakingId === id) { setSpeakingId(-1); return }
+    setSpeakingId(id)
+    const fim = () => setSpeakingId(s => (s === id ? -1 : s))
+    const limpo = text.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim()
+    falarNavegador(limpo, 1, fim, 'pt-BR')
+  }
+
   function falarIngles(text: string, id: number) {
     let t = text.replace(/\*\*/g, '').replace(/\*/g, '')
     // Prioridade: trechos entre aspas (exemplos em ingles)
@@ -3378,10 +3394,14 @@ export default function AppPage() {
     if (quoted.length) { speakEN(quoted.join('. '), id); return }
     // Sem aspas: le so os trechos que nao tem cara de portugues
     const ptChars = /[ãõçáéíóúâêôàü]/i
-    const ptWords = /\b(voce|que|para|obrigad|desculp|portugu|ola|estou|muito|como|pode|sobre|isso|aqui|agora|frase|exemplo|significa|quando|porque|tambem|vai|nao|sim|mais|fazer|certo|usou|seu|sua|sua|você)\b/i
+    const ptWords = /\b(oi|ola|voce|que|para|obrigad|desculp|portugu|estou|muito|como|pode|sobre|isso|aqui|agora|frase|exemplo|significa|quando|porque|tambem|vai|nao|sim|mais|fazer|certo|usou|seu|sua|dia|hoje|você)\b/i
     const chunks = t.split(/[.!?\n]|\s-\s/).map(s => s.trim()).filter(Boolean)
     const eng = chunks.filter(s => /[a-z]/i.test(s) && !ptChars.test(s) && !ptWords.test(s))
-    speakEN(eng.length ? eng.join('. ') : t, id)
+    const temPt = chunks.some(s => ptChars.test(s) || ptWords.test(s))
+    // Mensagem toda (ou quase toda) em português: lê o texto inteiro em pt-BR em vez
+    // de ficar mudo ou soltar um fiapo de frase — o botão precisa sempre responder.
+    if (!eng.length || (temPt && eng.join(' ').split(/\s+/).length <= 3)) { falarPortugues(t, id); return }
+    speakEN(eng.join('. '), id)
   }
 
   // Microfone do simulador: mesmo motor anti-repetição do chat (ouvirEDigitar).
@@ -4786,7 +4806,7 @@ export default function AppPage() {
                       {m.role === 'ai' ? <TextoIA text={parts.en} /> : m.text}
                       {m.role === 'ai' && parts.pt && <div style={{ marginTop: 8, paddingTop: 8, borderTop: '0.5px dashed var(--color-border-tertiary)', fontSize: 12.5, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>🇧🇷 {parts.pt}</div>}
                     </div>
-                    {m.role === 'ai' && <button onClick={() => falarIngles(parts.en, i)} style={{ marginTop: 5, marginLeft: 2, background: speakingId === i ? purple : purpleLight, color: speakingId === i ? '#fff' : purple, border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir</>}</button>}
+                    {m.role === 'ai' && <button onClick={() => falarIngles(parts.en, i)} style={{ marginTop: 5, marginLeft: 2, background: speakingId === i ? purple : purpleLight, color: speakingId === i ? '#fff' : purple, border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', animation: speakingId === i ? 'su_pulse 1.2s infinite' : 'none' }}>{speakingId === i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir</>}</button>}
                   </div>
                   )
                 })}
@@ -5550,7 +5570,7 @@ export default function AppPage() {
                 {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Mascote size={22} prof /></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
-                  {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> Ouvir em inglês</>}</button>}
+                  {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: speakingId === 1000 + i ? 'su_pulse 1.2s infinite' : 'none' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> {/["“”]/.test(m.text) || textoEmIngles(m.text) ? 'Ouvir em inglês' : 'Ouvir'}</>}</button>}
                 </div>
               </div>
             ))}
@@ -5575,14 +5595,14 @@ export default function AppPage() {
 
       </div>
 
-      <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', padding: '10px 4px max(10px, calc(env(safe-area-inset-bottom) - 12px))', flexShrink: 0 }}>
+      <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', padding: '2px 4px max(2px, calc(env(safe-area-inset-bottom) - 20px))', flexShrink: 0 }}>
         {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '🦜', 'Professor']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
-          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '6px 6px', borderRadius: 14, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
-              <span style={{ fontSize: 24 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
-              <span style={{ fontSize: 10.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</span>
+          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, padding: '2px 5px', borderRadius: 9, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
+              <span style={{ fontSize: 15 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
+              <span style={{ fontSize: 8.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</span>
             </div>
           </button>
           )
