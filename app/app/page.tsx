@@ -2181,6 +2181,7 @@ export default function AppPage() {
   const [onboarded, setOnboarded] = useState(false)
   const [hist, setHist] = useState<Record<string, number>>({})
   const [feedbackModal, setFeedbackModal] = useState(false)
+  const [lembreteConvite, setLembreteConvite] = useState(false)
   // Exclusão de conta iniciada no app (App Store, guideline 5.1.1(v)).
   const [excluirModal, setExcluirModal] = useState(false)
   const [excluindoConta, setExcluindoConta] = useState(false)
@@ -3094,6 +3095,11 @@ export default function AppPage() {
       ganharMoedas(ehNova ? 10 : 5)
       if (ehNova) { const val = `${hojeStr}:${licoesHoje + 1}`; try { localStorage.setItem('speakup_licao_dia', val) } catch (e) {} ; setLicaoDiaData(val); registrarDominio(titulo) }
       agendarRevisao(titulo, licaoErrosRef.current === 0)
+      // Convite de lembrete no momento certo: logo após a 1ª lição concluída.
+      // Só web/Android (iOS nativo não tem web push) e uma única vez.
+      if (ehNova && novasLicoes.length === 1 && !isIOSNative && !lembretesAtivos) {
+        try { if (!localStorage.getItem('speakup_lembrete_convite')) { localStorage.setItem('speakup_lembrete_convite', '1'); setTimeout(() => setLembreteConvite(true), 1400) } } catch (e) {}
+      }
       const st = calcularStreakHoje()
       aplicarStreak(st)
       salvarProgresso(novoXp, novasLicoes, st)
@@ -4410,6 +4416,17 @@ export default function AppPage() {
         </div>
       )}
 
+      {lembreteConvite && (
+        <div onClick={() => setLembreteConvite(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderRadius: 20, padding: 24, width: '100%', maxWidth: 360, boxSizing: 'border-box', textAlign: 'center', boxShadow: '0 12px 40px rgba(0,0,0,0.3)', animation: 'su_slide 0.25s ease' }}>
+            <div style={{ fontSize: 42, marginBottom: 8 }}>🔔</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>Mandou bem na 1ª lição! 🎉</div>
+            <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 20 }}>Quer que eu te lembre amanhã pra você não perder a sequência?</div>
+            <button onClick={() => { setLembreteConvite(false); ativarLembretes() }} style={{ width: '100%', padding: 14, background: 'linear-gradient(135deg, #16A34A, #15803D)', color: '#fff', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Sim, me lembra 🔔</button>
+            <button onClick={() => setLembreteConvite(false)} style={{ width: '100%', padding: 11, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Agora não</button>
+          </div>
+        </div>
+      )}
       {feedbackModal && (
         <div onClick={() => setFeedbackModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', animation: 'su_slide 0.25s ease', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}>
