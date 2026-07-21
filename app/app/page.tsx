@@ -3801,6 +3801,19 @@ export default function AppPage() {
             )}
           </div>
 
+          {/* PROFESSOR EM DESTAQUE — nosso principal recurso, logo abaixo do treino. */}
+          <div onClick={() => setTab('ai')} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 18, padding: 15, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 13, boxShadow: '0 6px 18px rgba(46,114,214,0.32)' }}>
+            <div style={{ position: 'relative', width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 8px rgba(0,0,0,0.2)' }}>
+              <Mascote size={42} prof humor="feliz" />
+              <span style={{ position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: '50%', background: '#4ADE80', border: '2px solid #103D77' }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Fale com o Vô, seu professor</div>
+              <div style={{ fontSize: 11.5, color: '#B5D4F4', marginTop: 2, lineHeight: 1.35 }}>Tire qualquer dúvida de inglês na hora · 24h</div>
+            </div>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#103D77', background: '#fff', padding: '7px 13px', borderRadius: 22, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}><Ic e="💬" s={13} c="#103D77" /> Tirar dúvida</span>
+          </div>
+
           {/* Convite grátis do trial / upsell — mantido, discreto */}
           {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
             const horas = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
@@ -3822,22 +3835,13 @@ export default function AppPage() {
             </div>
           )}
 
-          {/* Baú do dia — recompensa rápida, fica logo abaixo do treino */}
-          {bauDia !== hojeStr && (
-            <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.32)' }}>
-              <IcBadge e="🎁" color="#B9861F" onDark box={42} size={22} style={{ animation: 'su_bob 1.6s ease-in-out infinite' }} />
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque e ganhe moedas</div></div>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
-            </div>
-          )}
-
           {/* EXPLORAR — sempre visível. O aluno vê tudo ao entrar; o herói acima dá a direção. */}
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '6px 2px 10px', display: 'flex', alignItems: 'center', gap: 6 }}><Ic e="🧭" s={13} c="var(--color-text-secondary)" /> Explorar</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
             {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
             {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
-            {cardExplorar('#FAEEDA', '🤖', '#B45309', 'Professor IA', 'Tira-dúvidas 24h', () => setTab('ai'))}
             {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
+            {cardExplorar('#FEF0E6', '🇧🇷', '#C2410C', 'Caça-Erros', 'Armadilhas do brasileiro', () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} })}
             {cardExplorar('#EDE9FE', '🎤', '#6A5ACD', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
             {cardExplorar('#FEF3E2', '🎧', '#B45309', 'Listening', 'Ouça e entenda', () => setTab('listening'))}
             {cardExplorar('#FDECEC', '📝', '#C0392B', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
@@ -3865,6 +3869,15 @@ export default function AppPage() {
               <IcBadge e="🔔" color="#15803D" onDark box={42} size={22} />
               <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Um aviso pra não quebrar a sequência</div></div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
+            </div>
+          )}
+
+          {/* Baú do dia — recompensa leve; fica no fim, por ser menos essencial. */}
+          {bauDia !== hojeStr && (
+            <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 14, padding: 13, marginTop: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.32)' }}>
+              <IcBadge e="🎁" color="#B9861F" onDark box={42} size={22} style={{ animation: 'su_bob 1.6s ease-in-out infinite' }} />
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque e ganhe moedas</div></div>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
             </div>
           )}
 
