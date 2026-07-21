@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { PROMPTS, SCENARIO_PROMPTS, FORMATO_SIMULADOR, resumoPerfilServidor } from "./prompts"
 
 // Mantenha igual ao app (page.tsx). false = cobrança ligada.
 const BETA_GRATIS = false
-// Tetos diários de chamadas à IA por usuário (rede de segurança contra abuso/custo).
+// Tetos diários por usuário (rede de segurança contra abuso/custo).
 const LIMIT_FREE = 60
 const LIMIT_PREMIUM = 300
+// Teto diário por IP (todas as contas somadas — barra farm de contas num IP só).
+const LIMIT_IP = 2000
+// Preço do claude-haiku-4-5 (US$ por token) para o registro de custo.
+const PRECO_IN = 1 / 1_000_000
+const PRECO_OUT = 5 / 1_000_000
+
+const NIVEIS = ["A1", "A2", "B1", "B2", "C1", "C2"]
+const MODES = ["professor", "simulador", "ajuda_licao", "dica_pron", "relatorio_fluencia"]
+
+// Resposta amigável no formato que o app já entende (ele lê content[0].text).
+const amigavel = (texto: string, status = 200) =>
+  NextResponse.json({ content: [{ type: "text", text: texto }] }, { status })
 
 // Rota do Professor IA / Simulador. Protegida:
-// (1) exige login; (2) limita o tamanho da requisição; (3) trava de uso diário NO SERVIDOR.
+// (1) exige login; (2) PROMPTS SÓ NO SERVIDOR (o cliente manda apenas "mode");
+// (3) limite diário ATÔMICO no banco, fail-closed; (4) teto por IP; (5) custo registrado.
 export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -17,7 +31,7 @@ export async function POST(req: NextRequest) {
   // 1) Autenticação: só usuários logados podem gastar a API.
   const authHeader = req.headers.get("authorization") || ""
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : ""
-  if (!token || !url || !anon) {
+  if (!token || !url || !anon || !service) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
   let userId = ""
@@ -30,73 +44,83 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
-  // 2) Validação/limite do payload.
+  // 2) Validação do payload. O prompt do sistema NUNCA vem do cliente.
   let body: any = {}
   try { body = await req.json() } catch { return NextResponse.json({ error: "bad request" }, { status: 400 }) }
-  const { messages, system } = body
+  if (body.system !== undefined) {
+    // Cliente antigo (aba aberta antes do deploy) ou tentativa de injetar prompt.
+    return amigavel("O app foi atualizado! Feche e abra de novo para continuar. 🔄", 400)
+  }
+  const { messages } = body
+  const mode = String(body.mode || "")
+  if (!MODES.includes(mode)) return NextResponse.json({ error: "invalid mode" }, { status: 400 })
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 40) {
     return NextResponse.json({ error: "invalid messages" }, { status: 400 })
   }
-  const totalChars =
-    (typeof system === "string" ? system.length : 0) +
-    messages.reduce((acc: number, m: any) => acc + (typeof m?.content === "string" ? m.content.length : 0), 0)
+  const totalChars = messages.reduce(
+    (acc: number, m: any) => acc + (typeof m?.content === "string" ? m.content.length : 0), 0)
   if (totalChars > 20000) {
     return NextResponse.json({ error: "payload too large" }, { status: 413 })
   }
 
-  // 3) Trava de uso diário no servidor (não burlável pelo app). Best-effort:
-  // se o banco falhar ou faltar a service key, não bloqueia (o teto real é o da Anthropic).
-  if (service) {
-    try {
-      const admin = createClient(url, service)
-      const { data: prog } = await admin
-        .from("progresso")
-        .select("is_premium, chat_dia_data, chat_dia_count")
-        .eq("user_id", userId)
-        .maybeSingle()
-      // Dia no fuso do Brasil — com UTC o limite diário viraria às 21h de Brasília.
-      const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })
-      const premium = BETA_GRATIS || !!prog?.is_premium
-      const limit = premium ? LIMIT_PREMIUM : LIMIT_FREE
-      const count = prog && prog.chat_dia_data === today ? (prog.chat_dia_count || 0) : 0
-      if (count >= limit) {
-        return NextResponse.json({ error: "rate_limited" }, { status: 429 })
-      }
-      await admin
-        .from("progresso")
-        .upsert(
-          { user_id: userId, chat_dia_data: today, chat_dia_count: count + 1, updated_at: new Date().toISOString() },
-          { onConflict: "user_id" }
-        )
-    } catch {
-      // fail-open: não quebra a experiência por causa de erro de contagem.
+  const admin = createClient(url, service)
+
+  // 3) Trava de uso diário ATÔMICA no servidor + teto por IP. FAIL-CLOSED:
+  // se a verificação falhar, bloqueia (proteção de custo vem antes da conveniência).
+  try {
+    const ip = (req.headers.get("x-forwarded-for") || "sem-ip").split(",")[0].trim()
+    const [{ data: prog }, { data: perfil }] = await Promise.all([
+      admin.from("progresso").select("is_premium, perfil_ia, xp, streak, licoes_concluidas").eq("user_id", userId).maybeSingle(),
+      admin.from("profiles").select("nome, trial_expira").eq("id", userId).maybeSingle(),
+    ])
+    const emTrial = !!perfil?.trial_expira && new Date(perfil.trial_expira) > new Date()
+    const premium = BETA_GRATIS || !!prog?.is_premium || emTrial
+    const limite = premium ? LIMIT_PREMIUM : LIMIT_FREE
+
+    const [{ data: okUser, error: e1 }, { data: okIp, error: e2 }] = await Promise.all([
+      admin.rpc("incrementa_uso", { p_user: userId, p_tipo: "chat", p_limite: limite }),
+      admin.rpc("incrementa_ip", { p_ip: ip, p_limite: LIMIT_IP }),
+    ])
+    if (e1 || e2) throw new Error("rpc_falhou")
+    if (okUser === false || okIp === false) {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 })
     }
-  }
 
-  // 4) Chama a Anthropic.
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1000,
-      system,
-      messages,
-    }),
-  })
+    // 4) Monta o prompt do sistema NO SERVIDOR.
+    let system = ""
+    const perfilTxt = resumoPerfilServidor(
+      perfil?.nome || "", NIVEIS.includes(body.nivel) ? body.nivel : "A1", prog)
+    if (mode === "professor") system = PROMPTS.professor + perfilTxt
+    else if (mode === "simulador") {
+      const sp = SCENARIO_PROMPTS[String(body.scenarioId || "")]
+      if (!sp) return NextResponse.json({ error: "invalid scenario" }, { status: 400 })
+      system = sp + FORMATO_SIMULADOR + perfilTxt
+    } else system = PROMPTS[mode]
 
-  // Se a Anthropic falhar (sobrecarga/5xx/chave inválida), devolve uma resposta
-  // amigável já no formato esperado — o aluno vê uma frase gentil, não "Erro.".
-  if (!res.ok) {
-    return NextResponse.json({
-      content: [{ type: 'text', text: 'Tô um pouco sobrecarregado agora 😅 Tenta de novo daqui a pouquinho, tá?' }],
+    // 5) Chama a Anthropic.
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, system, messages }),
     })
-  }
+    if (!res.ok) {
+      return amigavel("Tô um pouco sobrecarregado agora 😅 Tenta de novo daqui a pouquinho, tá?")
+    }
+    const data = await res.json()
 
-  const data = await res.json()
-  return NextResponse.json(data)
+    // 6) Registra o custo real (tokens de entrada/saída) — best-effort.
+    try {
+      const custo = (data?.usage?.input_tokens || 0) * PRECO_IN + (data?.usage?.output_tokens || 0) * PRECO_OUT
+      if (custo > 0) admin.rpc("registra_custo", { p_user: userId, p_custo: custo }).then(() => {})
+    } catch {}
+
+    return NextResponse.json(data)
+  } catch {
+    // Fail-closed: sem conseguir verificar o limite, não gastamos a API.
+    return amigavel("Tô um pouco sobrecarregado agora 😅 Tenta de novo daqui a pouquinho, tá?", 503)
+  }
 }

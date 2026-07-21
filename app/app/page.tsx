@@ -2727,7 +2727,7 @@ export default function AppPage() {
   async function pedirDicaPron(target: string, heard: string) {
     setPronLoadingTip(true); setPronTip('')
     try {
-      const res = await callChat({ system: 'Você é um coach de pronúncia de inglês para brasileiros. O aluno leu uma frase em voz alta e um reconhecimento de voz captou o que entendeu. Compare a frase-alvo com o que foi reconhecido e dê UMA dica curta (no máximo 2 frases), específica e encorajadora, em português, sobre o som que provavelmente saiu errado (ex: th, r, h aspirado, vogais curtas/longas, terminação -ed ou -s). Foque na palavra que não bateu. Nunca diga que ouviu o áudio, você só tem o texto reconhecido.', messages: [{ role: 'user', content: `Frase-alvo: "${target}"\nReconhecido pelo microfone: "${heard}"` }] })
+      const res = await callChat({ mode: 'dica_pron', messages: [{ role: 'user', content: `Frase-alvo: "${target}"\nReconhecido pelo microfone: "${heard}"` }] })
       const data = await res.json()
       setPronTip((data.content?.[0]?.text || 'Continue praticando!').trim())
     } catch { setPronTip('Não consegui gerar a dica agora. Tente de novo.') }
@@ -3225,7 +3225,7 @@ export default function AppPage() {
     setAjudaLoading(true); setAjudaTxt(null)
     try {
       const res = await callChat({
-        system: 'Você é um professor de inglês paciente ajudando um aluno brasileiro DURANTE um exercício. Dê uma DICA curta (máximo 2 frases, em português) que ajude o aluno a raciocinar e chegar à resposta sozinho. NUNCA diga qual opção é a correta nem revele a resposta final. Foque em relembrar a regra ou dar um exemplo parecido.',
+        mode: 'ajuda_licao',
         messages: [{ role: 'user', content: `Tópico da lição: ${currentLesson.title}. Regra: ${currentLesson.explanation}. Pergunta: ${q.q}. Opções: ${q.opts.join(' / ')}. Me dê uma dica para eu descobrir sozinho, sem revelar a resposta.` }],
       })
       if (res.status === 429) { setAjudaTxt('Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.'); setAjudaLoading(false); return }
@@ -3252,7 +3252,7 @@ export default function AppPage() {
     const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
-      const res = await callChat({ system: 'Você é o professor de inglês pessoal do aluno, simpático e paciente, para brasileiros. Você acompanha esse aluno há tempo e LEMBRA do histórico dele. Responda sempre em português com exemplos em inglês traduzidos. Máximo 4 linhas por resposta. Responda em texto puro, sem formatação markdown (nada de asteriscos, ---, # ou listas com hífen). ' + resumoPerfil(), messages: [{ role: 'user', content: msg }] })
+      const res = await callChat({ mode: 'professor', nivel: level, messages: [{ role: 'user', content: msg }] })
       if (res.status === 429) { setChatMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.' }]); setLoadingChat(false); return }
       const data = await res.json()
       setChatMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Erro.' }])
@@ -3265,7 +3265,7 @@ export default function AppPage() {
     setLoadingReport(true)
     try {
       const history = convMsgs.map(m => `${m.role === 'ai' ? 'Interlocutor' : 'Aluno'}: ${m.text}`).join('\n')
-      const res = await callChat({ system: 'Você avalia a fluência em inglês de um aluno brasileiro com base em uma conversa. Responda APENAS com um objeto JSON válido, sem markdown, sem crases, sem texto antes ou depois. Formato exato: {"score": número de 0 a 100, "strengths": ["ponto forte 1","ponto forte 2","ponto forte 3"], "improvements": ["o que melhorar 1 com exemplo","o que melhorar 2 com exemplo"], "message": "frase curta de incentivo em português"}. Avalie só as falas do Aluno. Seja encorajador mas honesto.', messages: [{ role: 'user', content: `Avalie esta conversa:\n\n${history}` }] })
+      const res = await callChat({ mode: 'relatorio_fluencia', messages: [{ role: 'user', content: `Avalie esta conversa:\n\n${history}` }] })
       const data = await res.json()
       const txt = (data.content?.[0]?.text || '').replace(/```json/g,'').replace(/```/g,'').trim()
       const rep = JSON.parse(txt)
@@ -3434,7 +3434,7 @@ export default function AppPage() {
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
-      const res = await callChat({ system: selectedScenario.systemPrompt + ' REGRAS DE FORMATO (obrigatórias): Responda CURTO — no máximo 2 ou 3 frases em inglês, como numa conversa falada de verdade; nada de parágrafos longos. Termine com UMA pergunta curta para manter a conversa. Depois do inglês, escreva uma ÚLTIMA linha que começa exatamente com "[PT]" seguida da tradução em português do que você disse (e, se o aluno cometeu um erro importante, acrescente nessa linha uma correção gentil de uma frase). Texto puro, sem markdown. ' + resumoPerfil(), messages: [...history, { role: 'user', content: msg }] })
+      const res = await callChat({ mode: 'simulador', scenarioId: selectedScenario.id, nivel: level, messages: [...history, { role: 'user', content: msg }] })
       if (res.status === 429) { setConvMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. Volte amanhã para continuar praticando. 🌟' }]); setLoadingConv(false); return }
       const data = await res.json()
       const resposta = data.content?.[0]?.text || 'Could not respond.'
@@ -3539,17 +3539,8 @@ export default function AppPage() {
   }
 
   const SONS_NOME: Record<string, string> = { th: 'o som "th" (think/this)', 'ed-final': 'a terminação "-ed" dos verbos', 'h-aspirado': 'o "h" aspirado (house/hot)', 'r-ingles': 'o "r" inglês', 'i-longo': 'vogais longas vs curtas (sheep/ship)', w: 'o som do "w" (wine≠vine)', 's-inicial': 'palavras começando com "s" + consoante (school)', oo: 'os sons de "oo" (food/book)' }
-  function resumoPerfil(): string {
-    const p = perfilIa || {}
-    const partes: string[] = [`Aluno: ${userName || 'estudante'} (nível ${level}, ${xp} XP, sequência de ${streak} dias, ${doneLessons} lições concluídas).`]
-    partes.push(`Objetivo do aluno: ${p.objetivo || OBJETIVO_PADRAO}.`)
-    if (p.topicos_fracos?.length) partes.push(`Pontos em que o aluno erra e precisa de reforço: ${p.topicos_fracos.slice(-6).join('; ')}.`)
-    if (p.dominados?.length) partes.push(`Tópicos que o aluno já domina: ${p.dominados.slice(-4).join('; ')}. Última lição concluída: ${p.dominados[p.dominados.length - 1]}.`)
-    if (p.sons_dificeis?.length) partes.push(`Sons de pronúncia em que o aluno tem dificuldade: ${p.sons_dificeis.map((s: string) => SONS_NOME[s] || s).join('; ')}.`)
-    partes.push('Use esse histórico para personalizar: cite a lição ou o erro específico do aluno quando fizer sentido, elogie o progresso real e foque nos pontos fracos. Não invente dados que não estão aqui.')
-    partes.push('O aluno é brasileiro: fique de olho nos erros clássicos de brasileiro (traduzir "ter anos" como "have years" em vez de "be ... years old", esquecer o "s" da 3ª pessoa, confundir make/do, in/on/at, falsos cognatos como pretend/actually/push) e corrija com carinho quando aparecerem.')
-    return partes.join(' ')
-  }
+  // O resumo do perfil que personaliza o Professor/Simulador agora é montado NO SERVIDOR
+  // (app/api/chat/prompts.ts, resumoPerfilServidor) a partir do banco — nada vem do cliente.
   const metaDiaria = perfilIa.meta_diaria || 50
   function concluirOnboarding(nivel?: string, irNivelamento?: boolean) {
     salvarPerfil({ ...perfilIa, objetivo: onbObj || OBJETIVO_PADRAO, meta_diaria: onbMeta })
