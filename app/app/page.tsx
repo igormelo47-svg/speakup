@@ -23,6 +23,7 @@ import {
   FlaskConical, Gauge, GitBranch, History, House, KeyRound, Layers, Megaphone,
   MessageCircleQuestion, MessagesSquare, Move, Navigation, Package, Quote, RotateCcw,
   SearchCheck, ShieldCheck, Split, Sunrise, Timer, ToggleLeft, Type, UserCheck, Watch,
+  Play, Gift,
 } from 'lucide-react'
 
 // Mapeia cada emoji usado no app para o componente equivalente do lucide-react.
@@ -60,7 +61,7 @@ const EMOJI_ICONS: Record<string, LucideIcon> = {
   '🏦': Landmark, '🏛️': Landmark, '🔑': Key, '💊': Pill, '🚨': TriangleAlert,
   '🏋️': BicepsFlexed, '💇': Scissors, '🧩': Puzzle, '🎚️': Settings, '🪞': UserRound,
   '🧰': Wrench, '🪶': Feather, '👟': Footprints, '🌑': Moon, '🧃': Coffee, '💎': Gem,
-  '🎧': Headphones, '🐢': Turtle, '🇧🇷': Flag,
+  '🎧': Headphones, '🐢': Turtle, '🇧🇷': Flag, '▶️': Play, '🎁': Gift, '🧭': Compass,
 }
 
 // Lições do banco usam nomes do lucide como ícone (ex.: "Equal", "Hash") — mapa nome→componente.
@@ -2231,7 +2232,6 @@ export default function AppPage() {
   // Preview por URL (?home=nova / ?home=antiga) que fica salvo no aparelho.
   // Enquanto false por padrão, só quem tem o link vê — o resto segue na home atual.
   const [homeGuiada, setHomeGuiada] = useState(false)
-  const [explorarAberto, setExplorarAberto] = useState(false)
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search).get('home')
@@ -3735,17 +3735,17 @@ export default function AppPage() {
           <div style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 12 }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div>
           {/* Tira compacta: streak · meta · nível (a gamificação continua, sem dominar a tela) */}
           <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, background: 'rgba(245,166,35,0.16)', borderRadius: 12, padding: '9px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>🔥 {streak}</div>
-              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 1 }}>{streak === 1 ? 'dia' : 'dias'} seguidos</div>
+            <div style={{ flex: 1, background: 'rgba(245,166,35,0.18)', borderRadius: 14, padding: '10px 8px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Ic e="🔥" s={16} c="#FF9A3D" /><span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{streak}</span></div>
+              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 3 }}>{streak === 1 ? 'dia' : 'dias'} seguidos</div>
             </div>
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '9px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: xpHoje >= metaDiaria ? '#4ADE80' : '#fff' }}>🎯 {xpHoje}/{metaDiaria}</div>
-              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 1 }}>meta de hoje</div>
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: '10px 8px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Ic e="🎯" s={16} c={xpHoje >= metaDiaria ? '#4ADE80' : '#EF6C4D'} /><span style={{ fontSize: 16, fontWeight: 800, color: xpHoje >= metaDiaria ? '#4ADE80' : '#fff' }}>{xpHoje}/{metaDiaria}</span></div>
+              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 3 }}>meta de hoje</div>
             </div>
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '9px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>⭐ {nv.nivel}</div>
-              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 1 }}>nível · {level}</div>
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: '10px 8px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Ic e="⭐" s={16} c="#FFD98A" /><span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{nv.nivel}</span></div>
+              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 3 }}>nível · {level}</div>
             </div>
           </div>
         </div>
@@ -3766,23 +3766,31 @@ export default function AppPage() {
             </div>
 
             {!treinouHoje ? (<>
-              {/* Prévia do que o treino contém — reduz a incerteza sem pedir decisão */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                {passos.map((p, i) => (
-                  <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.13)', borderRadius: 12, padding: '8px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 17 }}>{p.e}</div>
-                    <div style={{ fontSize: 9.5, color: '#EBE8FF', marginTop: 3, fontWeight: 600, lineHeight: 1.2 }}>{p.t}</div>
-                  </div>
-                ))}
+              {/* Prévia do treino como mini-fluxo: círculo com ícone vetorial + nº do passo, setas ligando */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, padding: '0 2px' }}>
+                {passos.flatMap((p, i) => {
+                  const step = (
+                    <div key={'s' + i} style={{ width: 74, textAlign: 'center' }}>
+                      <div style={{ position: 'relative', width: 46, height: 46, margin: '0 auto 6px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px rgba(0,0,0,0.2)' }}>
+                        <Ic e={p.e} s={22} c="#5B43C9" />
+                        <span style={{ position: 'absolute', top: -3, right: -3, width: 17, height: 17, borderRadius: '50%', background: '#FFD98A', color: '#4B3FBF', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #5B43C9' }}>{i + 1}</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: '#EBE8FF', fontWeight: 600, lineHeight: 1.2 }}>{p.t}</div>
+                    </div>
+                  )
+                  if (i === passos.length - 1) return [step]
+                  return [step, <div key={'a' + i} style={{ flex: 1, display: 'flex', justifyContent: 'center', paddingTop: 15 }}><Ic e="→" s={16} c="rgba(255,255,255,0.55)" /></div>]
+                })}
               </div>
-              <button onClick={iniciarTreino} style={{ width: '100%', padding: '15px 16px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 16, fontSize: 15.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(0,0,0,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18 }}>▶️</span> {isNovo ? 'Começar meu primeiro treino' : 'Começar meu treino de hoje'} <span style={{ background: '#EEEDFE', color: '#6A5ACD', fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 20 }}>5 min</span>
+              <button onClick={iniciarTreino} style={{ width: '100%', padding: '15px 16px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 16, fontSize: 15.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(0,0,0,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: '#6A5ACD' }}><Ic e="▶️" s={14} c="#fff" /></span>
+                {isNovo ? 'Começar meu primeiro treino' : 'Começar meu treino de hoje'}
+                <span style={{ background: '#EEEDFE', color: '#6A5ACD', fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 20 }}>5 min</span>
               </button>
             </>) : (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={iniciarTreino} style={{ flex: 1, padding: '13px 14px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>➕ Treinar mais</button>
-                <button onClick={() => setExplorarAberto(true)} style={{ flex: 1, padding: '13px 14px', background: 'rgba(255,255,255,0.16)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>🧭 Explorar</button>
-              </div>
+              <button onClick={iniciarTreino} style={{ width: '100%', padding: '14px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 14, fontSize: 14.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#6A5ACD' }}><Ic e="▶️" s={13} c="#fff" /></span> Treinar mais um pouco
+              </button>
             )}
           </div>
 
@@ -3810,54 +3818,46 @@ export default function AppPage() {
           {/* Baú do dia — recompensa rápida, fica logo abaixo do treino */}
           {bauDia !== hojeStr && (
             <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.32)' }}>
-              <div style={{ fontSize: 30, animation: 'su_bob 1.6s ease-in-out infinite' }}>🎁</div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque e ganhe moedas 🪙</div></div>
+              <IcBadge e="🎁" color="#B9861F" onDark box={42} size={22} style={{ animation: 'su_bob 1.6s ease-in-out infinite' }} />
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque e ganhe moedas</div></div>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
             </div>
           )}
 
-          {/* EXPLORAR — tudo o mais, recolhido. Quem quer autonomia, expande. */}
-          <button onClick={() => setExplorarAberto(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: '13px 15px', cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>🧭 Explorar tudo</span>
-            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>Lições, Simulador, Liga, Histórias… <span style={{ transform: explorarAberto ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: 11 }}>▾</span></span>
-          </button>
-
-          {explorarAberto && (
-            <div style={{ marginTop: 12, animation: 'su_risefade 0.35s ease both' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
-                {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
-                {cardExplorar('#FAEEDA', '🤖', '#B45309', 'Professor IA', 'Tira-dúvidas 24h', () => setTab('ai'))}
-                {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
-                {cardExplorar('#EDE9FE', '🎤', '#6A5ACD', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
-                {cardExplorar('#FEF3E2', '🎧', '#B45309', 'Listening', 'Ouça e entenda', () => setTab('listening'))}
-                {cardExplorar('#FDECEC', '📝', '#C0392B', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
-                {cardExplorar('#EAF1FC', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
-              </div>
-              <div onClick={() => { setTab('liga'); carregarLiga() }} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 26 }}>🏆</div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 11.5, color: '#B5D4F4', marginTop: 2 }}>Dispute o topo do ranking</div></div>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ver <Ic e="→" /></span>
-              </div>
-              {histDone.length < HISTORIAS.length && (
-                <div onClick={() => { setHistSel(null); setTab('historias') }} style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ fontSize: 26 }}>📖</div>
-                  <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Histórias</div><div style={{ fontSize: 11.5, color: '#DDD6FE', marginTop: 2 }}>Mini-novelas · {histDone.length}/{HISTORIAS.length}</div></div>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ler <Ic e="→" /></span>
-                </div>
-              )}
-              <div onClick={compartilharIndicacao} style={{ background: 'linear-gradient(135deg, #F97362, #D8432A)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 26 }}>🎁</div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Convide um amigo</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Ele ganha +2 dias, você ganha 100 🪙</div></div>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#B23415', background: '#fff', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
-              </div>
-              {!lembretesAtivos && (
-                <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 14, padding: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="🔔" s={20} c="#fff" /></div>
-                  <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Um aviso pra não quebrar a sequência</div></div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
-                </div>
-              )}
+          {/* EXPLORAR — sempre visível. O aluno vê tudo ao entrar; o herói acima dá a direção. */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '6px 2px 10px', display: 'flex', alignItems: 'center', gap: 6 }}><Ic e="🧭" s={13} c="var(--color-text-secondary)" /> Explorar</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
+            {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
+            {cardExplorar('#FAEEDA', '🤖', '#B45309', 'Professor IA', 'Tira-dúvidas 24h', () => setTab('ai'))}
+            {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
+            {cardExplorar('#EDE9FE', '🎤', '#6A5ACD', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
+            {cardExplorar('#FEF3E2', '🎧', '#B45309', 'Listening', 'Ouça e entenda', () => setTab('listening'))}
+            {cardExplorar('#FDECEC', '📝', '#C0392B', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
+            {cardExplorar('#EAF1FC', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
+          </div>
+          <div onClick={() => { setTab('liga'); carregarLiga() }} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <IcBadge e="🏆" color="#103D77" onDark box={42} size={22} />
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 11.5, color: '#B5D4F4', marginTop: 2 }}>Dispute o topo do ranking</div></div>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ver <Ic e="→" /></span>
+          </div>
+          {histDone.length < HISTORIAS.length && (
+            <div onClick={() => { setHistSel(null); setTab('historias') }} style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <IcBadge e="📖" color="#4C1D95" onDark box={42} size={22} />
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Histórias</div><div style={{ fontSize: 11.5, color: '#DDD6FE', marginTop: 2 }}>Mini-novelas · {histDone.length}/{HISTORIAS.length}</div></div>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ler <Ic e="→" /></span>
+            </div>
+          )}
+          <div onClick={compartilharIndicacao} style={{ background: 'linear-gradient(135deg, #F97362, #D8432A)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <IcBadge e="🎁" color="#D8432A" onDark box={42} size={22} />
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Convide um amigo</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Ele ganha +2 dias, você ganha 100 🪙</div></div>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#B23415', background: '#fff', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
+          </div>
+          {!lembretesAtivos && (
+            <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 14, padding: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <IcBadge e="🔔" color="#15803D" onDark box={42} size={22} />
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Um aviso pra não quebrar a sequência</div></div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
             </div>
           )}
 
