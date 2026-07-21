@@ -84,10 +84,15 @@ as $$
   where user_id = p_user and dia = (now() at time zone 'America/Sao_Paulo')::date;
 $$;
 
--- Só o servidor pode chamar as funções (revoga do cliente).
-revoke execute on function incrementa_uso(uuid, text, int) from anon, authenticated;
-revoke execute on function incrementa_ip(text, int) from anon, authenticated;
-revoke execute on function registra_custo(uuid, numeric) from anon, authenticated;
+-- Só o servidor pode chamar as funções. ATENÇÃO: no Postgres, CREATE FUNCTION
+-- concede EXECUTE a PUBLIC por padrão, e 'authenticated' herda de PUBLIC —
+-- por isso é obrigatório revogar de PUBLIC também, não só de anon/authenticated.
+revoke all on function incrementa_uso(uuid, text, int) from public, anon, authenticated;
+revoke all on function incrementa_ip(text, int) from public, anon, authenticated;
+revoke all on function registra_custo(uuid, numeric) from public, anon, authenticated;
+grant execute on function incrementa_uso(uuid, text, int) to service_role;
+grant execute on function incrementa_ip(text, int) to service_role;
+grant execute on function registra_custo(uuid, numeric) to service_role;
 
 -- 5) BLINDAGEM: is_premium (progresso) e trial_expira/plano (profiles)
 --    só mudam via servidor (service_role). O app pode continuar fazendo upsert
