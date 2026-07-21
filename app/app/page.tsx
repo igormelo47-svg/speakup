@@ -2231,13 +2231,15 @@ export default function AppPage() {
   // Home guiada (nova): experiência com UMA ação diária ("treino de hoje").
   // Preview por URL (?home=nova / ?home=antiga) que fica salvo no aparelho.
   // Enquanto false por padrão, só quem tem o link vê — o resto segue na home atual.
-  const [homeGuiada, setHomeGuiada] = useState(false)
+  // Home guiada é o PADRÃO (aprovado 21/07). Quem quiser a antiga usa ?home=antiga
+  // (fica salvo no aparelho). useState(true) evita piscar a home antiga na hidratação.
+  const [homeGuiada, setHomeGuiada] = useState(true)
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search).get('home')
       if (q === 'nova') { localStorage.setItem('speakup_home_guiada', '1'); setHomeGuiada(true) }
       else if (q === 'antiga') { localStorage.setItem('speakup_home_guiada', '0'); setHomeGuiada(false) }
-      else setHomeGuiada(localStorage.getItem('speakup_home_guiada') === '1')
+      else setHomeGuiada(localStorage.getItem('speakup_home_guiada') !== '0')
     } catch (e) {}
   }, [])
   const [xpFloat, setXpFloat] = useState(0)
