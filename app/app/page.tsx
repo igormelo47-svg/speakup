@@ -3676,17 +3676,24 @@ export default function AppPage() {
   }
 
   // ---- HOME GUIADA (nova experiência: UMA ação diária) ----
-  // Passo 1 do "treino de hoje": se há erro/revisão pendente, começa por aí
-  // (fixar o que falhou); senão, vai direto pra próxima lição do nível.
+  // "Treino de hoje": retoma a trilha na lição ONDE O ALUNO PAROU (a próxima não
+  // concluída do nível) — é a espinha do aprendizado. Só quando o nível está todo
+  // feito é que cai na revisão (fixar) ou volta pra trilha escolher o próximo nível.
+  // Obs.: a revisão de erros vira aquecimento DENTRO do treino encadeado (Etapa B),
+  // não a porta de entrada.
   const iniciarTreino = () => {
     try { track('treino_iniciar') } catch (e) {}
+    const arr = lessons[level] || []
+    const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title))
+    if (idx >= 0) {
+      setLessonIdx(idx); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null)
+      licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons'); return
+    }
+    // Nível concluído: fixa o que falhou, ou abre a trilha pra escolher o próximo.
     if (errosQs.length > 0 || revisoesDevidas.length > 0) {
       setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao'); return
     }
-    const arr = lessons[level] || []
-    const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title))
-    setLessonIdx(Math.max(0, idx)); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null)
-    licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons')
+    setView('levels'); setTab('lessons')
   }
 
   const cardExplorar = (bg: string, icon: string, cor: string, titulo: string, sub: string, onClick: () => void) => (
