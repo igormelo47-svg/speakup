@@ -2715,7 +2715,10 @@ export default function AppPage() {
       setPronHeard(lastText)
     }
     rec.onend = () => { setPronListening(false); if (lastText) avaliarPron(target, lastText) }
-    rec.onerror = () => setPronListening(false)
+    rec.onerror = (e: any) => {
+      setPronListening(false)
+      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') alert('Preciso da permissão do microfone. 🎤\n\nToque no cadeado 🔒 ao lado do endereço (ou em Ajustes do aparelho → Vonai → Microfone) e permita, depois tente de novo.')
+    }
     recognitionRef.current = rec
     setPronListening(true)
     rec.start()
@@ -2966,7 +2969,11 @@ export default function AppPage() {
   async function compartilharIndicacao() {
     const texto = `Estou aprendendo inglês no Vonai, um professor de IA feito para brasileiros 🇧🇷 Entra pelo meu link e a gente ganha bônus Premium: ${linkIndicacao}`
     try { track('indicacao_compartilhada') } catch (e) {}
-    try { if (navigator.share) { await navigator.share({ text: texto }) } else { await navigator.clipboard.writeText(texto); alert('Link copiado! Manda para os amigos. 📋') } } catch (e) {}
+    try { if (navigator.share) { await navigator.share({ text: texto }) } else { await navigator.clipboard.writeText(texto); alert('Link copiado! Manda para os amigos. 📋') } }
+    catch (e: any) {
+      // Cancelou o compartilhamento = ok; qualquer outra falha mostra o link (o botão nunca fica mudo).
+      if (!(e && e.name === 'AbortError')) { try { prompt('Copie seu link de convite:', linkIndicacao) } catch (e2) {} }
+    }
   }
 
   // ---- Pedido de avaliação na loja: só no "momento feliz" (5 lições ou 3 dias de fogo),
