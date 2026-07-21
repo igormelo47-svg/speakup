@@ -5602,9 +5602,9 @@ export default function AppPage() {
 
       </div>
 
-      {/* Barra mais alta e itens centralizados: padding vertical simétrico (8px) e, no iPhone,
-          o excedente do safe-area entra só como folga extra embaixo (zona do traço do iOS). */}
-      <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', padding: '8px 4px calc(8px + max(0px, env(safe-area-inset-bottom) - 16px))', flexShrink: 0 }}>
+      {/* Barra com itens no MEIO: o excedente do safe-area do iPhone é dividido meio a meio
+          entre cima e baixo, então os ícones ficam no centro exato do retângulo azul. */}
+      <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', padding: 'calc(8px + max(0px, env(safe-area-inset-bottom) - 16px) / 2) 4px calc(8px + max(0px, env(safe-area-inset-bottom) - 16px) / 2)', flexShrink: 0 }}>
         {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '🦜', 'Professor']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
