@@ -3980,7 +3980,10 @@ export default function AppPage() {
             <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Convide um amigo</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Ele ganha +2 dias, você ganha 100 🪙</div></div>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: '#B23415', background: '#fff', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
           </div>
-          {!lembretesAtivos && (
+          {/* Lembretes usam web push (serviceWorker/PushManager), que NÃO existe no app
+              iOS nativo (Capacitor). Esconde lá pra não mostrar o botão que só dá erro;
+              no Android/PWA/navegador continua funcionando. (iOS: pendente notificação nativa.) */}
+          {!isIOSNative && !lembretesAtivos && (
             <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 14, padding: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
               <IcBadge e="🔔" color="#15803D" onDark box={42} size={22} />
               <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Um aviso pra não quebrar a sequência</div></div>
@@ -4346,14 +4349,14 @@ export default function AppPage() {
                 <div style={{ fontSize: 11, color: blue }}>Métricas e conquistas</div>
               </div>
             </div>
-            {!lembretesAtivos && (
+            {!isIOSNative && !lembretesAtivos && (
               <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 12, padding: 16, marginTop: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="🔔" s={22} c="#fff" /></div>
                 <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Receba um aviso pra não quebrar sua sequência</div></div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
               </div>
             )}
-            {lembretesAtivos && (
+            {!isIOSNative && lembretesAtivos && (
               <div style={{ background: '#E3F3EA', borderRadius: 12, padding: '12px 14px', marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Ic e="🔔" s={20} c="#16A34A" />
                 <div style={{ flex: 1, fontSize: 13, color: '#15803D', fontWeight: 600 }}>Lembretes diários ativados <Ic e="✓" /></div>
