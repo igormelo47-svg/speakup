@@ -2227,6 +2227,19 @@ export default function AppPage() {
   const [bauDia, setBauDia] = useState('')
   const [bauReward, setBauReward] = useState<number | null>(null)
   const [lojaModal, setLojaModal] = useState(false)
+  // Home guiada (nova): experiência com UMA ação diária ("treino de hoje").
+  // Preview por URL (?home=nova / ?home=antiga) que fica salvo no aparelho.
+  // Enquanto false por padrão, só quem tem o link vê — o resto segue na home atual.
+  const [homeGuiada, setHomeGuiada] = useState(false)
+  const [explorarAberto, setExplorarAberto] = useState(false)
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('home')
+      if (q === 'nova') { localStorage.setItem('speakup_home_guiada', '1'); setHomeGuiada(true) }
+      else if (q === 'antiga') { localStorage.setItem('speakup_home_guiada', '0'); setHomeGuiada(false) }
+      else setHomeGuiada(localStorage.getItem('speakup_home_guiada') === '1')
+    } catch (e) {}
+  }, [])
   const [xpFloat, setXpFloat] = useState(0)
   const [tempoMin, setTempoMin] = useState(0)
   const [missoes, setMissoes] = useState<{ week: number; claimed: string[] }>({ week: 0, claimed: [] })
@@ -3662,6 +3675,203 @@ export default function AppPage() {
     )
   }
 
+  // ---- HOME GUIADA (nova experiência: UMA ação diária) ----
+  // Passo 1 do "treino de hoje": se há erro/revisão pendente, começa por aí
+  // (fixar o que falhou); senão, vai direto pra próxima lição do nível.
+  const iniciarTreino = () => {
+    try { track('treino_iniciar') } catch (e) {}
+    if (errosQs.length > 0 || revisoesDevidas.length > 0) {
+      setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao'); return
+    }
+    const arr = lessons[level] || []
+    const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title))
+    setLessonIdx(Math.max(0, idx)); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null)
+    licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons')
+  }
+
+  const cardExplorar = (bg: string, icon: string, cor: string, titulo: string, sub: string, onClick: () => void) => (
+    <div onClick={onClick} style={{ background: bg, borderRadius: 12, padding: 14, cursor: 'pointer' }}>
+      <IcBadge e={icon} color={cor} style={{ marginBottom: 8 }} />
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{titulo}</div>
+      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{sub}</div>
+    </div>
+  )
+
+  function renderHomeGuiada() {
+    const fraco = (perfilIa.topicos_fracos && perfilIa.topicos_fracos[perfilIa.topicos_fracos.length - 1]) || ''
+    const temRevisao = errosQs.length > 0 || revisoesDevidas.length > 0
+    const proxL = (lessons[level] || []).find(l => !licoesConcluidas.includes(l.title))
+    const treinouHoje = !isNovo && licoesHoje > 0 && simulacoesHoje > 0
+    const xpHoje = Math.max(0, xp - xpInicioDia)
+    const nv = nivelDeXp(xp)
+    const passos = [
+      temRevisao ? { e: '🔁', t: 'Revisar seu erro' } : { e: '📖', t: proxL ? 'Aprender' : 'Revisar' },
+      { e: '🎙️', t: 'Praticar falando' },
+      { e: '🎯', t: 'Ver resultado' },
+    ]
+    let msg = ''
+    if (isNovo) msg = `Oi, ${userName}! Eu sou o Vô, seu professor. Preparei seu primeiro treino — 5 minutinhos e começamos juntos. 👋`
+    else if (treinouHoje) msg = `Boa, ${userName}! Você já fez seu treino de hoje. 🎉 Quer treinar mais um pouco ou prefere explorar?`
+    else if (fraco) msg = `${saudacao}, ${userName}. Preparei seu treino de hoje reforçando "${fraco}", que te deu trabalho da última vez.`
+    else if (proxL) msg = `${saudacao}, ${userName}. Seu treino de hoje está pronto: "${proxL.title}" + uma conversa rápida. Bora?`
+    else msg = `${saudacao}, ${userName}. Seu treino de hoje está pronto — 5 minutos e você mantém o ritmo. 🔥`
+
+    return (
+      <div>
+        {/* HEADER compacto */}
+        <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
+              <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 7, padding: '1px 6px', marginLeft: 2 }}>ai</span></span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+              <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(245,201,122,0.18)', border: '1px solid rgba(245,201,122,0.5)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}><span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
+              <button onClick={alternarTema} aria-label="Alternar modo escuro" title="Modo claro/escuro" style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 9px', color: '#85B7EB', fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>{temaEscuro ? '☀️' : '🌙'}</button>
+              <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 8, padding: '6px 11px', color: '#85B7EB', fontSize: 12, cursor: 'pointer' }}>Sair</button>
+            </div>
+          </div>
+          <div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 12 }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div>
+          {/* Tira compacta: streak · meta · nível (a gamificação continua, sem dominar a tela) */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1, background: 'rgba(245,166,35,0.16)', borderRadius: 12, padding: '9px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>🔥 {streak}</div>
+              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 1 }}>{streak === 1 ? 'dia' : 'dias'} seguidos</div>
+            </div>
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '9px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: xpHoje >= metaDiaria ? '#4ADE80' : '#fff' }}>🎯 {xpHoje}/{metaDiaria}</div>
+              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 1 }}>meta de hoje</div>
+            </div>
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '9px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>⭐ {nv.nivel}</div>
+              <div style={{ fontSize: 9.5, color: '#BCD6F2', marginTop: 1 }}>nível · {level}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: 16 }}>
+          {/* HERO — o coração da home: UMA mensagem, UMA ação */}
+          <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 22, padding: 18, marginBottom: 16, boxShadow: '0 8px 22px rgba(75,63,191,0.32)', animation: 'su_risefade 0.5s ease both' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={42} prof humor="feliz" /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: '#D6CFFF', letterSpacing: 0.5 }}>VÔ · SEU PROFESSOR</span>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
+                  <span style={{ fontSize: 10, color: '#B9AFF5' }}>online</span>
+                </div>
+                <div style={{ fontSize: 14.5, lineHeight: 1.5, color: '#fff', fontWeight: 500 }}>{msg}</div>
+              </div>
+            </div>
+
+            {!treinouHoje ? (<>
+              {/* Prévia do que o treino contém — reduz a incerteza sem pedir decisão */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                {passos.map((p, i) => (
+                  <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.13)', borderRadius: 12, padding: '8px 4px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 17 }}>{p.e}</div>
+                    <div style={{ fontSize: 9.5, color: '#EBE8FF', marginTop: 3, fontWeight: 600, lineHeight: 1.2 }}>{p.t}</div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={iniciarTreino} style={{ width: '100%', padding: '15px 16px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 16, fontSize: 15.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(0,0,0,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>▶️</span> {isNovo ? 'Começar meu primeiro treino' : 'Começar meu treino de hoje'} <span style={{ background: '#EEEDFE', color: '#6A5ACD', fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 20 }}>5 min</span>
+              </button>
+            </>) : (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={iniciarTreino} style={{ flex: 1, padding: '13px 14px', background: '#fff', color: '#4B3FBF', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>➕ Treinar mais</button>
+                <button onClick={() => setExplorarAberto(true)} style={{ flex: 1, padding: '13px 14px', background: 'rgba(255,255,255,0.16)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>🧭 Explorar</button>
+              </div>
+            )}
+          </div>
+
+          {/* Convite grátis do trial / upsell — mantido, discreto */}
+          {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
+            const horas = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
+            const urgente = horas <= 24
+            const quando = horas <= 24 ? `Acaba em ${horas}h` : `Acaba em ${Math.ceil(horas / 24)} dias`
+            return (
+              <div onClick={() => setTab('plans')} style={{ background: urgente ? 'linear-gradient(135deg, #C0392B, #E24B4A)' : 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <IcBadge e={urgente ? '⏰' : '⭐'} color={urgente ? '#E24B4A' : gold} onDark box={42} size={22} />
+                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Assine e não perca seu progresso</div></div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
+              </div>
+            )
+          })()}
+          {!isPremium && (
+            <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <IcBadge e="⭐" color={gold} onDark box={42} size={22} />
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Seja Premium <Ic e="✨" /></div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$29,90 <Ic e="→" /></div>
+            </div>
+          )}
+
+          {/* Baú do dia — recompensa rápida, fica logo abaixo do treino */}
+          {bauDia !== hojeStr && (
+            <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.32)' }}>
+              <div style={{ fontSize: 30, animation: 'su_bob 1.6s ease-in-out infinite' }}>🎁</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque e ganhe moedas 🪙</div></div>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
+            </div>
+          )}
+
+          {/* EXPLORAR — tudo o mais, recolhido. Quem quer autonomia, expande. */}
+          <button onClick={() => setExplorarAberto(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: '13px 15px', cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>🧭 Explorar tudo</span>
+            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>Lições, Simulador, Liga, Histórias… <span style={{ transform: explorarAberto ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: 11 }}>▾</span></span>
+          </button>
+
+          {explorarAberto && (
+            <div style={{ marginTop: 12, animation: 'su_risefade 0.35s ease both' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
+                {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
+                {cardExplorar('#FAEEDA', '🤖', '#B45309', 'Professor IA', 'Tira-dúvidas 24h', () => setTab('ai'))}
+                {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
+                {cardExplorar('#EDE9FE', '🎤', '#6A5ACD', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
+                {cardExplorar('#FEF3E2', '🎧', '#B45309', 'Listening', 'Ouça e entenda', () => setTab('listening'))}
+                {cardExplorar('#FDECEC', '📝', '#C0392B', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
+                {cardExplorar('#EAF1FC', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
+              </div>
+              <div onClick={() => { setTab('liga'); carregarLiga() }} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 26 }}>🏆</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 11.5, color: '#B5D4F4', marginTop: 2 }}>Dispute o topo do ranking</div></div>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ver <Ic e="→" /></span>
+              </div>
+              {histDone.length < HISTORIAS.length && (
+                <div onClick={() => { setHistSel(null); setTab('historias') }} style={{ background: 'linear-gradient(135deg, #7C3AED, #4C1D95)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ fontSize: 26 }}>📖</div>
+                  <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Histórias</div><div style={{ fontSize: 11.5, color: '#DDD6FE', marginTop: 2 }}>Mini-novelas · {histDone.length}/{HISTORIAS.length}</div></div>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ler <Ic e="→" /></span>
+                </div>
+              )}
+              <div onClick={compartilharIndicacao} style={{ background: 'linear-gradient(135deg, #F97362, #D8432A)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 26 }}>🎁</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Convide um amigo</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Ele ganha +2 dias, você ganha 100 🪙</div></div>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#B23415', background: '#fff', padding: '4px 12px', borderRadius: 20 }}>Enviar</span>
+              </div>
+              {!lembretesAtivos && (
+                <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderRadius: 14, padding: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="🔔" s={20} c="#fff" /></div>
+                  <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Ativar lembretes diários</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>Um aviso pra não quebrar a sequência</div></div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', background: '#fff', padding: '5px 12px', borderRadius: 20, flexShrink: 0 }}>Ativar</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
+            <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Vonai · enviar feedback <Ic e="💬" /></span>
+            <div style={{ marginTop: 8 }}>
+              <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Excluir minha conta</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
     <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 0 40px rgba(0,0,0,0.10)' }}>
@@ -3721,7 +3931,8 @@ export default function AppPage() {
 
       <div key={tab} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0, animation: 'su_screen 0.28s ease' }}>
 
-      {tab === 'home' && (
+      {tab === 'home' && homeGuiada && renderHomeGuiada()}
+      {tab === 'home' && !homeGuiada && (
         <div>
           <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 26px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
