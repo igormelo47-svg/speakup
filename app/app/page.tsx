@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, type CSSProperties } from 'react'
+import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
@@ -662,7 +662,7 @@ const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem',
 const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#0EA5A5', work: '#4B3FBF', food: '#E8590C', home: '#B45309', verbs: '#7C3AED', feelings: '#DB2777', daily: '#0D9488', health: '#DC2626', tech: '#4F46E5', shopping: '#C026D3', weather: '#0284C7', family: '#EA580C', nature: '#16A34A', city: '#475569' }
 
 interface Msg { role: string; text: string }
-type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'traduzir' | 'ditado' | 'finish'
+type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'traduzir' | 'ditado' | 'finish' | 'fala' | 'sessaoFim'
 const nPal = (s: string) => (s || '').trim().split(/\s+/).filter(Boolean).length
 // Quebra um exemplo em pares (en,pt) limpos e alinhados. Se a frase for composta
 // ("Já comi. Não estou com fome."), separa em orações — mas só aproveita quando EN e PT
@@ -2295,6 +2295,14 @@ export default function AppPage() {
   const [pronScore, setPronScore] = useState<number | null>(null)
   const [pronTip, setPronTip] = useState('')
   const [pronLoadingTip, setPronLoadingTip] = useState(false)
+  // ----- Treino encadeado (Etapa B): aquecimento → lição → fala → resultado -----
+  // O professor conduz a sessão inteira; o aluno só avança. treinoAtivo liga o modo.
+  const [treinoAtivo, setTreinoAtivo] = useState(false)
+  const [falaIdx, setFalaIdx] = useState(0)
+  const [falaScores, setFalaScores] = useState<number[]>([])
+  const [falaDiaData, setFalaDiaData] = useState('')
+  const treinoAquecRef = useRef<{ acertos: number; total: number } | null>(null)
+  const treinoLicaoRef = useRef<string | null>(null)
   const [zapModal, setZapModal] = useState(false)
   const [provaQ, setProvaQ] = useState(0)
   const [provaSel, setProvaSel] = useState(-1)
@@ -2414,6 +2422,7 @@ export default function AppPage() {
     try { const s = localStorage.getItem('speakup_srs'); if (s) setSrsData(JSON.parse(s)) } catch (e) {}
     try { const pd = localStorage.getItem('speakup_prof_dia'); if (pd) setProfDiaData(pd) } catch (e) {}
     try { const sd = localStorage.getItem('speakup_sim_dia'); if (sd) setSimDiaData(sd) } catch (e) {}
+    try { const fd = localStorage.getItem('speakup_fala_dia'); if (fd) setFalaDiaData(fd) } catch (e) {}
     try { const b = localStorage.getItem('speakup_bau_dia'); if (b) setBauDia(b) } catch (e) {}
     try { const t = localStorage.getItem('speakup_tempo'); if (t) setTempoMin(parseInt(t) || 0) } catch (e) {}
     try { const m = localStorage.getItem('speakup_missoes'); if (m) setMissoes(JSON.parse(m)) } catch (e) {}
@@ -2845,6 +2854,32 @@ export default function AppPage() {
               supabase.from('progresso').upsert({ user_id: user.id, dias_ativos: [...dias, hojeStr].slice(-60), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
             }
           } catch (e) {}
+          // Domínio no servidor (o "cérebro" do professor sobrevive à troca de aparelho):
+          // SRS mescla pela maior caixa; vocabulário local vence; erros são unidos.
+          try {
+            if (prog.srs && typeof prog.srs === 'object') {
+              setSrsData(prev => {
+                const m: Record<string, { due: string; box: number }> = { ...prog.srs, ...prev }
+                for (const k of Object.keys(prog.srs)) { const s = prog.srs[k]; const l = prev[k]; if (l && s && (s.box || 0) > (l.box || 0)) m[k] = s }
+                try { localStorage.setItem('speakup_srs', JSON.stringify(m)) } catch (e) {}
+                return m
+              })
+            }
+            if (prog.vocab_srs && typeof prog.vocab_srs === 'object') {
+              setVocabSrs(prev => {
+                const m: Record<string, string> = { ...prog.vocab_srs, ...prev }
+                try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(m)) } catch (e) {}
+                return m
+              })
+            }
+            if (Array.isArray(prog.erros_qs)) {
+              const raw = localStorage.getItem('speakup_erros_qs')
+              const local: any[] = raw ? JSON.parse(raw) : []
+              const uniao = [...local]
+              for (const e2 of prog.erros_qs) if (e2 && e2.q && !uniao.some(x => x.q === e2.q)) uniao.push(e2)
+              localStorage.setItem('speakup_erros_qs', JSON.stringify(uniao.slice(-30)))
+            }
+          } catch (e) {}
           // Foto local do progresso para o modo offline (só o essencial).
           try { localStorage.setItem('speakup_prog_cache', JSON.stringify({ xp: dbXp, streak: prog.streak || 0, licoes_concluidas: prog.licoes_concluidas || [], moedas: prog.moedas || 0, streak_freezes: prog.streak_freezes || 0, perfil_ia: prog.perfil_ia || {}, is_premium: !!prog.is_premium, em_trial_cache: emTrial, whatsapp: prog.whatsapp || '' })) } catch (e) {}
           const weekNow = Math.floor(Date.now() / (7 * 86400000))
@@ -3103,6 +3138,7 @@ export default function AppPage() {
       const st = calcularStreakHoje()
       aplicarStreak(st)
       salvarProgresso(novoXp, novasLicoes, st)
+      if (treinoAtivo) treinoLicaoRef.current = titulo
       try { track('licao_concluida', { licao: titulo, nivel: level }) } catch (e) {}
       const monta = frasesMontaveis(lessons[level][lessonIdx].examples)
       const trad = frasesTraduzir(lessons[level][lessonIdx].examples)
@@ -3110,7 +3146,11 @@ export default function AppPage() {
       setDitIdx(0); setDitInput(''); setDitChecked(false)
       setTradIdx(0); setTradInput(''); setTradChecked(false)
       const dit = frasesDitado(lessons[level][lessonIdx].examples)
-      setView(monta.length ? 'build' : trad.length ? 'traduzir' : dit.length ? 'ditado' : 'finish')
+      if (monta.length) setView('build')
+      else if (trad.length) setView('traduzir')
+      else if (dit.length) setView('ditado')
+      else if (treinoAtivo) iniciarFala()
+      else setView('finish')
     } else { setQIdx(q => q + 1); setAnswered(false); setSelected(-1); setAjudaTxt(null) }
   }
 
@@ -3478,10 +3518,16 @@ export default function AppPage() {
   const filteredVocab = embaralharSemana(vocabModo === 'revisar' ? vocabBaseCat.filter(v => vocabSrs[v.en] !== 'sabe') : vocabBaseCat)
   const vocabDominadas = vocab.filter(v => vocabSrs[v.en] === 'sabe').length
   const vocabRevisar = vocab.length - vocabDominadas
-  const marcarVocab = (en: string, estado: string) => { try { localStorage.setItem('speakup_vocab_dia', hojeStr) } catch (e) {} ; setVocabDiaData(hojeStr); setVocabSrs(prev => { const next = { ...prev, [en]: estado }; try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(next)) } catch (e) {} ; return next }) }
+  const marcarVocab = (en: string, estado: string) => { try { localStorage.setItem('speakup_vocab_dia', hojeStr) } catch (e) {} ; setVocabDiaData(hojeStr); setVocabSrs(prev => { const next = { ...prev, [en]: estado }; try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(next)) } catch (e) {} ; salvarDominio({ vocab_srs: next }); return next }) }
   const vocabFeitoHoje = vocabDiaData === hojeStr
   const OBJETIVO_PADRAO = 'Conversar 30 minutos em inglês sem usar português'
   function salvarPerfil(novo: any) { setPerfilIa(novo); if (userId) supabase.from('progresso').upsert({ user_id: userId, perfil_ia: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {}) }
+  // Domínio no servidor: upsert SEPARADO (se as colunas de dominio_columns.sql ainda
+  // não existirem no banco, só esta gravação falha — XP/streak seguem intactos).
+  function salvarDominio(campos: Record<string, any>) {
+    if (!userId) return
+    supabase.from('progresso').upsert({ user_id: userId, ...campos, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+  }
   function registrarErro(topico: string) {
     const fracos = Array.from(new Set([...(perfilIa.topicos_fracos || []), topico])).slice(-12)
     salvarPerfil({ ...perfilIa, topicos_fracos: fracos, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO })
@@ -3501,6 +3547,7 @@ export default function AppPage() {
       const due = dataLocal(-SRS_INTERVALOS[box])
       const next = { ...prev, [titulo]: { box, due } }
       try { localStorage.setItem('speakup_srs', JSON.stringify(next)) } catch (e) {}
+      salvarDominio({ srs: next })
       return next
     })
   }
@@ -3515,6 +3562,7 @@ export default function AppPage() {
       else lista.push({ q: quest.q, opts: quest.opts, ans: quest.ans, exp: quest.exp, ctx: quest.ctx, licao, ok: 0 })
       lista = lista.slice(-30)
       localStorage.setItem('speakup_erros_qs', JSON.stringify(lista))
+      salvarDominio({ erros_qs: lista })
     } catch (e) {}
   }
   function resolverErroQ(qTexto: string, acertou: boolean) {
@@ -3526,6 +3574,7 @@ export default function AppPage() {
       if (acertou) { lista[ix].ok = (lista[ix].ok || 0) + 1; if (lista[ix].ok >= 2) lista.splice(ix, 1) }
       else lista[ix].ok = 0
       localStorage.setItem('speakup_erros_qs', JSON.stringify(lista))
+      salvarDominio({ erros_qs: lista })
     } catch (e) {}
   }
   const errosQs: any[] = (() => { try { const raw = localStorage.getItem('speakup_erros_qs'); return raw ? JSON.parse(raw) : [] } catch (e) { return [] } })()
@@ -3687,21 +3736,46 @@ export default function AppPage() {
   // "Treino de hoje": retoma a trilha na lição ONDE O ALUNO PAROU (a próxima não
   // concluída do nível) — é a espinha do aprendizado. Só quando o nível está todo
   // feito é que cai na revisão (fixar) ou volta pra trilha escolher o próximo nível.
-  // Obs.: a revisão de erros vira aquecimento DENTRO do treino encadeado (Etapa B),
-  // não a porta de entrada.
+  // Etapa B (sessão encadeada): aquecimento (erros/revisões devidas) → lição →
+  // prática falada → resultado. O aluno só avança; nada de navegar no meio.
+  const abrirLicaoTreino = (idx: number) => {
+    setLessonIdx(idx); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null)
+    licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons')
+  }
+  // Frases da lição que valem prática falada (curtas e limpas).
+  const frasesFala = paresLimpos(currentLesson?.examples || []).slice(0, 2)
+  const iniciarFala = () => {
+    if (!frasesFala.length) { setView('sessaoFim'); setTab('lessons'); return }
+    setFalaIdx(0); setFalaScores([]); setPronScore(null); setPronHeard(''); setPronTip('')
+    setView('fala'); setTab('lessons')
+  }
+  // Fala concluída conta como "praticou falando" no dia (sem gastar cota de simulação).
+  const finalizarFala = () => {
+    try { localStorage.setItem('speakup_fala_dia', hojeStr) } catch (e) {}
+    setFalaDiaData(hojeStr)
+    try { track('treino_fala_concluida') } catch (e) {}
+    setView('sessaoFim')
+  }
+  const encerrarTreino = () => { setTreinoAtivo(false); treinoAquecRef.current = null; treinoLicaoRef.current = null }
   const iniciarTreino = () => {
     try { track('treino_iniciar') } catch (e) {}
+    setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null
     const arr = lessons[level] || []
     const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title))
-    if (idx >= 0) {
-      setLessonIdx(idx); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null)
-      licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons'); return
-    }
-    // Nível concluído: fixa o que falhou, ou abre a trilha pra escolher o próximo.
+    // Aquecimento: erros reais e revisões vencidas abrem a sessão (retrieval antes do novo).
     if (errosQs.length > 0 || revisoesDevidas.length > 0) {
       setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao'); return
     }
-    setView('levels'); setTab('lessons')
+    if (idx >= 0) { abrirLicaoTreino(idx); return }
+    encerrarTreino(); setView('levels'); setTab('lessons')
+  }
+  // Depois do aquecimento: segue para a lição pendente ou fecha a sessão.
+  const continuarTreinoAposAquecimento = () => {
+    treinoAquecRef.current = { acertos: revAcertos, total: revisaoQuestions.length }
+    const arr = lessons[level] || []
+    const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title))
+    if (idx >= 0) { abrirLicaoTreino(idx); return }
+    setView('sessaoFim'); setTab('lessons')
   }
 
   const cardExplorar = (bg: string, icon: string, cor: string, titulo: string, sub: string, onClick: () => void) => (
@@ -3716,7 +3790,7 @@ export default function AppPage() {
     const fraco = (perfilIa.topicos_fracos && perfilIa.topicos_fracos[perfilIa.topicos_fracos.length - 1]) || ''
     const temRevisao = errosQs.length > 0 || revisoesDevidas.length > 0
     const proxL = (lessons[level] || []).find(l => !licoesConcluidas.includes(l.title))
-    const treinouHoje = !isNovo && licoesHoje > 0 && simulacoesHoje > 0
+    const treinouHoje = !isNovo && licoesHoje > 0 && (simulacoesHoje > 0 || falaDiaData === hojeStr)
     const xpHoje = Math.max(0, xp - xpInicioDia)
     const passos = [
       temRevisao ? { e: '🔁', t: 'Revisar seu erro' } : { e: '📖', t: proxL ? 'Aprender' : 'Revisar' },
@@ -3881,6 +3955,27 @@ export default function AppPage() {
                       <div style={{ width: 34, height: 34, borderRadius: '50%', background: t.feito ? '#16A34A' : 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.feito ? <Ic e="✓" s={17} c="#fff" /> : <Ic e={t.icon} s={18} c="#fff" />}</div>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', lineHeight: 1.2, textDecoration: t.feito ? 'line-through' : 'none', opacity: t.feito ? 0.75 : 1 }}>{t.titulo}</div>
                       <div style={{ fontSize: 10.5, color: '#9DBBDD', lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{t.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Sua evolução (evidência): números de DOMÍNIO real, não de cliques —
+              palavras que o aluno marcou que sabe e lições que já subiram de caixa no SRS. */}
+          {(() => {
+            const licoesFixadas = Object.values(srsData).filter(d => d.box >= 2).length
+            const diasAtivos = Object.keys(hist).filter(d => (hist[d] || 0) > 0).length
+            if (vocabDominadas === 0 && licoesFixadas === 0 && diasAtivos < 2) return null
+            return (
+              <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 12 }}><Ic e="📈" c={green} /> Sua evolução</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[[String(vocabDominadas), 'palavras dominadas', greenLight, green], [String(licoesFixadas), 'lições na memória', purpleLight, purple], [String(diasAtivos), diasAtivos === 1 ? 'dia de estudo' : 'dias de estudo', blueLight, blue]].map(([n, t, bg, cor], i) => (
+                    <div key={i} style={{ flex: 1, background: bg as string, borderRadius: 12, padding: '12px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 21, fontWeight: 800, color: cor as string, lineHeight: 1 }}>{n}</div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-secondary)', marginTop: 4, lineHeight: 1.25 }}>{t}</div>
                     </div>
                   ))}
                 </div>
@@ -4926,9 +5021,9 @@ export default function AppPage() {
       {tab === 'revisao' && (
         <div>
           <div style={{ background: 'linear-gradient(135deg, #16A34A, #0F7A38)', padding: '20px 16px 24px' }}>
-            <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🧠" color="#0F7A38" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Revisão Inteligente</div></div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>Relembre o que você aprendeu, na hora certa de fixar</div>
+            <button onClick={() => { encerrarTreino(); setTab('home') }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12 }}><Ic e="←" /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><IcBadge e="🧠" color="#0F7A38" onDark box={36} /><div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>{treinoAtivo ? 'Aquecimento' : 'Revisão Inteligente'}</div></div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>{treinoAtivo ? 'Passo 1 do treino: relembrar o que você já viu' : 'Relembre o que você aprendeu, na hora certa de fixar'}</div>
           </div>
           <div style={{ padding: 16 }}>
             {revisaoQuestions.length === 0 ? (
@@ -4963,7 +5058,11 @@ export default function AppPage() {
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Você acertou {revAcertos}/{revisaoQuestions.length}</div>
                 <div style={{ fontSize: 16, color: '#16A34A', fontWeight: 700, marginTop: 6 }}>+{revAcertos * 3} XP <Ic e="🧠" /></div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 14, lineHeight: 1.5, maxWidth: 300, margin: '14px auto 0' }}>{revAcertos >= revisaoQuestions.length * 0.6 ? <>Boa! Essas lições vão voltar mais pra frente, mais espaçadas. <Ic e="🌟" /></> : 'Sem problema — vamos revisar isso de novo em breve para fixar de vez.'}</div>
-                <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
+                {treinoAtivo ? (
+                  <button onClick={continuarTreinoAposAquecimento} style={{ width: '100%', padding: 15, marginTop: 24, background: '#16A34A', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Continuar treino: aprender <Ic e="→" /></button>
+                ) : (
+                  <button onClick={() => setTab('home')} style={{ width: '100%', padding: 15, marginTop: 24, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Voltar ao início</button>
+                )}
               </div>
             )}
           </div>
@@ -5453,7 +5552,7 @@ export default function AppPage() {
                   {!buildChecked ? (
                     <button disabled={!cheio} onClick={() => { setBuildChecked(true); if (answer === toks.join(' ')) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: cheio ? '#6A5ACD' : 'var(--color-background-secondary)', color: cheio ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: cheio ? 'pointer' : 'default' }}>Verificar</button>
                   ) : (
-                    <button onClick={() => { if (!ultima) { setBuildIdx(buildIdx + 1); setBuildPicked([]); setBuildChecked(false) } else { const trad = frasesTraduzir(currentLesson?.examples || []); const dit = frasesDitado(currentLesson?.examples || []); if (trad.length) { setTradIdx(0); setTradInput(''); setTradChecked(false); setView('traduzir') } else if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima frase <Ic e="→" /></>}</button>
+                    <button onClick={() => { if (!ultima) { setBuildIdx(buildIdx + 1); setBuildPicked([]); setBuildChecked(false) } else { const trad = frasesTraduzir(currentLesson?.examples || []); const dit = frasesDitado(currentLesson?.examples || []); if (trad.length) { setTradIdx(0); setTradInput(''); setTradChecked(false); setView('traduzir') } else if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else if (treinoAtivo) iniciarFala(); else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima frase <Ic e="→" /></>}</button>
                   )}
                 </div>
               )
@@ -5486,7 +5585,7 @@ export default function AppPage() {
                   {!tradChecked ? (
                     <button disabled={!tradInput.trim()} onClick={() => { setTradChecked(true); if (normT(tradInput) === normT(alvo)) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: tradInput.trim() ? '#C2610C' : 'var(--color-background-secondary)', color: tradInput.trim() ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: tradInput.trim() ? 'pointer' : 'default' }}>Verificar</button>
                   ) : (
-                    <button onClick={() => { if (!ultima) { setTradIdx(tradIdx + 1); setTradInput(''); setTradChecked(false) } else { const dit = frasesDitado(currentLesson?.examples || []); if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima <Ic e="→" /></>}</button>
+                    <button onClick={() => { if (!ultima) { setTradIdx(tradIdx + 1); setTradInput(''); setTradChecked(false) } else { const dit = frasesDitado(currentLesson?.examples || []); if (dit.length) { setDitIdx(0); setDitInput(''); setDitChecked(false); setView('ditado') } else if (treinoAtivo) iniciarFala(); else setView('finish') } }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Continuar <Ic e="→" /></> : <>Próxima <Ic e="→" /></>}</button>
                   )}
                 </div>
               )
@@ -5522,7 +5621,7 @@ export default function AppPage() {
                   {!ditChecked ? (
                     <button disabled={!ditInput.trim()} onClick={() => { setDitChecked(true); if (normD(ditInput) === normD(alvo)) { setXp(x => x + 5); setXpFloat(5); setTimeout(() => setXpFloat(0), 850); tocarSom('acerto') } else tocarSom('erro') }} style={{ width: '100%', padding: 14, background: ditInput.trim() ? '#0D9488' : 'var(--color-background-secondary)', color: ditInput.trim() ? '#fff' : 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: ditInput.trim() ? 'pointer' : 'default' }}>Verificar</button>
                   ) : (
-                    <button onClick={() => { if (!ultima) { setDitIdx(ditIdx + 1); setDitInput(''); setDitChecked(false) } else setView('finish') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Concluir lição <Ic e="🎯" /></> : <>Próxima <Ic e="→" /></>}</button>
+                    <button onClick={() => { if (!ultima) { setDitIdx(ditIdx + 1); setDitInput(''); setDitChecked(false) } else if (treinoAtivo) iniciarFala(); else setView('finish') }} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{ultima ? <>Concluir lição <Ic e="🎯" /></> : <>Próxima <Ic e="→" /></>}</button>
                   )}
                 </div>
               )
@@ -5573,6 +5672,108 @@ export default function AppPage() {
                 </div>
               </div>
             )}
+
+            {/* Passo de FALA do treino encadeado: o aluno lê em voz alta as frases da
+                lição que acabou de aprender — produção oral fecha o ciclo aprender→falar. */}
+            {view === 'fala' && (() => {
+              const frase = frasesFala[falaIdx]
+              if (!frase) { return null }
+              const ultima = falaIdx >= frasesFala.length - 1
+              const avancar = () => {
+                if (pronListening) gravarPron(frase.en)
+                setFalaScores(s => [...s, pronScore ?? -1])
+                setPronScore(null); setPronHeard(''); setPronTip('')
+                if (!ultima) setFalaIdx(falaIdx + 1)
+                else finalizarFala()
+              }
+              return (
+                <div style={{ animation: 'su_fade 0.3s ease' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, color: purple, fontWeight: 700, background: purpleLight, padding: '4px 12px', borderRadius: 20 }}><Ic e="🎙️" /> Agora fale você</span>
+                    <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Frase {falaIdx + 1} de {frasesFala.length}</span>
+                  </div>
+                  <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 16, overflow: 'hidden' }}><div style={{ background: purple, height: '100%', width: `${falaIdx / frasesFala.length * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Ouça a frase da lição e leia em voz alta. O Vô avalia sua pronúncia. 👂</div>
+                  <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 18, marginBottom: 14, textAlign: 'center' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{frase.en}</div>
+                    <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6 }}>{frase.pt}</div>
+                    <button onClick={() => falarNavegador(frase.en, 0.85)} style={{ marginTop: 12, background: purpleLight, color: purple, border: 'none', borderRadius: 20, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}><Ic e="🔊" /> Ouvir</button>
+                  </div>
+                  <button onClick={() => gravarPron(frase.en)} style={{ width: '100%', padding: 15, background: pronListening ? '#C0392B' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10, animation: pronListening ? 'su_pulse 1.2s infinite' : undefined }}>{pronListening ? <><Ic e="⏹️" /> Parar — estou ouvindo…</> : <><Ic e="🎙️" /> Falar a frase</>}</button>
+                  {pronHeard && <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 10, textAlign: 'center', fontStyle: 'italic' }}>Ouvi: “{pronHeard}”</div>}
+                  {pronScore !== null && (
+                    <div style={{ background: pronScore >= 80 ? greenLight : pronScore >= 50 ? '#FEF3E2' : '#FBEAE8', borderRadius: 12, padding: 14, marginBottom: 10, textAlign: 'center' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: pronScore >= 80 ? '#16A34A' : pronScore >= 50 ? '#E08A1E' : '#C0392B' }}>{pronScore}%</div>
+                      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>{pronScore >= 90 ? 'Perfeito! Pronúncia certeira! 🎉' : pronScore >= 70 ? 'Muito bom! Quase lá. 👍' : 'Boa tentativa — ouça de novo e repita. 💪'}</div>
+                      {pronTip && <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 8, lineHeight: 1.45, textAlign: 'left' }}><Ic e="💡" /> {pronTip}</div>}
+                    </div>
+                  )}
+                  {pronScore !== null ? (
+                    <button onClick={avancar} style={{ width: '100%', padding: 15, background: '#16A34A', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{ultima ? <>Ver meu resultado <Ic e="🎯" /></> : <>Próxima frase <Ic e="→" /></>}</button>
+                  ) : (
+                    <button onClick={avancar} style={{ width: '100%', padding: 12, background: 'none', color: 'var(--color-text-secondary)', border: 'none', borderRadius: 12, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Pular esta frase</button>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* RESULTADO DA SESSÃO (evidência): o aluno vê o que fez e o que já domina. */}
+            {view === 'sessaoFim' && (() => {
+              const aquec = treinoAquecRef.current
+              const falaValidos = falaScores.filter(s => s >= 0)
+              const falaMedia = falaValidos.length ? Math.round(falaValidos.reduce((a, b) => a + b, 0) / falaValidos.length) : null
+              const licoesFixadas = Object.values(srsData).filter(d => d.box >= 2).length
+              const xpH = Math.max(0, xp - xpInicioDia)
+              const licaoFeita = treinoLicaoRef.current
+              const linha = (e: string, titulo: string, valor: ReactNode) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '0.5px solid var(--color-border-tertiary)' }}>
+                  <span style={{ fontSize: 18 }}><Ic e={e} /></span>
+                  <span style={{ flex: 1, fontSize: 13.5, color: 'var(--color-text-primary)', textAlign: 'left' }}>{titulo}</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{valor}</span>
+                </div>
+              )
+              return (
+                <div style={{ textAlign: 'center', padding: '24px 4px', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                    {['#F5A623', '#534AB7', '#16A34A', '#2E72D6', '#E24B4A', '#DAA520', '#16A34A', '#6A5ACD'].map((cor, i) => (
+                      <div key={i} style={{ position: 'absolute', top: 0, left: `${8 + i * 11}%`, width: 9, height: 9, borderRadius: i % 2 ? '50%' : 2, background: cor, animation: `su_confetti ${1.4 + (i % 4) * 0.3}s ease-in ${(i % 5) * 0.12}s forwards` }} />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Mascote size={80} humor="comemora" prof /></div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 4 }}>Treino de hoje concluído! 🎉</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginBottom: 18 }}>{streak > 1 ? `🔥 ${streak} dias seguidos — o Vô tá orgulhoso.` : 'Primeiro passo dado — volte amanhã pra manter o ritmo. 🔥'}</div>
+                  <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: '6px 16px', marginBottom: 12, textAlign: 'left', animation: 'su_risefade 0.5s ease 0.15s both' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--color-text-secondary)', letterSpacing: 0.4, padding: '10px 0 2px' }}>O QUE VOCÊ FEZ AGORA</div>
+                    {aquec && aquec.total > 0 && linha('🧠', 'Aquecimento (revisão)', `${aquec.acertos}/${aquec.total} certas`)}
+                    {licaoFeita && linha('📖', licaoFeita, licaoErrosRef.current === 0 ? 'sem erros ✅' : `${licaoErrosRef.current} para revisar`)}
+                    {falaMedia !== null && linha('🎙️', 'Pronúncia', `${falaMedia}%`)}
+                    {linha('⚡', 'XP ganho hoje', `+${xpH} de ${metaDiaria}`)}
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 14, padding: '6px 16px 12px', marginBottom: 14, textAlign: 'left', animation: 'su_risefade 0.5s ease 0.3s both' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#D6CFFF', letterSpacing: 0.4, padding: '10px 0 8px' }}>SEU INGLÊS EM NÚMEROS</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[[String(vocabDominadas), 'palavras dominadas'], [String(licoesFixadas), 'lições na memória'], [String(doneLessons), 'lições concluídas']].map(([n, t], i) => (
+                        <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{n}</div>
+                          <div style={{ fontSize: 10, color: '#D6CFFF', marginTop: 4, lineHeight: 1.25 }}>{t}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
+                    <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.45s both' }}>
+                      <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Olha sua evolução aí em cima. 🔥</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>Assine o Premium e não pare de crescer.</div>
+                      </div>
+                      <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
+                    </div>
+                  )}
+                  <button onClick={() => { try { track('treino_concluido', { fala: falaMedia, aquecimento: aquec ? aquec.acertos : null }) } catch (e) {} ; encerrarTreino(); setTab('home'); setView('levels') }} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', animation: 'su_risefade 0.5s ease 0.5s both' }}>Concluir treino <Ic e="✓" /></button>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -5966,7 +6167,7 @@ export default function AppPage() {
         {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '🦜', 'Professor']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
-          <button key={t} onClick={() => { setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+          <button key={t} onClick={() => { encerrarTreino(); setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: '3px 7px', borderRadius: 10, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
               <span style={{ fontSize: 17, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
               <span style={{ fontSize: 9.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</span>
