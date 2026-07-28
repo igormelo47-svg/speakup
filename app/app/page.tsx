@@ -2899,6 +2899,8 @@ export default function AppPage() {
           ativo: true,
           trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
         }, { onConflict: 'id', ignoreDuplicates: true })
+        // Medição (GTM/GA4): conta nova = início do trial de 2 dias. Valor = mensalidade como proxy.
+        try { ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: 29.9, currency: 'BRL', user_id: user.id }) } catch (e) {}
         setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
         const initialXp = pendingXp > 0 ? pendingXp : 0
         setXp(initialXp)
@@ -3252,7 +3254,14 @@ export default function AppPage() {
                 ? (current?.annual || (current?.availablePackages || []).find((x: any) => x?.packageType === 'ANNUAL'))
                 : (current?.monthly || (current?.availablePackages || []).find((x: any) => x?.packageType === 'MONTHLY'))
               if (!pkg) { alert('Plano indisponível no momento. Tente de novo em instantes.'); return }
-              await P.purchasePackage({ aPackage: pkg })
+              const res: any = await P.purchasePackage({ aPackage: pkg })
+              // Medição (GTM/GA4): assinatura paga confirmada pela Apple. O transaction_id permite
+              // deduplicar com o evento server-side do webhook RevenueCat.
+              try {
+                const tid = res?.transaction?.transactionIdentifier || `rc_${userId}_${Date.now()}`
+                ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: plano === 'anual' ? 289.9 : 29.9, currency: 'BRL', user_id: userId, transaction_id: tid })
+                await new Promise(r => setTimeout(r, 600)) // dá tempo da tag disparar antes do reload
+              } catch (e) {}
               window.location.reload() // o webhook do RevenueCat já liberou o Premium no servidor
             } catch (e: any) { if (!e?.userCancelled) alert('Não foi possível concluir a compra. Tente novamente.') }
           },
