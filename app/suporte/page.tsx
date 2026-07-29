@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Suporte — Vonai' }
+export const metadata = { title: 'Suporte — Vonai', alternates: { canonical: '/suporte' } }
 
 // Página de suporte exigida pela App Store (guideline 1.5.0 — Developer Information):
 // a "Support URL" dos metadados deve levar a uma página com forma real de contato.

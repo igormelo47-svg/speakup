@@ -7,7 +7,7 @@ import './globals.css'
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700', '800'], variable: '--font-nunito', display: 'swap' })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://speakup-dusky.vercel.app'),
+  metadataBase: new URL('https://vonai.com.br'),
   title: 'Vonai — Aprenda inglês com IA',
   description: 'Aprenda inglês de verdade, todo dia, com um professor de IA: trilha do A1 ao C2, conversação, vocabulário e pronúncia. Comece grátis.',
   manifest: '/manifest.json',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'pt_BR',
     siteName: 'Vonai',
-    url: 'https://speakup-dusky.vercel.app',
+    url: 'https://vonai.com.br',
     title: 'Vonai — Aprenda inglês com IA',
     description: 'Um professor de IA que lembra de você e monta seu plano diário. Do A1 ao C2. Comece grátis.',
     images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Vonai — aprenda inglês com IA' }],

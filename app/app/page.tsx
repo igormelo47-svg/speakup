@@ -3142,6 +3142,7 @@ export default function AppPage() {
       salvarProgresso(novoXp, novasLicoes, st)
       if (treinoAtivo) treinoLicaoRef.current = titulo
       try { track('licao_concluida', { licao: titulo, nivel: level }) } catch (e) {}
+      if (ehNova && novasLicoes.length === 1) eventoAtivacao('primeira_licao', { nivel: level })
       const monta = frasesMontaveis(lessons[level][lessonIdx].examples)
       const trad = frasesTraduzir(lessons[level][lessonIdx].examples)
       setBuildIdx(0); setBuildPicked([]); setBuildChecked(false)
@@ -3279,6 +3280,17 @@ export default function AppPage() {
     window.open(plano === 'mensal' ? KIWIFY_MENSAL : KIWIFY_ANUAL, '_blank')
   }
 
+  // Medição (GTM/GA4): eventos de ativação do funil (nivelamento, 1ª lição, 1ª conversa).
+  // Dispara uma única vez por aparelho — o gestor de tráfego cruza com inicio_teste no GA4.
+  function eventoAtivacao(nome: string, extra?: Record<string, any>) {
+    try {
+      const k = `speakup_ev_${nome}`
+      if (localStorage.getItem(k)) return
+      localStorage.setItem(k, '1')
+      ;(window as any).dataLayer?.push({ event: nome, user_id: userId || undefined, ...extra })
+    } catch (e) {}
+  }
+
   async function callChat(payload: any) {
     let token = ''
     try { const { data } = await supabase.auth.getSession(); token = data.session?.access_token || '' } catch (e) {}
@@ -3322,6 +3334,7 @@ export default function AppPage() {
     const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
+      eventoAtivacao('primeira_conversa', { origem: 'professor' })
       const res = await callChat({ mode: 'professor', nivel: level, messages: [{ role: 'user', content: msg }] })
       if (res.status === 429) { setChatMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.' }]); setLoadingChat(false); return }
       const data = await res.json()
@@ -3504,6 +3517,7 @@ export default function AppPage() {
     setConvMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingConv(true)
     try {
       const history = convMsgs.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
+      eventoAtivacao('primeira_conversa', { origem: 'simulador' })
       const res = await callChat({ mode: 'simulador', scenarioId: selectedScenario.id, nivel: level, messages: [...history, { role: 'user', content: msg }] })
       if (res.status === 429) { setConvMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. Volte amanhã para continuar praticando. 🌟' }]); setLoadingConv(false); return }
       const data = await res.json()
@@ -5137,6 +5151,7 @@ export default function AppPage() {
                     for (let i = 0; i < 6; i++) { if (newScore[i] < 3) { rec = levels[i]; break } }
                     setNivResult(rec); setLevel(rec)
                     try { localStorage.setItem('speakup_nivel', rec) } catch (e) {}
+                    eventoAtivacao('nivelamento_concluido', { nivel: rec })
                   }
                 }} style={{ width: '100%', padding: 15, marginTop: 8, background: !nivAns ? 'var(--color-background-secondary)' : blue, color: !nivAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: !nivAns ? 'default' : 'pointer' }}>{nivIdx < placementQuestions.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
               </div>
