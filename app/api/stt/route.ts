@@ -47,11 +47,14 @@ export async function POST(req: NextRequest) {
   try {
     const ip = (req.headers.get('x-forwarded-for') || 'sem-ip').split(',')[0].trim()
     const [{ data: prog }, { data: perfil }] = await Promise.all([
-      admin.from('progresso').select('is_premium').eq('user_id', userId).maybeSingle(),
+      admin.from('progresso').select('is_premium, premium_expira').eq('user_id', userId).maybeSingle(),
       admin.from('profiles').select('trial_expira').eq('id', userId).maybeSingle(),
     ])
     const emTrial = !!perfil?.trial_expira && new Date(perfil.trial_expira) > new Date()
-    const limite = (prog?.is_premium || emTrial) ? STT_PREMIUM : STT_FREE
+    const pagoAtivo = !!prog?.is_premium && (!prog?.premium_expira || new Date(prog.premium_expira) > new Date())
+    // Paywall duro no servidor: free não tem STT (o app cai no reconhecimento do navegador).
+    if (!pagoAtivo && !emTrial) return NextResponse.json({ error: 'premium_necessario' }, { status: 402 })
+    const limite = STT_PREMIUM
     const [{ data: okUser, error: e1 }, { data: okIp, error: e2 }] = await Promise.all([
       admin.rpc('incrementa_uso', { p_user: userId, p_tipo: 'stt', p_limite: limite }),
       admin.rpc('incrementa_ip', { p_ip: ip, p_limite: LIMIT_IP }),

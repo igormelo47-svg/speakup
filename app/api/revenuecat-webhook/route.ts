@@ -40,6 +40,10 @@ export async function POST(req: NextRequest) {
   const ev = body?.event || {}
   const tipo = String(ev?.type || '').toUpperCase()
   if (!tipo || tipo === 'TEST') return NextResponse.json({ ok: true, ignored: tipo || 'sem tipo' })
+  // Compra de sandbox (TestFlight) não é dinheiro real — não pode liberar Premium em produção.
+  if (String(ev?.environment || '').toUpperCase() === 'SANDBOX') {
+    return NextResponse.json({ ok: true, ignored: 'sandbox' })
+  }
 
   const concede = CONCEDE.has(tipo)
   const revoga = REVOGA.has(tipo)
@@ -52,7 +56,9 @@ export async function POST(req: NextRequest) {
   const email: string | null = ev?.subscriber_attributes?.['$email']?.value || null
 
   const admin = createClient(url, service)
-  const novo = { is_premium: concede, updated_at: new Date().toISOString() }
+  // premium_expira: null — a expiração do iOS é gerenciada pelo evento EXPIRATION do RC;
+  // limpar a data também cobre quem cancelou na Kiwify e depois assinou pela Apple.
+  const novo = { is_premium: concede, premium_expira: null, updated_at: new Date().toISOString() }
   let casou = 0
 
   // 1) Casa pela conta (user_id) — caminho preferido.

@@ -2145,6 +2145,10 @@ export default function AppPage() {
   const [recorde, setRecorde] = useState(0)
   const [lembretesAtivos, setLembretesAtivos] = useState(false)
   const [conqNova, setConqNova] = useState<{ e: string; nome: string } | null>(null)
+  const [pagante, setPagante] = useState(false) // assinatura PAGA ativa (≠ trial)
+  const [erroCarregamento, setErroCarregamento] = useState(false)
+  const [aguardandoPagamento, setAguardandoPagamento] = useState(false)
+  const [treinoAposOnboarding, setTreinoAposOnboarding] = useState(false)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
   const [isPremium, setIsPremium] = useState(BETA_GRATIS)
@@ -2472,6 +2476,35 @@ export default function AppPage() {
     ganharMoedas(30)
     setConqNova({ e: '🎉', nome: 'Plano do dia completo! +20 XP e +30 🪙' })
   }, [xpHydrated, licoesHoje, vocabDiaData, simulacoesHoje, desafioFeito])
+
+  // Fecha o loop da meta diária: o aluno escolheu a meta no onboarding — celebrar na hora
+  // em que ela é batida (1x por dia) reforça exatamente o hábito que sustenta a retenção.
+  useEffect(() => {
+    if (!xpHydrated) return
+    const meta = perfilIa.meta_diaria || 50
+    if (Math.max(0, xp - xpInicioDia) < meta) return
+    try { if (localStorage.getItem('speakup_meta_dia') === hojeStr) return; localStorage.setItem('speakup_meta_dia', hojeStr) } catch (e) { return }
+    ganharMoedas(10)
+    setConqNova({ e: '🎯', nome: 'Meta de hoje batida! +10 🪙' })
+  }, [xpHydrated, xp])
+
+  // Medição: quantos alunos batem no paywall e não pagam (1x por dia) — permite ao gestor
+  // de tráfego montar remarketing de "viu paywall" e medir a conversão do fim do trial.
+  useEffect(() => {
+    if (!xpHydrated || isPremium) return
+    try {
+      if (localStorage.getItem('speakup_paywall_visto') === hojeStr) return
+      localStorage.setItem('speakup_paywall_visto', hojeStr)
+      ;(window as any).dataLayer?.push({ event: 'paywall_visto', user_id: userId || undefined })
+    } catch (e) {}
+  }, [xpHydrated, isPremium])
+
+  // Ativação D0: sair do onboarding já dentro do 1º treino (um clique a menos até a 1ª lição).
+  useEffect(() => {
+    if (!treinoAposOnboarding || !onboarded) return
+    setTreinoAposOnboarding(false)
+    try { iniciarTreino() } catch (e) {}
+  }, [treinoAposOnboarding, onboarded])
 
   // Level up (nível numérico de XP)
   useEffect(() => {
@@ -2801,7 +2834,7 @@ export default function AppPage() {
       try {
         const prevUid = localStorage.getItem('speakup_uid')
         if (prevUid && prevUid !== user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', 'speakup_ultima_atividade', 'speakup_erros_qs', 'speakup_hist_done', 'speakup_errbr', 'speakup_fala_dia', 'speakup_meta_dia', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
           setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setBauDia(''); setTempoMin(0); setMissoes({ week: 0, claimed: [] })
         }
         localStorage.setItem('speakup_uid', user.id)
@@ -2839,8 +2872,19 @@ export default function AppPage() {
         lastSyncedXpRef.current = usandoCache ? null : dbXp
         setPerfilIa(prog.perfil_ia || {})
         setStreak(prog.streak || 0)
+        // Semeia o marcador local de atividade a partir do banco: sem isso, um aparelho novo
+        // (troca de celular, reinstalação, limpar dados) zeraria uma sequência legítima na 1ª lição.
+        try {
+          const dbUlt = String(prog.ultima_atividade || '').slice(0, 10)
+          const localUlt = localStorage.getItem('speakup_ultima_atividade')
+          if (dbUlt && (!localUlt || localUlt < dbUlt)) localStorage.setItem('speakup_ultima_atividade', dbUlt)
+        } catch (e) {}
         setLicoesConcluidas(prog.licoes_concluidas || [])
-        setIsPremium(BETA_GRATIS || prog.is_premium || emTrial || (usandoCache && !!prog.em_trial_cache))
+        // Assinatura paga ativa: premium_expira marca o fim do ciclo já pago de quem cancelou a
+        // renovação na Kiwify (null = sem prazo; o iOS expira pelo EXPIRATION do RevenueCat).
+        const pagoAtivo = !!prog.is_premium && (!prog.premium_expira || new Date(prog.premium_expira).getTime() > Date.now())
+        setPagante(pagoAtivo)
+        setIsPremium(BETA_GRATIS || pagoAtivo || emTrial || (usandoCache && !!prog.em_trial_cache))
         setWhatsapp(prog.whatsapp || '')
         setMoedas(prog.moedas || 0)
         setStreakFreezes(prog.streak_freezes || 0)
@@ -2888,6 +2932,12 @@ export default function AppPage() {
           supabase.from('progresso').upsert({ user_id: user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
           if (!prog.email && user.email) supabase.from('progresso').update({ email: user.email }).eq('user_id', user.id).then(() => {})
         }
+      } else if (progReadError) {
+        // Leitura falhou e não há cache: NÃO tratar como conta nova — o ramo abaixo zeraria o
+        // estado local e a primeira gravação sobrescreveria o progresso real do aluno no banco.
+        console.log('[XP][Read] Sem progresso e sem cache — modo erro (gravações bloqueadas)', progReadError)
+        setErroCarregamento(true)
+        return
       } else {
         // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
         // silenciosamente. Cria o profile só se faltar (ignoreDuplicates evita sobrescrever plano/trial de quem já tem).
@@ -2924,7 +2974,10 @@ export default function AppPage() {
         const weekNow = Math.floor(Date.now() / (7 * 86400000))
         if (semNumRef.current !== weekNow) { semNumRef.current = weekNow; semBaseRef.current = xp }
         const semXp = Math.max(0, xp - semBaseRef.current)
-        await supabase.from('progresso').upsert({ user_id: userId, xp, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: semXp, nome: userName, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+        const { error: xpSyncError } = await supabase.from('progresso').upsert({ user_id: userId, xp, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: semXp, nome: userName, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+        // O supabase-js NÃO lança em falha (nem offline) — sem checar o error, a falha viraria
+        // "sucesso" e o XP pendente seria apagado sem nunca ter chegado ao banco.
+        if (xpSyncError) { console.log('[XP][Sync] Falha ao gravar, mantendo pendente', xpSyncError); return }
         lastSyncedXpRef.current = xp
         try {
           const rawPending = localStorage.getItem(XP_PENDING_KEY)
@@ -3275,10 +3328,40 @@ export default function AppPage() {
   // Abre a assinatura: dentro do app iOS usa o pagamento NATIVO da Apple (via RevenueCat);
   // na web/Android abre o checkout do Kiwify. Contrato: window.VonaiNative.subscribe('mensal'|'anual').
   function abrirAssinatura(plano: 'mensal' | 'anual') {
+    // Medição: sem este evento, o funil entre criar conta e pagar é invisível na web
+    // (o Google Ads só enxergava inicio_teste, 2 dias antes da decisão).
+    try { ;(window as any).dataLayer?.push({ event: 'inicio_checkout', plano, value: plano === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId || undefined }) } catch (e) {}
     const nat = (typeof window !== 'undefined') ? (window as any).VonaiNative : null
     if (nat && nat.platform === 'ios' && typeof nat.subscribe === 'function') { try { nat.subscribe(plano) } catch (e) {} ; return }
-    window.open(plano === 'mensal' ? KIWIFY_MENSAL : KIWIFY_ANUAL, '_blank')
+    // Prefill do e-mail: o webhook libera o Premium casando pelo e-mail do checkout —
+    // vir preenchido evita o aluno pagar com outro e-mail e ficar bloqueado pagando.
+    const base = plano === 'mensal' ? KIWIFY_MENSAL : KIWIFY_ANUAL
+    const url = userEmail ? `${base}?email=${encodeURIComponent(userEmail)}` : base
+    setAguardandoPagamento(true)
+    const w = window.open(url, '_blank')
+    if (!w) window.location.href = url // popup bloqueado (TWA/standalone): segue na própria aba
   }
+
+  // Volta do checkout Kiwify: confere sozinho se o pagamento liberou (o webhook marca
+  // is_premium em segundos — antes o aluno precisava achar e tocar num botão de recarregar).
+  useEffect(() => {
+    if (!aguardandoPagamento || !userId || pagante) return
+    let vivo = true, tentativas = 0
+    const checa = async () => {
+      if (!vivo || document.visibilityState !== 'visible') return
+      tentativas++
+      try {
+        const { data } = await supabase.from('progresso').select('is_premium, premium_expira').eq('user_id', userId).maybeSingle()
+        const ok = !!data?.is_premium && (!data?.premium_expira || new Date(data.premium_expira).getTime() > Date.now())
+        if (ok && vivo) { setPagante(true); setIsPremium(true); setAguardandoPagamento(false); setConqNova({ e: '⭐', nome: 'Bem-vindo ao Premium! 🎉' }); return }
+      } catch (e) {}
+      if (tentativas >= 24 && vivo) setAguardandoPagamento(false) // ~2 min e desiste em silêncio
+    }
+    const onVis = () => { if (document.visibilityState === 'visible') checa() }
+    document.addEventListener('visibilitychange', onVis)
+    const iv = setInterval(checa, 5000)
+    return () => { vivo = false; document.removeEventListener('visibilitychange', onVis); clearInterval(iv) }
+  }, [aguardandoPagamento, userId, pagante])
 
   // Medição (GTM/GA4): eventos de ativação do funil (nivelamento, 1ª lição, 1ª conversa).
   // Dispara uma única vez por aparelho — o gestor de tráfego cruza com inicio_teste no GA4.
@@ -3641,6 +3724,9 @@ export default function AppPage() {
     try { localStorage.setItem('speakup_onboarded', '1') } catch (e) {}
     setOnboarded(true)
     if (irNivelamento) { setNivIdx(0); setNivScore([0, 0, 0, 0, 0, 0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') }
+    // Ativação D0: quem escolheu o nível direto cai DENTRO do 1º treino, sem precisar achar
+    // o botão na home (via useEffect, para o iniciarTreino enxergar o nível recém-escolhido).
+    else setTreinoAposOnboarding(true)
   }
   const onbOpt: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 14, padding: '14px 16px', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }
   const onbBack: CSSProperties = { background: 'none', border: 'none', color: '#BCD6F2', fontSize: 14, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit' }
@@ -3671,6 +3757,21 @@ export default function AppPage() {
     )
   }
 
+  // Falha ao carregar o progresso (sem rede E sem cache): melhor parar com uma tela honesta
+  // do que arriscar sobrescrever os dados reais do aluno com estado zerado.
+  if (erroCarregamento) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-tertiary)', padding: 24 }}>
+        <div style={{ textAlign: 'center', maxWidth: 320 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}><Ic e="📡" /></div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>Não conseguimos carregar seu progresso</div>
+          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: 18 }}>Verifique sua conexão e tente de novo — seu progresso está guardado em segurança.</div>
+          <button onClick={() => window.location.reload()} style={{ padding: '13px 26px', background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Tentar de novo</button>
+        </div>
+      </div>
+    )
+  }
+
   // 🔒 PAYWALL DURO: acabou o trial de 2 dias e não é Premium -> bloqueia o app até assinar.
   if (xpHydrated && !isPremium) {
     return (
@@ -3682,6 +3783,23 @@ export default function AppPage() {
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Assine o <b>Vonai Premium</b> para continuar aprendendo inglês, do zero à fluência.</div>
           </div>
           <div style={{ padding: 18, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Aversão à perda: a decisão de assinar é tomada olhando para o que JÁ é do aluno,
+                não para uma lista de features (padrão Duolingo/Speak). */}
+            {(xp > 0 || streak > 0 || licoesConcluidas.length > 0) && (
+              <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>No seu teste você construiu:</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[['🔥', String(streak), streak === 1 ? 'dia seguido' : 'dias seguidos'], ['⚡', String(xp), 'XP ganhos'], ['📖', String(licoesConcluidas.length), licoesConcluidas.length === 1 ? 'lição feita' : 'lições feitas']].map(([e, n, l], i) => (
+                    <div key={i} style={{ flex: 1, background: '#F6F8FB', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 16 }}><Ic e={e} /></div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#16212c', marginTop: 2 }}>{n}</div>
+                      <div style={{ fontSize: 10, color: '#5c6b7a', lineHeight: 1.2 }}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', marginTop: 10 }}>Assine para não perder seu progresso.</div>
+              </div>
+            )}
             <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>Com o Premium você tem:</div>
               {[['📖', 'Todas as lições, do A1 ao C2'], ['🤖', 'Professor de IA ilimitado'], ['🎭', 'Conversas ilimitadas'], ['📊', 'Relatório de evolução'], ['🎯', 'Trilha personalizada']].map(([ic, t], i) => (
@@ -3704,9 +3822,10 @@ export default function AppPage() {
               ))}
             </div>
             {/* Os DOIS planos em destaque: mensal (entrada acessível) + anual (melhor valor). */}
-            <div onClick={() => abrirAssinatura('mensal')} style={{ background: '#ffffff', border: `1.5px solid ${blue}`, borderRadius: 14, padding: 16, cursor: 'pointer', marginBottom: 10 }}>
+            <div onClick={() => abrirAssinatura('mensal')} style={{ position: 'relative', background: '#ffffff', border: `1.5px solid ${blue}`, borderRadius: 14, padding: 16, cursor: 'pointer', marginBottom: 10 }}>
+              <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: blue, color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em' }}>MAIS ESCOLHIDO</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div><div style={{ fontSize: 15, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Cancele quando quiser</div></div>
+                <div><div style={{ fontSize: 15, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Menos de R$1 por dia · Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><span style={{ fontSize: 24, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
               </div>
               <div style={{ width: '100%', padding: 12, background: blue, color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Assinar plano mensal <Ic e="→" /></div>
@@ -3844,7 +3963,7 @@ export default function AppPage() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div>
-            <div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div>
+            <div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#C0392B' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
           </div>
           {/* Card grande de progresso (o que o Emmanuel achou mais bonito) */}
           {(() => {
@@ -4055,7 +4174,7 @@ export default function AppPage() {
           })()}
 
           {/* Convite grátis do trial / upsell — mantido, discreto */}
-          {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
+          {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
             const horas = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
             const urgente = horas <= 24
             const quando = horas <= 24 ? `Acaba em ${horas}h` : `Acaba em ${Math.ceil(horas / 24)} dias`
@@ -4210,7 +4329,7 @@ export default function AppPage() {
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {isPremium && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}</div>
+              <div style={{ fontSize: 13, color: '#B5D4F4' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#C0392B' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
             </div>
             {(() => {
               const lvlArr = lessons[level] || []
@@ -4411,7 +4530,7 @@ export default function AppPage() {
             })()}
             {/* Upsell DURANTE o trial: o aluno é "premium" no teste, então sem isto ele
                 bateria no paywall de surpresa. Mostra urgência no último dia. */}
-            {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
+            {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
               const horas = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
               const urgente = horas <= 24
               const quando = horas <= 24 ? `Acaba em ${horas}h` : `Acaba em ${Math.ceil(horas / 24)} dias`
@@ -5199,9 +5318,16 @@ export default function AppPage() {
                 </div>
               ))}
             </div>
-            <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: `2px solid ${blue}`, padding: 16, marginBottom: 12 }}>
+            {pagante ? (
+              <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 16, textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)' }}><Ic e="⭐" /> Você já é Premium!</div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>Sua assinatura está ativa — aproveite tudo sem limites.</div>
+              </div>
+            ) : (<>
+            <div style={{ position: 'relative', background: 'var(--color-background-primary)', borderRadius: 14, border: `2px solid ${blue}`, padding: 16, marginBottom: 12 }}>
+              <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: blue, color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20 }}>MAIS ESCOLHIDO</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Cancele quando quiser</div></div>
+                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Menos de R$1 por dia · Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$29,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
               </div>
               <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar mensalmente <Ic e="→" /></button>
@@ -5214,6 +5340,8 @@ export default function AppPage() {
               </div>
               <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
             </div>
+            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a00', textAlign: 'center', lineHeight: 1.5, marginBottom: 16, background: goldLight, borderRadius: 10, padding: '10px 12px' }}><Ic e="⚠️" /> Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            </>)}
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele a qualquer momento' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento'}</div>
             {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
             <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.6, marginTop: 10 }}>
@@ -5673,7 +5801,7 @@ export default function AppPage() {
                 )}
                 {/* Nudge de assinatura no MOMENTO DA VITÓRIA (só durante o trial): a emoção
                     de acabar de concluir a lição é o melhor gatilho de conversão. */}
-                {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
+                {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
                   <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.55s both' }}>
                     <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
                     <div style={{ flex: 1 }}>
@@ -5784,7 +5912,7 @@ export default function AppPage() {
                       ))}
                     </div>
                   </div>
-                  {isPremium && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
+                  {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
                     <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #B8860B, #DAA520)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.45s both' }}>
                       <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
                       <div style={{ flex: 1 }}>

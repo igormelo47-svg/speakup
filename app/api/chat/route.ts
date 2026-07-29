@@ -70,12 +70,18 @@ export async function POST(req: NextRequest) {
   try {
     const ip = (req.headers.get("x-forwarded-for") || "sem-ip").split(",")[0].trim()
     const [{ data: prog }, { data: perfil }] = await Promise.all([
-      admin.from("progresso").select("is_premium, perfil_ia, xp, streak, licoes_concluidas").eq("user_id", userId).maybeSingle(),
+      admin.from("progresso").select("is_premium, premium_expira, perfil_ia, xp, streak, licoes_concluidas").eq("user_id", userId).maybeSingle(),
       admin.from("profiles").select("nome, trial_expira").eq("id", userId).maybeSingle(),
     ])
     const emTrial = !!perfil?.trial_expira && new Date(perfil.trial_expira) > new Date()
-    const premium = BETA_GRATIS || !!prog?.is_premium || emTrial
-    const limite = premium ? LIMIT_PREMIUM : LIMIT_FREE
+    const pagoAtivo = !!prog?.is_premium && (!prog?.premium_expira || new Date(prog.premium_expira) > new Date())
+    const premium = BETA_GRATIS || pagoAtivo || emTrial
+    // Paywall duro também no servidor: sem trial e sem assinatura, não há uso legítimo de IA
+    // (o cliente bloqueia a tela; isto barra quem chama a API direto com o token).
+    if (!premium) {
+      return amigavel("Seu teste grátis terminou 😊 Assine o Vonai Premium para continuar conversando comigo!", 402)
+    }
+    const limite = LIMIT_PREMIUM
 
     const [{ data: okUser, error: e1 }, { data: okIp, error: e2 }] = await Promise.all([
       admin.rpc("incrementa_uso", { p_user: userId, p_tipo: "chat", p_limite: limite }),

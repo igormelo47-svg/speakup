@@ -20,8 +20,12 @@ export async function GET(req: NextRequest) {
 
   // Dia no fuso do Brasil, igual ao que o app grava em ultima_atividade.
   const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-  const { data: subs } = await admin.from('push_subscriptions').select('user_id, subscription')
-  const { data: prog } = await admin.from('progresso').select('user_id, ultima_atividade, streak, dias_ativos')
+  const agora = Date.now()
+  const [{ data: subs }, { data: prog }, { data: perfis }] = await Promise.all([
+    admin.from('push_subscriptions').select('user_id, subscription'),
+    admin.from('progresso').select('user_id, ultima_atividade, streak, dias_ativos, nome, is_premium, premium_expira, perfil_ia'),
+    admin.from('profiles').select('id, trial_expira'),
+  ])
   // Usou hoje = marcador do dia em dias_ativos (gravado a cada abertura) OU a data de
   // ultima_atividade. Ela é timestamptz — comparar a string inteira com 'YYYY-MM-DD'
   // nunca casava, e o lembrete ia até para quem já tinha estudado.
@@ -29,20 +33,55 @@ export async function GET(req: NextRequest) {
     (Array.isArray(p.dias_ativos) && p.dias_ativos.includes(hoje)) ||
     String(p.ultima_atividade || '').slice(0, 10) === hoje
   ).map((p: any) => p.user_id))
-  const streakDe = new Map((prog || []).map((p: any) => [p.user_id, p.streak || 0]))
+  const progDe = new Map((prog || []).map((p: any) => [p.user_id, p]))
+  const trialDe = new Map((perfis || []).map((p: any) => [p.id, p.trial_expira]))
 
-  // Mensagem personalizada: quanto maior a sequência em risco, mais forte o apelo.
-  const msgParaStreak = (st: number) => {
-    if (st >= 30) return { title: `🔥 ${st} dias! Não perca hoje`, body: `Sua sequência de ${st} dias acaba à meia-noite. Bastam 5 minutos para mantê-la.` }
-    if (st >= 7) return { title: `🔥 Sua sequência de ${st} dias está em risco`, body: 'Faça uma lição rápida agora e mantenha o ritmo!' }
-    if (st >= 1) return { title: 'Vonai 🔥', body: `Você está com ${st} ${st === 1 ? 'dia' : 'dias'} de sequência. Continue hoje!` }
-    return { title: 'Vonai 🎯', body: 'Que tal 5 minutos de inglês agora? Sua meta de hoje espera por você.' }
+  // Monta a mensagem certa para cada aluno. Prioridades:
+  // 1) fim de trial (últimas 24h, mesmo que tenha estudado hoje — é a decisão de assinar);
+  // 2) winback pelos dias de ausência (a mensagem de streak só vale para quem sumiu ONTEM —
+  //    para quem sumiu há dias a sequência já morreu, e cobrá-la soa falso);
+  // 3) lembrete de streak/meta padrão.
+  const mensagemPara = (userId: string): { title: string; body: string } | null => {
+    const p: any = progDe.get(userId) || {}
+    const nome = String(p.nome || '').split(' ')[0]
+    const oi = nome ? `${nome}, ` : ''
+    const fracos = p?.perfil_ia?.topicos_fracos
+    const fraco = Array.isArray(fracos) && fracos.length ? String(fracos[fracos.length - 1]) : ''
+
+    // 1) Trial acabando: o push de conversão vence tudo (1x, porque a janela de 24h só cruza um cron diário).
+    const pagoAtivo = !!p.is_premium && (!p.premium_expira || new Date(p.premium_expira).getTime() > agora)
+    const texp = trialDe.get(userId) ? new Date(trialDe.get(userId)).getTime() : 0
+    if (!pagoAtivo && texp > agora && texp - agora <= 24 * 3600000) {
+      return { title: 'Seu acesso Premium grátis acaba hoje ⏰', body: `${oi}continue de onde parou por R$29,90/mês — seu progresso fica guardado.` }
+    }
+
+    if (estudouHoje.has(userId)) return null
+
+    const last = String(p.ultima_atividade || '').slice(0, 10)
+    const diasFora = last ? Math.max(0, Math.round((new Date(hoje).getTime() - new Date(last).getTime()) / 86400000)) : -1
+    const st = p.streak || 0
+
+    // 2) Winback: sumiu de verdade.
+    if (diasFora >= 5) {
+      if (diasFora % 3 !== 0) return null // espaça pra não virar spam e perder a permissão
+      return { title: `${nome || 'Ei'}, seu inglês sente sua falta 💙`, body: fraco ? `O Vô guardou um treino de "${fraco}" pra você. 5 minutos e você retoma o ritmo.` : 'O Vô guardou sua próxima lição. 5 minutos e você retoma o ritmo.' }
+    }
+    if (diasFora >= 2) {
+      return { title: `${nome || 'Ei'}, o Vô guardou sua lição 📖`, body: fraco ? `Volte de onde parou — tem um treino de "${fraco}" te esperando.` : 'Volte de onde parou — sua trilha continua do mesmo ponto.' }
+    }
+
+    // 3) Sumiu só hoje: a sequência ainda está viva — apelo de streak (quanto maior, mais forte).
+    if (st >= 30) return { title: `🔥 ${st} dias! Não perca hoje`, body: `${oi}sua sequência de ${st} dias acaba à meia-noite. Bastam 5 minutos para mantê-la.` }
+    if (st >= 7) return { title: `🔥 Sua sequência de ${st} dias está em risco`, body: `${oi}faça uma lição rápida agora e mantenha o ritmo!` }
+    if (st >= 1) return { title: 'Vonai 🔥', body: `${oi}você está com ${st} ${st === 1 ? 'dia' : 'dias'} de sequência. Continue hoje!` }
+    return { title: 'Vonai 🎯', body: fraco ? `${oi}que tal 5 minutos de "${fraco}" agora? Sua meta de hoje espera por você.` : `${oi}que tal 5 minutos de inglês agora? Sua meta de hoje espera por você.` }
   }
+
   let enviados = 0, removidos = 0
   for (const s of subs || []) {
-    if (estudouHoje.has(s.user_id)) continue
-    const { title, body } = msgParaStreak(streakDe.get(s.user_id) || 0)
-    const payload = JSON.stringify({ title, body, url: '/app' })
+    const msg = mensagemPara(s.user_id)
+    if (!msg) continue
+    const payload = JSON.stringify({ title: msg.title, body: msg.body, url: '/app' })
     try {
       await webpush.sendNotification(s.subscription as any, payload)
       enviados++
