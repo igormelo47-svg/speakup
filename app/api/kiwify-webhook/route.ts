@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { enviarPurchaseGA4 } from '../../../lib/ga4'
+import { avisarVenda } from '../../../lib/avisar-venda'
 
 // Webhook da Kiwify: libera/revoga o Premium conforme os eventos de pagamento.
 // Configure na Kiwify a URL: https://vonai.com.br/api/kiwify-webhook?token=SEU_TOKEN
@@ -127,6 +128,8 @@ export async function POST(req: NextRequest) {
       value: ehAnual(body) ? 289.8 : 29.9,
     })
     if (!ga4?.sent) console.error('[Kiwify] GA4 MP não enviado', ga4)
+    // Aviso por e-mail: enquanto o volume é pequeno, saber da venda na hora vale mais que relatório.
+    try { await avisarVenda({ email: String(email), origem: 'Kiwify', tipo: tipo, valor: ehAnual(body) ? 289.8 : 29.9 }) } catch (e) {}
   }
 
   return NextResponse.json({ ok: true, email, tipo, reembolso, cancelamento, pago, contas_atualizadas: casou, ga4 })

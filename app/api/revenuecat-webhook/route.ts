@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarPurchaseGA4 } from '../../../lib/ga4'
+import { avisarVenda } from '../../../lib/avisar-venda'
 
 // Webhook do RevenueCat (assinaturas via App Store / Google Play).
 // Quando a Apple confirma o pagamento, o RevenueCat chama esta rota e a gente libera o Premium.
@@ -89,6 +90,10 @@ export async function POST(req: NextRequest) {
         value: anual ? 289.9 : 29.9,
       })
       if (!ga4?.sent) console.error('[RevenueCat] GA4 MP não enviado', ga4)
+      try {
+        const { data: pf } = await admin.from('profiles').select('email').eq('id', alvoId).maybeSingle()
+        await avisarVenda({ email: pf?.email || email || alvoId, origem: 'Apple', tipo: tipo, valor: anual ? 289.9 : 29.9 })
+      } catch (e) {}
     }
   }
 
