@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
 
 // Webhook da Kiwify: libera/revoga o Premium conforme os eventos de pagamento.
 // Configure na Kiwify a URL: https://vonai.com.br/api/kiwify-webhook?token=SEU_TOKEN
@@ -42,16 +43,27 @@ function acharExpiracao(b: any): string {
 }
 
 export async function POST(req: NextRequest) {
+  const segredo = process.env.KIWIFY_TOKEN || ''
+  const raw = await req.text()
+  // Autenticação dupla: o token estático na URL (config atual) OU a assinatura HMAC-SHA1
+  // que a Kiwify envia em ?signature= (hash do corpo com o token). A assinatura é a forma
+  // forte — só vale para aquele corpo exato, então um log de URL vazado não dá acesso.
   const token = req.nextUrl.searchParams.get('token')
-  if (!process.env.KIWIFY_TOKEN || token !== process.env.KIWIFY_TOKEN) {
-    return new NextResponse('unauthorized', { status: 401 })
-  }
+  const assinatura = req.nextUrl.searchParams.get('signature') || ''
+  const okToken = !!segredo && token === segredo
+  let okSig = false
+  try {
+    const esperada = crypto.createHmac('sha1', segredo).update(raw).digest('hex')
+    okSig = !!segredo && !!assinatura && crypto.timingSafeEqual(Buffer.from(esperada), Buffer.from(assinatura))
+  } catch {}
+  if (!okToken && !okSig) return new NextResponse('unauthorized', { status: 401 })
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !service) return NextResponse.json({ error: 'missing env' }, { status: 500 })
 
   let body: any = {}
-  try { body = await req.json() } catch { try { const t = await req.text(); body = Object.fromEntries(new URLSearchParams(t)) } catch {} }
+  try { body = JSON.parse(raw) } catch { try { body = Object.fromEntries(new URLSearchParams(raw)) } catch {} }
 
   const email = acharEmail(body)
   const tipo = acharTipo(body)

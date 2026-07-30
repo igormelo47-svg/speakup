@@ -2389,7 +2389,9 @@ export default function AppPage() {
       localStorage.setItem('speakup_xpdia', hojeStr + '|' + xp)
       setXpInicioDia(xp)
     } catch (e) {}
-  }, [xpHydrated])
+    // hojeStr na dependência: quem atravessa a meia-noite com o app aberto ganha base nova
+    // (antes o XP de "hoje" aparecia inflado com o de ontem até o próximo reload).
+  }, [xpHydrated, hojeStr])
   const xpHoje = Math.max(0, xp - xpInicioDia)
 
   Object.values(lessons).flat().forEach(l => { l.done = licoesConcluidas.includes(l.title) })
@@ -2854,10 +2856,11 @@ export default function AppPage() {
       }
       // Trial de 2 dias: enquanto profiles.trial_expira estiver no futuro, o aluno usa o app como Premium.
       let emTrial = false
+      let trialExpiraMs = 0
       try {
         const { data: profRows } = await supabase.from('profiles').select('trial_expira').eq('id', user.id).limit(1)
         const texp = profRows?.[0]?.trial_expira
-        if (texp) { const t = new Date(texp).getTime(); emTrial = t > Date.now(); setTrialExpira(t) }
+        if (texp) { const t = new Date(texp).getTime(); emTrial = t > Date.now(); trialExpiraMs = t; setTrialExpira(t) }
       } catch (e) {}
       let pendingXp = 0
       try {
@@ -2884,7 +2887,9 @@ export default function AppPage() {
         // renovação na Kiwify (null = sem prazo; o iOS expira pelo EXPIRATION do RevenueCat).
         const pagoAtivo = !!prog.is_premium && (!prog.premium_expira || new Date(prog.premium_expira).getTime() > Date.now())
         setPagante(pagoAtivo)
-        setIsPremium(BETA_GRATIS || pagoAtivo || emTrial || (usandoCache && !!prog.em_trial_cache))
+        // No cache offline, o trial é recalculado pelo timestamp guardado — o booleano antigo
+        // congelava o Premium para sempre em aparelho sem rede depois do trial vencer.
+        setIsPremium(BETA_GRATIS || pagoAtivo || emTrial || (usandoCache && (prog.trial_cache_expira ? prog.trial_cache_expira > Date.now() : !!prog.em_trial_cache)))
         setWhatsapp(prog.whatsapp || '')
         setMoedas(prog.moedas || 0)
         setStreakFreezes(prog.streak_freezes || 0)
@@ -2925,7 +2930,7 @@ export default function AppPage() {
             }
           } catch (e) {}
           // Foto local do progresso para o modo offline (só o essencial).
-          try { localStorage.setItem('speakup_prog_cache', JSON.stringify({ xp: dbXp, streak: prog.streak || 0, licoes_concluidas: prog.licoes_concluidas || [], moedas: prog.moedas || 0, streak_freezes: prog.streak_freezes || 0, perfil_ia: prog.perfil_ia || {}, is_premium: !!prog.is_premium, em_trial_cache: emTrial, whatsapp: prog.whatsapp || '' })) } catch (e) {}
+          try { localStorage.setItem('speakup_prog_cache', JSON.stringify({ xp: dbXp, streak: prog.streak || 0, licoes_concluidas: prog.licoes_concluidas || [], moedas: prog.moedas || 0, streak_freezes: prog.streak_freezes || 0, perfil_ia: prog.perfil_ia || {}, is_premium: !!prog.is_premium, premium_expira: prog.premium_expira || null, em_trial_cache: emTrial, trial_cache_expira: trialExpiraMs || null, whatsapp: prog.whatsapp || '' })) } catch (e) {}
           const weekNow = Math.floor(Date.now() / (7 * 86400000))
           semNumRef.current = weekNow
           semBaseRef.current = prog.sem_num === weekNow ? (prog.sem_base_xp || 0) : initialXp
@@ -3127,7 +3132,9 @@ export default function AppPage() {
     const msg = feedbackTxt.trim()
     if (msg.length < 3) { alert('Escreva um pouco mais para enviar. 🙂'); return }
     try {
-      const r = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, email: userEmail, mensagem: msg }) })
+      let token = ''
+      try { const { data } = await supabase.auth.getSession(); token = data.session?.access_token || '' } catch (e) {}
+      const r = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ mensagem: msg }) })
       if (!r.ok) throw new Error('falhou')
       setFeedbackEnviado(true); setFeedbackTxt('')
     } catch (e) {
@@ -3316,7 +3323,16 @@ export default function AppPage() {
                 ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: plano === 'anual' ? 289.9 : 29.9, currency: 'BRL', user_id: userId, transaction_id: tid })
                 await new Promise(r => setTimeout(r, 600)) // dá tempo da tag disparar antes do reload
               } catch (e) {}
-              window.location.reload() // o webhook do RevenueCat já liberou o Premium no servidor
+              // Espera o webhook do RevenueCat gravar no servidor (até ~20s) antes de recarregar —
+              // recarregar cedo demais jogava o pagante recém-cobrado no paywall "teste terminou".
+              for (let i = 0; i < 10; i++) {
+                try {
+                  const { data: pr } = await supabase.from('progresso').select('is_premium').eq('user_id', userId).maybeSingle()
+                  if (pr?.is_premium) break
+                } catch (e) {}
+                await new Promise(r => setTimeout(r, 2000))
+              }
+              window.location.reload()
             } catch (e: any) { if (!e?.userCancelled) alert('Não foi possível concluir a compra. Tente novamente.') }
           },
           restore: async () => { try { await P.restorePurchases(); window.location.reload() } catch (e) {} },
@@ -3333,6 +3349,13 @@ export default function AppPage() {
     try { ;(window as any).dataLayer?.push({ event: 'inicio_checkout', plano, value: plano === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId || undefined }) } catch (e) {}
     const nat = (typeof window !== 'undefined') ? (window as any).VonaiNative : null
     if (nat && nat.platform === 'ios' && typeof nat.subscribe === 'function') { try { nat.subscribe(plano) } catch (e) {} ; return }
+    if (isIOSNative) {
+      // Ponte de pagamento da Apple não montou (RevenueCat fora do ar / chave ausente):
+      // NUNCA cair no checkout externo dentro do app iOS — quebra a compra e viola a
+      // guideline 3.1.1 da App Store (risco de remoção).
+      alert('Não foi possível carregar o pagamento agora. Feche e abra o app de novo, por favor. 🙏')
+      return
+    }
     // Prefill do e-mail: o webhook libera o Premium casando pelo e-mail do checkout —
     // vir preenchido evita o aluno pagar com outro e-mail e ficar bloqueado pagando.
     const base = plano === 'mensal' ? KIWIFY_MENSAL : KIWIFY_ANUAL
@@ -3632,7 +3655,8 @@ export default function AppPage() {
   // não existirem no banco, só esta gravação falha — XP/streak seguem intactos).
   function salvarDominio(campos: Record<string, any>) {
     if (!userId) return
-    supabase.from('progresso').upsert({ user_id: userId, ...campos, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    supabase.from('progresso').upsert({ user_id: userId, ...campos, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      .then(({ error }) => { if (error) console.log('[Dominio] Falha ao gravar', error) })
   }
   function registrarErro(topico: string) {
     const fracos = Array.from(new Set([...(perfilIa.topicos_fracos || []), topico])).slice(-12)
