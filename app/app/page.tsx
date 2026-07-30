@@ -2836,7 +2836,10 @@ export default function AppPage() {
       try {
         const prevUid = localStorage.getItem('speakup_uid')
         if (prevUid && prevUid !== user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', 'speakup_ultima_atividade', 'speakup_erros_qs', 'speakup_hist_done', 'speakup_errbr', 'speakup_fala_dia', 'speakup_meta_dia', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', 'speakup_ultima_atividade', 'speakup_erros_qs', 'speakup_hist_done', 'speakup_errbr', 'speakup_fala_dia', 'speakup_meta_dia', 'speakup_paywall_visto', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          // Flags de evento de ativação são por-aparelho: limpa na troca de conta pra não bloquear
+          // os eventos do próximo aluno (mediria ativação errada). Os de compra/trial já são por-uid.
+          try { Object.keys(localStorage).forEach(k => { if (k.startsWith('speakup_ev_')) localStorage.removeItem(k) }) } catch (e) {}
           setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setBauDia(''); setTempoMin(0); setMissoes({ week: 0, claimed: [] })
         }
         localStorage.setItem('speakup_uid', user.id)
@@ -2954,12 +2957,22 @@ export default function AppPage() {
           ativo: true,
           trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
         }, { onConflict: 'id', ignoreDuplicates: true })
+        // Atribuição de primeiro toque (gclid/fbclid/UTMs) guardada no 1º acesso — vai junto do
+        // evento de conversão e é persistida pra o webhook reenviar quando o trial virar assinatura.
+        let attrib: any = null
+        try { const raw = localStorage.getItem('speakup_attrib'); if (raw) attrib = JSON.parse(raw) } catch (e) {}
         // Medição (GTM/GA4): conta nova = início do trial de 2 dias. Valor = mensalidade como proxy.
-        try { ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: 29.9, currency: 'BRL', user_id: user.id }) } catch (e) {}
+        // Guarda idempotente: só 1x por usuário (senão cada reload do /app re-dispara o trial_start).
+        try {
+          if (!localStorage.getItem('speakup_it_' + user.id)) {
+            localStorage.setItem('speakup_it_' + user.id, '1')
+            ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: 29.9, currency: 'BRL', user_id: user.id, ...(attrib?.gclid ? { gclid: attrib.gclid } : {}), ...(attrib?.fbclid ? { fbclid: attrib.fbclid } : {}) })
+          }
+        } catch (e) {}
         setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
         const initialXp = pendingXp > 0 ? pendingXp : 0
         setXp(initialXp)
-        const { error: insErr } = await supabase.from('progresso').upsert({ user_id: user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: user.email }, { onConflict: 'user_id', ignoreDuplicates: true })
+        const { error: insErr } = await supabase.from('progresso').upsert({ user_id: user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: user.email, ...(attrib ? { attrib } : {}) }, { onConflict: 'user_id', ignoreDuplicates: true })
         if (insErr) { console.log('[XP][Init] Falha ao criar progresso', insErr); lastSyncedXpRef.current = 0 }
         else { lastSyncedXpRef.current = initialXp }
       }
@@ -3076,7 +3089,7 @@ export default function AppPage() {
     })()
   }, [xpHydrated, userId])
 
-  const linkIndicacao = userId ? `https://speakup-dusky.vercel.app/login?ref=${userId}` : ''
+  const linkIndicacao = userId ? `https://vonai.com.br/cadastro?ref=${userId}` : ''
   async function compartilharIndicacao() {
     const texto = `Estou aprendendo inglês no Vonai, um professor de IA feito para brasileiros 🇧🇷 Entra pelo meu link e a gente ganha bônus Premium: ${linkIndicacao}`
     try { track('indicacao_compartilhada') } catch (e) {}
@@ -3360,6 +3373,7 @@ export default function AppPage() {
     // vir preenchido evita o aluno pagar com outro e-mail e ficar bloqueado pagando.
     const base = plano === 'mensal' ? KIWIFY_MENSAL : KIWIFY_ANUAL
     const url = userEmail ? `${base}?email=${encodeURIComponent(userEmail)}` : base
+    try { localStorage.setItem('speakup_plano_checkout', plano) } catch (e) {} // p/ o value certo no purchase
     setAguardandoPagamento(true)
     const w = window.open(url, '_blank')
     if (!w) window.location.href = url // popup bloqueado (TWA/standalone): segue na própria aba
@@ -3376,7 +3390,23 @@ export default function AppPage() {
       try {
         const { data } = await supabase.from('progresso').select('is_premium, premium_expira').eq('user_id', userId).maybeSingle()
         const ok = !!data?.is_premium && (!data?.premium_expira || new Date(data.premium_expira).getTime() > Date.now())
-        if (ok && vivo) { setPagante(true); setIsPremium(true); setAguardandoPagamento(false); setConqNova({ e: '⭐', nome: 'Bem-vindo ao Premium! 🎉' }); return }
+        if (ok && vivo) {
+          setPagante(true); setIsPremium(true); setAguardandoPagamento(false); setConqNova({ e: '⭐', nome: 'Bem-vindo ao Premium! 🎉' })
+          // Medição (GTM/GA4): compra confirmada no canal WEB/Kiwify — antes só o iOS disparava
+          // assinatura_paga, então 100% do tráfego pago (web/Android) ficava sem a conversão de
+          // compra e o Google Ads otimizava cego. Uma vez por usuário; leva gclid/fbclid do 1º toque.
+          // (Quando o disparo server-side via Measurement Protocol entrar no webhook, deduplicar por transaction_id.)
+          try {
+            const jaContou = localStorage.getItem('speakup_purchase_' + userId)
+            if (!jaContou) {
+              localStorage.setItem('speakup_purchase_' + userId, '1')
+              const pl = localStorage.getItem('speakup_plano_checkout') || 'mensal'
+              let atb: any = null; try { const raw = localStorage.getItem('speakup_attrib'); if (raw) atb = JSON.parse(raw) } catch (e2) {}
+              ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: pl === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId, transaction_id: 'kiwify_' + userId, ...(atb?.gclid ? { gclid: atb.gclid } : {}), ...(atb?.fbclid ? { fbclid: atb.fbclid } : {}) })
+            }
+          } catch (e) {}
+          return
+        }
       } catch (e) {}
       if (tentativas >= 24 && vivo) setAguardandoPagamento(false) // ~2 min e desiste em silêncio
     }
@@ -3466,7 +3496,7 @@ export default function AppPage() {
   function compartilharResultado() {
     if (!fluencyReport) return
     const cenario = selectedScenario?.title || 'uma conversa real'
-    const texto = `🎯 Acabei de tirar ${fluencyReport.score}/100 de fluência em inglês no Vonai, praticando "${cenario}" com inteligência artificial! 🇬🇧✨\n\nQuer treinar inglês de verdade — conversando, não decorando? Testa aqui 👇\nhttps://speakup-dusky.vercel.app`
+    const texto = `🎯 Acabei de tirar ${fluencyReport.score}/100 de fluência em inglês no Vonai, praticando "${cenario}" com inteligência artificial! 🇬🇧✨\n\nQuer treinar inglês de verdade — conversando, não decorando? Testa aqui 👇\nhttps://vonai.com.br`
     if (typeof navigator !== 'undefined' && navigator.share) {
       navigator.share({ title: 'Meu resultado no Vonai', text: texto }).catch(() => {})
     } else {
@@ -5837,7 +5867,7 @@ export default function AppPage() {
                 )}
                 <div style={{ animation: 'su_risefade 0.5s ease 0.6s both' }}>
                   <button onClick={async () => {
-                    const texto = `Estou aprendendo inglês com um professor de IA no Vonai 🇧🇷 Já concluí ${doneLessons} ${doneLessons === 1 ? 'lição' : 'lições'}${streak > 1 ? ` e estou há ${streak} dias seguidos` : ''}! Vem estudar comigo: https://speakup-dusky.vercel.app`
+                    const texto = `Estou aprendendo inglês com um professor de IA no Vonai 🇧🇷 Já concluí ${doneLessons} ${doneLessons === 1 ? 'lição' : 'lições'}${streak > 1 ? ` e estou há ${streak} dias seguidos` : ''}! Vem estudar comigo: https://vonai.com.br`
                     try { track('compartilhou_licao') } catch (e) {}
                     try { if (navigator.share) { await navigator.share({ text: texto }) } else { await navigator.clipboard.writeText(texto); alert('Texto copiado! Cole onde quiser compartilhar. 📋') } } catch (e) {}
                   }} style={{ width: '100%', padding: 13, background: 'var(--color-background-primary)', color: blue, border: `1.5px solid ${blue}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>📣 Compartilhar meu progresso</button>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/react'
 import { Nunito } from 'next/font/google'
+import Attribution from './Attribution'
 import './globals.css'
 
 // Fonte própria do app: arredondada e simpática (mesma família visual do Duolingo).
@@ -39,8 +40,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#185FA5',
 }
@@ -74,6 +73,7 @@ export default function RootLayout({
             style={{ display: 'none', visibility: 'hidden' }}
           />
         </noscript>
+        <Attribution />
         {children}
         <Analytics />
       </body>

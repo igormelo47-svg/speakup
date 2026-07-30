@@ -43,10 +43,11 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     }
 
     if (modo === 'cadastro') {
+      const redirectApp = typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
-        options: { data: { nome } }
+        options: { data: { nome }, emailRedirectTo: redirectApp }
       })
       if (error) { setErro(error.message); setLoading(false); return }
       if (data.user) {
@@ -57,6 +58,10 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         }, { onConflict: 'id', ignoreDuplicates: true })
       }
       try { track('cadastro') } catch (e) {}
+      // Medição (GTM/GA4): marca o cadastro no MOMENTO do envio, no dataLayer que a campanha usa —
+      // o inicio_teste só dispara ao carregar o /app; se o aluno travar na confirmação de e-mail,
+      // este evento garante que o topo do funil não some da medição do Google Ads.
+      try { ;(window as any).dataLayer?.push({ event: 'cadastro_enviado', user_id: data.user?.id || undefined }) } catch (e) {}
       // Se a confirmação de e-mail estiver ligada no Supabase, não vem sessão: avisa o aluno.
       if (!data.session) {
         setAviso('Conta criada! Confirme seu e-mail (verifique também o spam) e depois entre.')
