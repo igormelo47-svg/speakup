@@ -34,6 +34,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: '889dl3fbY28e5dqm4MdDBvIvll22ardXNlYJCag3zuU',
+    // Verificação de domínio do Meta (Business Manager → Segurança da marca → Domínios):
+    // exigida pra priorização de eventos agregados no iOS (Pixel/CAPI da campanha).
+    other: { 'facebook-domain-verification': 'z3htchkbxdv4xm3n422q7d76hxqxdw' },
   },
 }
 
