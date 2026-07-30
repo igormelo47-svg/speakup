@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { enviarPurchaseGA4 } from '../../../lib/ga4'
 
 // Webhook do RevenueCat (assinaturas via App Store / Google Play).
 // Quando a Apple confirma o pagamento, o RevenueCat chama esta rota e a gente libera o Premium.
@@ -72,7 +73,26 @@ export async function POST(req: NextRequest) {
     casou += count || 0
   }
 
-  return NextResponse.json({ ok: true, tipo, concede, revoga, contas_atualizadas: casou })
+  // Conversão server-side (GA4 MP) nas compras de dinheiro novo do iOS. Dedup com o evento
+  // client-side (page.tsx dispara com o transactionIdentifier da Apple — mesmo id aqui).
+  let ga4: any = null
+  if (casou > 0 && (tipo === 'INITIAL_PURCHASE' || tipo === 'RENEWAL' || tipo === 'NON_RENEWING_PURCHASE')) {
+    const alvoId = uniq[0] || null
+    if (alvoId) {
+      const { data: pr } = await admin.from('progresso').select('attrib').eq('user_id', alvoId).maybeSingle()
+      const anual = /(anual|year|yearly)/.test(String(ev?.product_id || '').toLowerCase())
+      ga4 = await enviarPurchaseGA4({
+        userId: alvoId,
+        clientId: pr?.attrib?.ga_cid || null,
+        gclid: pr?.attrib?.gclid || null,
+        transactionId: String(ev?.transaction_id || ev?.id || `rc_${alvoId}`),
+        value: anual ? 289.9 : 29.9,
+      })
+      if (!ga4?.sent) console.error('[RevenueCat] GA4 MP não enviado', ga4)
+    }
+  }
+
+  return NextResponse.json({ ok: true, tipo, concede, revoga, contas_atualizadas: casou, ga4 })
 }
 
 export async function GET() {

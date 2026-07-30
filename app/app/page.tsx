@@ -2961,6 +2961,9 @@ export default function AppPage() {
         // evento de conversão e é persistida pra o webhook reenviar quando o trial virar assinatura.
         let attrib: any = null
         try { const raw = localStorage.getItem('speakup_attrib'); if (raw) attrib = JSON.parse(raw) } catch (e) {}
+        // Cookie _ga = client_id do GA4: gravado junto, permite o webhook mandar o purchase
+        // server-side "colado" na mesma sessão que o navegador reportou (atribuição correta).
+        try { const m = document.cookie.match(/_ga=GA\d+\.\d+\.(\d+\.\d+)/); if (m) attrib = { ...(attrib || {}), ga_cid: m[1] } } catch (e) {}
         // Medição (GTM/GA4): conta nova = início do trial de 2 dias. Valor = mensalidade como proxy.
         // Guarda idempotente: só 1x por usuário (senão cada reload do /app re-dispara o trial_start).
         try {

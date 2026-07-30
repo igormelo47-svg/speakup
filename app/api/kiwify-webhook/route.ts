@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { enviarPurchaseGA4 } from '../../../lib/ga4'
 
 // Webhook da Kiwify: libera/revoga o Premium conforme os eventos de pagamento.
 // Configure na Kiwify a URL: https://vonai.com.br/api/kiwify-webhook?token=SEU_TOKEN
@@ -29,6 +30,12 @@ function acharTipo(b: any): string {
   ).toLowerCase()
 }
 
+// O plano é anual? (pela descrição do produto/frequência no payload)
+function ehAnual(b: any): boolean {
+  const pista = (JSON.stringify(b?.Product || b?.product || {}) + ' ' + String(b?.Subscription?.plan?.frequency || '')).toLowerCase()
+  return /(anual|year|yearly)/.test(pista)
+}
+
 // Fim do ciclo já pago: next_payment da assinatura quando vier; senão assume mensal.
 // +3 dias de folga para o webhook de renovação chegar antes de o acesso cair.
 function acharExpiracao(b: any): string {
@@ -37,9 +44,7 @@ function acharExpiracao(b: any): string {
   if (d && !isNaN(d.getTime()) && d.getTime() > Date.now()) {
     return new Date(d.getTime() + 3 * 86400000).toISOString()
   }
-  const pista = (JSON.stringify(b?.Product || b?.product || {}) + ' ' + String(b?.Subscription?.plan?.frequency || '')).toLowerCase()
-  const anual = /(anual|year|yearly)/.test(pista)
-  return new Date(Date.now() + (anual ? 366 : 34) * 86400000).toISOString()
+  return new Date(Date.now() + (ehAnual(b) ? 366 : 34) * 86400000).toISOString()
 }
 
 export async function POST(req: NextRequest) {
@@ -84,9 +89,11 @@ export async function POST(req: NextRequest) {
   // ilike sem curingas do usuário: escapa %/_ para "joao_silva@" não casar "joaoxsilva@".
   const emailEsc = String(email).replace(/[\\%_]/g, m => '\\' + m)
 
-  const { count, error } = await admin.from('progresso')
-    .update(novo, { count: 'exact' }).ilike('email', emailEsc).select('user_id')
+  const { data: linhas, count, error } = await admin.from('progresso')
+    .update(novo, { count: 'exact' }).ilike('email', emailEsc).select('user_id, attrib')
   let casou = count || 0
+  let alvoId: string | null = linhas?.[0]?.user_id || null
+  let alvoAttrib: any = linhas?.[0]?.attrib || null
 
   // progresso.email pode estar vazio (conta antiga): tenta pelo profiles, que sempre tem o e-mail
   // do cadastro, e cria/atualiza a linha de progresso pelo user_id.
@@ -96,6 +103,7 @@ export async function POST(req: NextRequest) {
       const { count: c2 } = await admin.from('progresso')
         .upsert({ user_id: prof[0].id, email, ...novo }, { onConflict: 'user_id', count: 'exact' }).select('user_id')
       casou = c2 || 0
+      alvoId = prof[0].id
     }
   }
 
@@ -106,7 +114,22 @@ export async function POST(req: NextRequest) {
     if (pendErr) console.error('[Kiwify] falha ao registrar pendência', pendErr.message)
   }
 
-  return NextResponse.json({ ok: true, email, tipo, reembolso, cancelamento, pago, contas_atualizadas: casou })
+  // Conversão server-side (GA4 Measurement Protocol): a compra web/Android acontece no gateway,
+  // muitas vezes sem o app aberto — o webhook é a fonte de verdade do purchase. Dedup com o
+  // evento client-side pelo MESMO transaction_id ('kiwify_<user_id>').
+  let ga4: any = null
+  if (pago && casou > 0 && alvoId) {
+    ga4 = await enviarPurchaseGA4({
+      userId: alvoId,
+      clientId: alvoAttrib?.ga_cid || null,
+      gclid: alvoAttrib?.gclid || null,
+      transactionId: 'kiwify_' + alvoId,
+      value: ehAnual(body) ? 289.8 : 29.9,
+    })
+    if (!ga4?.sent) console.error('[Kiwify] GA4 MP não enviado', ga4)
+  }
+
+  return NextResponse.json({ ok: true, email, tipo, reembolso, cancelamento, pago, contas_atualizadas: casou, ga4 })
 }
 
 export async function GET() {
