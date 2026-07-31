@@ -16,7 +16,16 @@ import { avisarVenda } from '../../../lib/avisar-venda'
 //   acesso termina sozinho quando a data passa (a Kiwify não manda evento de expiração —
 //   a data faz o papel do EXPIRATION do RevenueCat).
 
-function acharEmail(b: any): string | null {
+// Ordem importa: reembolso antes de cancelamento antes de pago — eventos de assinatura
+// carregam order_status 'paid' do pedido original, então um refund também "parece" pago.
+export function classificarEvento(tipo: string): 'reembolso' | 'cancelamento' | 'pago' | null {
+  if (/(refund|reembols|charge_?back)/.test(tipo)) return 'reembolso'
+  if (/(cancel|expired|expirad|late|atras)/.test(tipo)) return 'cancelamento'
+  if (/(approved|aprovad|paid|complet|renew|active|ativa)/.test(tipo)) return 'pago'
+  return null
+}
+
+export function acharEmail(b: any): string | null {
   if (!b || typeof b !== 'object') return null
   return (
     b?.Customer?.email || b?.customer?.email || b?.buyer?.email ||
@@ -26,21 +35,21 @@ function acharEmail(b: any): string | null {
 
 // PEGADINHA: eventos de assinatura podem chegar com order_status 'paid' do pedido original.
 // O TIPO do evento decide; order_status é só o último recurso (pedido avulso sem tipo).
-function acharTipo(b: any): string {
+export function acharTipo(b: any): string {
   return String(
     b?.webhook_event_type || b?.event || b?.Subscription?.status || b?.order_status || b?.status || ''
   ).toLowerCase()
 }
 
 // O plano é anual? (pela descrição do produto/frequência no payload)
-function ehAnual(b: any): boolean {
+export function ehAnual(b: any): boolean {
   const pista = (JSON.stringify(b?.Product || b?.product || {}) + ' ' + String(b?.Subscription?.plan?.frequency || '')).toLowerCase()
   return /(anual|year|yearly)/.test(pista)
 }
 
 // Fim do ciclo já pago: next_payment da assinatura quando vier; senão assume mensal.
 // +3 dias de folga para o webhook de renovação chegar antes de o acesso cair.
-function acharExpiracao(b: any): string {
+export function acharExpiracao(b: any): string {
   const next = b?.Subscription?.next_payment || b?.subscription?.next_payment
   const d = next ? new Date(next) : null
   if (d && !isNaN(d.getTime()) && d.getTime() > Date.now()) {
@@ -76,10 +85,10 @@ export async function POST(req: NextRequest) {
   const tipo = acharTipo(body)
   if (!email) return NextResponse.json({ ok: true, ignored: 'sem email' })
 
-  // Ordem importa: reembolso antes de cancelamento antes de pago.
-  const reembolso = /(refund|reembols|charge_?back)/.test(tipo)
-  const cancelamento = /(cancel|expired|expirad|late|atras)/.test(tipo)
-  const pago = /(approved|aprovad|paid|complet|renew|active|ativa)/.test(tipo)
+  const classe = classificarEvento(tipo)
+  const reembolso = classe === 'reembolso'
+  const cancelamento = classe === 'cancelamento'
+  const pago = classe === 'pago'
 
   let novo: Record<string, any> | null = null
   if (reembolso) novo = { is_premium: false, premium_expira: null, updated_at: new Date().toISOString() }

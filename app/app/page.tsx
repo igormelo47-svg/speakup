@@ -109,7 +109,12 @@ function IcBadge({ e, color, onDark, size = 22, box = 38, radius = 10, style }: 
 }
 
 interface Question { q: string; ctx: string; opts: string[]; ans: number; exp: string }
-interface Lesson { title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[]; cefr?: string }
+interface Lesson { id?: string; title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[]; cefr?: string }
+
+// Chave ESTÁVEL da lição no progresso do aluno (licoes_concluidas). Historicamente é o
+// título — por isso, AO RENOMEAR uma lição, adicione `id` com o título antigo: quem já
+// concluiu não perde o progresso e as novas conclusões continuam consistentes.
+const chaveLicao = (l: { id?: string; title: string }) => l.id || l.title
 
 // Embaralha as opções de uma questão de forma determinística (pelo texto da pergunta),
 // para a resposta correta não ficar sempre na 1ª posição. Mantém-se estável entre renders.
@@ -2394,7 +2399,7 @@ export default function AppPage() {
   }, [xpHydrated, hojeStr])
   const xpHoje = Math.max(0, xp - xpInicioDia)
 
-  Object.values(lessons).flat().forEach(l => { l.done = licoesConcluidas.includes(l.title) })
+  Object.values(lessons).flat().forEach(l => { l.done = licoesConcluidas.includes(chaveLicao(l)) })
 
   useEffect(() => {
     try { const sn = localStorage.getItem('speakup_nivel'); if (sn && lessons[sn]) setLevel(sn) } catch (e) {}
@@ -3197,7 +3202,7 @@ export default function AppPage() {
   function nextQ() {
     const qs = lessons[level][lessonIdx].q
     if (qIdx + 1 >= qs.length) {
-      const titulo = lessons[level][lessonIdx].title
+      const titulo = chaveLicao(lessons[level][lessonIdx])
       const ehNova = !licoesConcluidas.includes(titulo)
       const novasLicoes = ehNova ? [...licoesConcluidas, titulo] : licoesConcluidas
       const novoXp = xp + 30
@@ -3963,7 +3968,7 @@ export default function AppPage() {
     try { track('treino_iniciar') } catch (e) {}
     setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null
     const arr = lessons[level] || []
-    const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title))
+    const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
     // Aquecimento: erros reais e revisões vencidas abrem a sessão (retrieval antes do novo).
     if (errosQs.length > 0 || revisoesDevidas.length > 0) {
       setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao'); return
@@ -3975,7 +3980,7 @@ export default function AppPage() {
   const continuarTreinoAposAquecimento = () => {
     treinoAquecRef.current = { acertos: revAcertos, total: revisaoQuestions.length }
     const arr = lessons[level] || []
-    const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title))
+    const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
     if (idx >= 0) { abrirLicaoTreino(idx); return }
     setView('sessaoFim'); setTab('lessons')
   }
@@ -3991,7 +3996,7 @@ export default function AppPage() {
   function renderHomeGuiada() {
     const fraco = (perfilIa.topicos_fracos && perfilIa.topicos_fracos[perfilIa.topicos_fracos.length - 1]) || ''
     const temRevisao = errosQs.length > 0 || revisoesDevidas.length > 0
-    const proxL = (lessons[level] || []).find(l => !licoesConcluidas.includes(l.title))
+    const proxL = (lessons[level] || []).find(l => !licoesConcluidas.includes(chaveLicao(l)))
     const treinouHoje = !isNovo && licoesHoje > 0 && (simulacoesHoje > 0 || falaDiaData === hojeStr)
     const xpHoje = Math.max(0, xp - xpInicioDia)
     const passos = [
@@ -4028,7 +4033,7 @@ export default function AppPage() {
           {/* Card grande de progresso (o que o Emmanuel achou mais bonito) */}
           {(() => {
             const lvlArr = lessons[level] || []
-            const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(l.title)).length
+            const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(chaveLicao(l))).length
             const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
             const C = 188.5
             const nv = nivelDeXp(xp)
@@ -4393,7 +4398,7 @@ export default function AppPage() {
             </div>
             {(() => {
               const lvlArr = lessons[level] || []
-              const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(l.title)).length
+              const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(chaveLicao(l))).length
               const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
               const C = 188.5
               const nv = nivelDeXp(xp)
@@ -4460,7 +4465,7 @@ export default function AppPage() {
                 else if (recorde > 1 && streak === recorde - 1) linhas.push(`Amanhã você iguala seu recorde de ${recorde} dias. Não pare agora!`)
                 if (cen) linhas.push(`Preparei uma conversa sobre "${cen.title}" para hoje. Topa treinar comigo?`)
               }
-              const irPrimeiraLicao = () => { const arr = lessons[level] || []; const idx = arr.findIndex(l => !licoesConcluidas.includes(l.title)); setLessonIdx(Math.max(0, idx)); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons'); try { track('coach_primeira_licao') } catch (e) {} }
+              const irPrimeiraLicao = () => { const arr = lessons[level] || []; const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l))); setLessonIdx(Math.max(0, idx)); setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('explanation'); setTab('lessons'); try { track('coach_primeira_licao') } catch (e) {} }
               return (
                 <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 20, padding: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(75,63,191,0.3)', animation: 'su_risefade 0.5s ease both' }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -5560,9 +5565,9 @@ export default function AppPage() {
             )}
             {view === 'list' && (() => {
               const lvl = lessons[level]
-              const nextIdx = lvl.findIndex(l => !licoesConcluidas.includes(l.title))
+              const nextIdx = lvl.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
               const allDone = nextIdx === -1
-              const feitasNivel = lvl.filter(l => licoesConcluidas.includes(l.title)).length
+              const feitasNivel = lvl.filter(l => licoesConcluidas.includes(chaveLicao(l))).length
               return (
                 <div>
                   <button onClick={() => setView('levels')} style={{ background: 'none', border: 'none', color: blue, cursor: 'pointer', marginBottom: 14, fontSize: 14, padding: 0 }}><Ic e="←" /> Voltar</button>
@@ -5576,7 +5581,7 @@ export default function AppPage() {
                   </div>
                   <div>
                     {lvl.map((l, i) => {
-                      const done = licoesConcluidas.includes(l.title)
+                      const done = licoesConcluidas.includes(chaveLicao(l))
                       const isNext = i === nextIdx
                       const liberada = isNext && !metaFeitaHoje
                       const unlocked = done || liberada
@@ -6057,7 +6062,7 @@ export default function AppPage() {
         const ordem = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
         const nivelInfo: Record<string, { nome: string; cor: string; bg: string }> = { A1: { nome: 'A1 · Iniciante', cor: '#16A34A', bg: '#E3F3EA' }, A2: { nome: 'A2 · Básico', cor: '#16A34A', bg: '#E3F3EA' }, B1: { nome: 'B1 · Intermediário', cor: '#185FA5', bg: '#E6F1FB' }, B2: { nome: 'B2 · Intermediário+', cor: '#185FA5', bg: '#E6F1FB' }, C1: { nome: 'C1 · Avançado', cor: '#534AB7', bg: '#EEEDFE' }, C2: { nome: 'C2 · Domínio', cor: '#534AB7', bg: '#EEEDFE' } }
         let atualLvl: string | null = null, atualIdx = -1
-        for (const lv of ordem) { const a = lessons[lv] || []; const idx = a.findIndex(l => !licoesConcluidas.includes(l.title)); if (idx !== -1) { atualLvl = lv; atualIdx = idx; break } }
+        for (const lv of ordem) { const a = lessons[lv] || []; const idx = a.findIndex(l => !licoesConcluidas.includes(chaveLicao(l))); if (idx !== -1) { atualLvl = lv; atualIdx = idx; break } }
         const pct = totalLessons ? Math.round(doneLessons / totalLessons * 100) : 0
         return (
           <div style={{ background: 'linear-gradient(180deg, #DFF3D6 0%, #C4E7B6 55%, #AEDDA0 100%)', minHeight: '100vh' }}>
@@ -6072,7 +6077,7 @@ export default function AppPage() {
                 const arr = lessons[lv] || []
                 if (!arr.length) return null
                 const info = nivelInfo[lv]
-                const feitasNivel = arr.filter(l => licoesConcluidas.includes(l.title)).length
+                const feitasNivel = arr.filter(l => licoesConcluidas.includes(chaveLicao(l))).length
                 return (
                   <div key={lv} style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 20px' }}>
@@ -6081,7 +6086,7 @@ export default function AppPage() {
                       <div style={{ flex: 1, height: 1, background: 'var(--color-border-tertiary)' }} />
                     </div>
                     {arr.map((l, i) => {
-                      const done = licoesConcluidas.includes(l.title)
+                      const done = licoesConcluidas.includes(chaveLicao(l))
                       const isAtual = lv === atualLvl && i === atualIdx
                       const liberada = isAtual && !metaFeitaHoje
                       const unlocked = done || liberada
