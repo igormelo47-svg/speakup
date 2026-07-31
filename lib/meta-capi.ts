@@ -34,7 +34,12 @@ export async function enviarPurchaseMeta(opts: {
     user_data.fbc = `fb.1.${isNaN(t) ? Date.now() : t}.${opts.fbclid}`
   }
 
+  // Código de teste do Gerenciador de Eventos (validação sem compra real): quando a env
+  // META_CAPI_TEST_CODE existe, o evento cai na aba "Eventos de teste" em vez de produção.
+  // Setar só durante a validação com o gestor de tráfego e remover depois.
+  const testCode = process.env.META_CAPI_TEST_CODE
   const body = {
+    ...(testCode ? { test_event_code: testCode } : {}),
     data: [{
       event_name: 'Purchase',
       event_time: Math.floor(Date.now() / 1000),
