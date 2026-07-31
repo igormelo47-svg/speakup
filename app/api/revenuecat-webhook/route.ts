@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarPurchaseGA4 } from '../../../lib/ga4'
+import { enviarPurchaseMeta } from '../../../lib/meta-capi'
 import { avisarVenda } from '../../../lib/avisar-venda'
 
 // Webhook do RevenueCat (assinaturas via App Store / Google Play).
@@ -90,9 +91,24 @@ export async function POST(req: NextRequest) {
         value: anual ? 289.9 : 29.9,
       })
       if (!ga4?.sent) console.error('[RevenueCat] GA4 MP não enviado', ga4)
+      // Meta CAPI: mesmo evento, mesmo id de dedup do pixel (vonai-purchase-<transaction_id>).
+      let emailAluno: string | null = email
       try {
         const { data: pf } = await admin.from('profiles').select('email').eq('id', alvoId).maybeSingle()
-        await avisarVenda({ email: pf?.email || email || alvoId, origem: 'Apple', tipo: tipo, valor: anual ? 289.9 : 29.9 })
+        if (pf?.email) emailAluno = pf.email
+      } catch (e) {}
+      const meta = await enviarPurchaseMeta({
+        userId: alvoId,
+        email: emailAluno,
+        transactionId: String(ev?.transaction_id || ev?.id || `rc_${alvoId}`),
+        value: anual ? 289.9 : 29.9,
+        fbp: pr?.attrib?.fbp || null,
+        fbclid: pr?.attrib?.fbclid || null,
+        ts: pr?.attrib?.ts || null,
+      })
+      if (!meta?.sent) console.error('[RevenueCat] Meta CAPI não enviado', meta)
+      try {
+        await avisarVenda({ email: emailAluno || alvoId, origem: 'Apple', tipo: tipo, valor: anual ? 289.9 : 29.9 })
       } catch (e) {}
     }
   }

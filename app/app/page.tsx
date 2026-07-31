@@ -2964,6 +2964,9 @@ export default function AppPage() {
         // Cookie _ga = client_id do GA4: gravado junto, permite o webhook mandar o purchase
         // server-side "colado" na mesma sessão que o navegador reportou (atribuição correta).
         try { const m = document.cookie.match(/_ga=GA\d+\.\d+\.(\d+\.\d+)/); if (m) attrib = { ...(attrib || {}), ga_cid: m[1] } } catch (e) {}
+        // Cookie _fbp = browser id do pixel do Meta: o webhook manda junto no Purchase da
+        // API de Conversões, o que melhora a correspondência (pedido do gestor de tráfego).
+        try { const f = document.cookie.match(/_fbp=([^;]+)/); if (f) attrib = { ...(attrib || {}), fbp: decodeURIComponent(f[1]) } } catch (e) {}
         // Medição (GTM/GA4): conta nova = início do trial de 2 dias. Valor = mensalidade como proxy.
         // Guarda idempotente: só 1x por usuário (senão cada reload do /app re-dispara o trial_start).
         try {

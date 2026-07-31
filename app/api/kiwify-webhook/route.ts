@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { enviarPurchaseGA4 } from '../../../lib/ga4'
+import { enviarPurchaseMeta } from '../../../lib/meta-capi'
 import { avisarVenda } from '../../../lib/avisar-venda'
 
 // Webhook da Kiwify: libera/revoga o Premium conforme os eventos de pagamento.
@@ -128,6 +129,17 @@ export async function POST(req: NextRequest) {
       value: ehAnual(body) ? 289.8 : 29.9,
     })
     if (!ga4?.sent) console.error('[Kiwify] GA4 MP não enviado', ga4)
+    // Meta CAPI: mesmo evento, mesmo id de dedup do pixel (vonai-purchase-<transaction_id>).
+    const meta = await enviarPurchaseMeta({
+      userId: alvoId,
+      email: String(email),
+      transactionId: 'kiwify_' + alvoId,
+      value: ehAnual(body) ? 289.8 : 29.9,
+      fbp: alvoAttrib?.fbp || null,
+      fbclid: alvoAttrib?.fbclid || null,
+      ts: alvoAttrib?.ts || null,
+    })
+    if (!meta?.sent) console.error('[Kiwify] Meta CAPI não enviado', meta)
     // Aviso por e-mail: enquanto o volume é pequeno, saber da venda na hora vale mais que relatório.
     try { await avisarVenda({ email: String(email), origem: 'Kiwify', tipo: tipo, valor: ehAnual(body) ? 289.8 : 29.9 }) } catch (e) {}
   }
