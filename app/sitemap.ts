@@ -4,6 +4,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://vonai.com.br'
   return [
     { url: `${base}/`, changeFrequency: 'weekly', priority: 1 },
+    { url: `${base}/aplicativo-para-aprender-ingles`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${base}/cadastro`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${base}/login`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${base}/suporte`, changeFrequency: 'yearly', priority: 0.3 },
