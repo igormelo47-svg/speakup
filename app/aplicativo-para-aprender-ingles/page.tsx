@@ -17,13 +17,14 @@ export const metadata = {
 const AZUL = '#1E63C7'
 const ESCURO = '#103D77'
 const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.vercel.speakup_dusky.twa'
+const APP_STORE_URL = 'https://apps.apple.com/br/app/vonai/id6788121941'
 
 const FAQ = [
   { q: 'Qual o melhor aplicativo para aprender inglês sozinho?', a: 'O melhor aplicativo é o que faz você FALAR — é falando que a fluência aparece. O Vonai foi construído em volta disso: um professor de IA disponível 24h conversa com você, corrige sua pronúncia na hora e explica os erros em português. Apps de memorização ensinam palavras; o Vonai ensina você a usá-las numa conversa.' },
   { q: 'O aplicativo é grátis?', a: 'Você começa com 2 dias de Premium grátis, sem cadastrar cartão de crédito. Depois pode continuar no plano gratuito (com limites diários) ou assinar o Premium por R$29,90/mês. Sem multa e sem fidelidade: cancela quando quiser.' },
   { q: 'Funciona para quem está começando do zero?', a: 'Sim. Um teste rápido descobre seu nível e a trilha começa exatamente do seu ponto — do A1 (primeiras palavras) ao C2 (quase nativo). Todas as explicações são em português.' },
   { q: 'Como o aplicativo corrige minha pronúncia?', a: 'Você fala com o app e ele analisa palavra por palavra, com dicas específicas para os sons que não existem em português — o "th" de three, o "-ed" de worked, o H aspirado. É treino de pronúncia feito para a boca do brasileiro.' },
-  { q: 'Funciona no celular Android e no iPhone?', a: 'Sim. No Android, baixe o Vonai na Google Play. No iPhone e no computador, use direto pelo navegador em vonai.com.br — mesma conta, mesmo progresso em todos os aparelhos.' },
+  { q: 'Funciona no celular Android e no iPhone?', a: 'Sim. O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — e também funciona direto pelo navegador em vonai.com.br. Mesma conta, mesmo progresso em todos os aparelhos.' },
   { q: 'Quanto tempo por dia preciso estudar?', a: 'A partir de 5 minutos. O app monta um plano diário realista e a sequência de dias (🔥) ajuda a manter a constância — estudar um pouco todo dia vale mais do que uma hora uma vez por semana.' },
 ]
 
@@ -37,16 +38,24 @@ function Card({ e, t, d }: { e: string; t: string; d: string }) {
   )
 }
 
-function PlayBadge() {
+function LojaBadge({ href, icone, acima, nome }: { href: string; icone: string; acima: string; nome: string }) {
   return (
-    <a href={PLAY_URL} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#000', color: '#fff', borderRadius: 12, padding: '10px 18px', textDecoration: 'none' }}>
-      <span style={{ fontSize: 24 }}>▶</span>
+    <a href={href} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#000', color: '#fff', borderRadius: 12, padding: '10px 18px', textDecoration: 'none' }}>
+      <span style={{ fontSize: 24 }}>{icone}</span>
       <span style={{ textAlign: 'left', lineHeight: 1.15 }}>
-        <span style={{ display: 'block', fontSize: 10.5, opacity: 0.85 }}>Disponível no</span>
-        <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>Google Play</span>
+        <span style={{ display: 'block', fontSize: 10.5, opacity: 0.85 }}>{acima}</span>
+        <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{nome}</span>
       </span>
     </a>
   )
+}
+function PlayBadge() {
+  return <LojaBadge href={PLAY_URL} icone="▶" acima="Disponível no" nome="Google Play" />
+}
+function AppStoreBadge() {
+  // Emoji no lugar do logo da Apple: o caractere  (U+F8FF) vira quadrado fora de
+  // dispositivos Apple — e quem mais vê esta página está no Android/Windows.
+  return <LojaBadge href={APP_STORE_URL} icone="🍎" acima="Baixar na" nome="App Store" />
 }
 
 export default function AplicativoParaAprenderIngles() {
@@ -71,6 +80,7 @@ export default function AplicativoParaAprenderIngles() {
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
             <Link href="/cadastro" style={cta}>Testar grátis agora →</Link>
             <PlayBadge />
+            <AppStoreBadge />
           </div>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', marginTop: 20, fontSize: 13.5, color: '#B5D4F4' }}>
             <span>✓ 2 dias de Premium grátis</span>
@@ -163,6 +173,7 @@ export default function AplicativoParaAprenderIngles() {
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
             <Link href="/cadastro" style={cta}>Começar grátis →</Link>
             <PlayBadge />
+            <AppStoreBadge />
           </div>
         </div>
       </div>
