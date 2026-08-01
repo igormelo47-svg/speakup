@@ -21,6 +21,7 @@ export async function enviarPurchaseMeta(opts: {
   fbp?: string | null      // cookie _fbp gravado no cadastro (attrib.fbp)
   fbclid?: string | null   // 1º toque (attrib.fbclid) — vira fbc se não houver cookie _fbc
   ts?: string | null       // attrib.ts — momento do 1º toque, usado no fbc derivado
+  testEventCode?: string   // força a aba "Eventos de teste" (validação); sobrepõe a env
 }) {
   const token = process.env.META_CAPI_TOKEN
   if (!token) return { sent: false, reason: 'sem META_CAPI_TOKEN na Vercel' }
@@ -37,7 +38,7 @@ export async function enviarPurchaseMeta(opts: {
   // Código de teste do Gerenciador de Eventos (validação sem compra real): quando a env
   // META_CAPI_TEST_CODE existe, o evento cai na aba "Eventos de teste" em vez de produção.
   // Setar só durante a validação com o gestor de tráfego e remover depois.
-  const testCode = process.env.META_CAPI_TEST_CODE
+  const testCode = opts.testEventCode || process.env.META_CAPI_TEST_CODE
   const body = {
     ...(testCode ? { test_event_code: testCode } : {}),
     data: [{
