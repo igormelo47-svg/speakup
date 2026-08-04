@@ -2197,6 +2197,8 @@ export default function AppPage() {
   const [onboarded, setOnboarded] = useState(false)
   const [hist, setHist] = useState<Record<string, number>>({})
   const [feedbackModal, setFeedbackModal] = useState(false)
+  // Convite para avaliar o app na loja. Aparece UMA vez, depois de uma conquista real.
+  const [avaliarModal, setAvaliarModal] = useState(false)
   const [lembreteConvite, setLembreteConvite] = useState(false)
   // Exclusão de conta iniciada no app (App Store, guideline 5.1.1(v)).
   const [excluirModal, setExcluirModal] = useState(false)
@@ -3265,6 +3267,41 @@ export default function AppPage() {
       alert('Não consegui enviar agora. Verifique sua conexão e tente de novo. 🙏')
     }
   }
+
+  // ---- Convite para avaliar o app na loja ----
+  // Nota alta sobe o app na busca da loja (ver aso-ficha-lojas.md). Hoje ninguém é convidado:
+  // são 5 avaliações na App Store, todas de gente próxima.
+  //
+  // IMPORTANTE: o convite é IGUAL para todo mundo. Não perguntamos antes se a pessoa está
+  // gostando para só então mandar quem gostou à loja — Apple e Google proíbem esse filtro, e
+  // apps já foram rejeitados por isso. Quem quiser reclamar tem o caminho de sugestão ao lado,
+  // com o mesmo destaque.
+  const CHAVE_AVALIACAO = 'speakup_avaliacao_convite'
+
+  function abrirLojaParaAvaliar() {
+    try { localStorage.setItem(CHAVE_AVALIACAO, 'usou') } catch (e) {}
+    try { track('avaliacao_convite_aceito') } catch (e) {}
+    // No iOS o parâmetro action=write-review abre direto a caixa de avaliação.
+    const url = isIOSNative
+      ? 'https://apps.apple.com/br/app/vonai/id6788121941?action=write-review'
+      : 'https://play.google.com/store/apps/details?id=app.vercel.speakup_dusky.twa'
+    try { window.open(url, '_blank', 'noopener,noreferrer') } catch (e) { location.href = url }
+    setAvaliarModal(false)
+  }
+
+  // Gatilho: uma conquista de verdade — 7 dias de sequência ou 5 lições concluídas. Convidar
+  // antes disso é pedir opinião de quem ainda não tem opinião, e rende nota baixa.
+  useEffect(() => {
+    if (!xpHydrated || avaliarModal) return
+    if (streak < 7 && licoesConcluidas.length < 5) return
+    try {
+      if (localStorage.getItem(CHAVE_AVALIACAO)) return // já convidamos uma vez
+      localStorage.setItem(CHAVE_AVALIACAO, 'visto')
+      // Espera a comemoração da tela passar antes de pedir algo.
+      const t = setTimeout(() => setAvaliarModal(true), 2600)
+      return () => clearTimeout(t)
+    } catch (e) {}
+  }, [xpHydrated, streak, licoesConcluidas.length, avaliarModal])
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
@@ -4971,6 +5008,35 @@ export default function AppPage() {
             <div style={{ fontSize: 20, fontWeight: 700, color: '#16212c', marginBottom: 6 }}>{conqNova.nome}</div>
             <div style={{ fontSize: 13, color: '#5c6b7a', marginBottom: 22, lineHeight: 1.5 }}>Mais uma medalha na sua coleção. Continue assim! <Ic e="🔥" /></div>
             <button onClick={() => setConqNova(null)} style={{ width: '100%', padding: 13, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Continuar <Ic e="→" /></button>
+          </div>
+        </div>
+      )}
+
+      {avaliarModal && (
+        <div onClick={() => setAvaliarModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 125, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderRadius: 20, padding: '26px 22px', width: '100%', maxWidth: 330, textAlign: 'center', boxSizing: 'border-box', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>⭐</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#16212c', marginBottom: 8 }}>
+              {streak >= 7 ? `${streak} dias seguidos!` : 'Você está indo bem!'}
+            </div>
+            <div style={{ fontSize: 13.5, color: '#5c6b7a', marginBottom: 20, lineHeight: 1.55 }}>
+              O Vonai é feito por uma pessoa só, aqui no Brasil. Sua avaliação na loja ajuda outros
+              brasileiros a encontrarem o app.
+            </div>
+            <button onClick={abrirLojaParaAvaliar} style={{ width: '100%', padding: 13, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Avaliar na loja ⭐
+            </button>
+            {/* Mesmo destaque do botão principal, de propósito: quem está insatisfeito precisa
+                achar este caminho com a mesma facilidade, senão vira filtro de avaliação. */}
+            <button
+              onClick={() => { setAvaliarModal(false); setFeedbackModal(true); try { track('avaliacao_convite_sugestao') } catch (e) {} }}
+              style={{ width: '100%', padding: 12, marginTop: 8, background: 'none', color: blue, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              Prefiro mandar uma sugestão
+            </button>
+            <button onClick={() => setAvaliarModal(false)} style={{ width: '100%', padding: 10, background: 'none', color: '#8a97a4', border: 'none', fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Agora não
+            </button>
           </div>
         </div>
       )}
