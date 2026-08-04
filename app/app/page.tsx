@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from 'react'
 import { supabase } from '../../lib/supabase'
+import { mesclarPendente, sobrasAposEnvio } from '../../lib/progresso-pendente'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -2152,6 +2153,11 @@ export default function AppPage() {
   const [conqNova, setConqNova] = useState<{ e: string; nome: string } | null>(null)
   const [pagante, setPagante] = useState(false) // assinatura PAGA ativa (≠ trial)
   const [erroCarregamento, setErroCarregamento] = useState(false)
+  // Progresso que NÃO conseguiu ser gravado (rede caiu, permissão, coluna faltando).
+  // Antes o resultado do upsert era descartado: a tela mostrava o XP subindo e o banco
+  // não recebia nada — o aluno voltava no dia seguinte sem o progresso, e não voltava
+  // uma terceira vez. Agora fica pendente, tenta de novo sozinho e ele fica sabendo.
+  const [progressoPendente, setProgressoPendente] = useState(false)
   const [aguardandoPagamento, setAguardandoPagamento] = useState(false)
   const [treinoAposOnboarding, setTreinoAposOnboarding] = useState(false)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
@@ -2581,6 +2587,88 @@ export default function AppPage() {
     try { localStorage.setItem('speakup_ultima_atividade', hoje) } catch (e) {}
     return { novoStreak, freezesRestantes, usouFreeze }
   }
+  // ---- Gravação do progresso do aluno (XP, sequência, moedas) ----
+  // Regra: NUNCA descartar o resultado. Se falhar, o que ele conquistou fica guardado no
+  // aparelho e é reenviado sozinho — quando a internet volta, quando ele reabre o app, ou
+  // no próximo estudo. O aviso na tela existe pra ele não achar que perdeu o que fez.
+  const CHAVE_FILA = 'speakup_progresso_pendente'
+
+  // Mescla o que já estava pendente com o novo, campo a campo: o último valor vence, e o
+  // que não veio agora (ex.: moedas numa gravação só de XP) continua valendo.
+  function guardarPendente(patch: Record<string, any>) {
+    try {
+      let atual: Record<string, any> = {}
+      const raw = localStorage.getItem(CHAVE_FILA)
+      if (raw) atual = JSON.parse(raw) || {}
+      localStorage.setItem(CHAVE_FILA, JSON.stringify(mesclarPendente(atual, patch)))
+      setProgressoPendente(true)
+    } catch (e) {}
+  }
+
+  async function salvarProgresso(patch: Record<string, any>) {
+    if (!userId) return
+    const dados = { user_id: userId, updated_at: new Date().toISOString(), ...patch }
+    try {
+      const { error } = await supabase.from('progresso').upsert(dados, { onConflict: 'user_id' })
+      if (error) {
+        console.error('[Progresso] falha ao gravar', error)
+        guardarPendente(patch)
+        return
+      }
+      // Deu certo: se havia coisa pendente, ela já foi junto? Não necessariamente —
+      // o reenvio tem função própria. Aqui só limpamos o aviso se não sobrou nada.
+      try { if (!localStorage.getItem(CHAVE_FILA)) setProgressoPendente(false) } catch (e) {}
+    } catch (e) {
+      console.error('[Progresso] erro de rede ao gravar', e)
+      guardarPendente(patch)
+    }
+  }
+
+  // Reenvia o que ficou pendente. Chamado quando o app abre, quando a conexão volta e
+  // quando o aluno volta pra aba. Só limpa a fila depois de confirmar que gravou.
+  const reenviarPendente = useCallback(async () => {
+    if (!userId) return
+    let pend: Record<string, any> | null = null
+    try {
+      const raw = localStorage.getItem(CHAVE_FILA)
+      if (raw) pend = JSON.parse(raw)
+    } catch (e) {}
+    if (!pend || !Object.keys(pend).length) { setProgressoPendente(false); return }
+    const enviado = pend
+    try {
+      const { error } = await supabase
+        .from('progresso')
+        .upsert({ user_id: userId, updated_at: new Date().toISOString(), ...enviado }, { onConflict: 'user_id' })
+      if (error) { console.error('[Progresso] reenvio falhou', error); setProgressoPendente(true); return }
+      // Entre ler a fila e chegar aqui houve um await — o aluno pode ter concluído outra
+      // lição que também falhou e entrou na fila. Apagar a fila inteira jogaria esse
+      // progresso novo fora. Então só removemos o que ainda está igual ao que foi enviado.
+      try {
+        const raw2 = localStorage.getItem(CHAVE_FILA)
+        const sobrou = sobrasAposEnvio(raw2 ? JSON.parse(raw2) : null, enviado)
+        if (Object.keys(sobrou).length) { localStorage.setItem(CHAVE_FILA, JSON.stringify(sobrou)); setProgressoPendente(true); return }
+        localStorage.removeItem(CHAVE_FILA)
+      } catch (e) {}
+      setProgressoPendente(false)
+    } catch (e) {
+      console.error('[Progresso] reenvio sem rede', e)
+      setProgressoPendente(true)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
+    reenviarPendente()
+    const aoVoltarOnline = () => reenviarPendente()
+    const aoFocar = () => { if (document.visibilityState === 'visible') reenviarPendente() }
+    window.addEventListener('online', aoVoltarOnline)
+    document.addEventListener('visibilitychange', aoFocar)
+    return () => {
+      window.removeEventListener('online', aoVoltarOnline)
+      document.removeEventListener('visibilitychange', aoFocar)
+    }
+  }, [userId, reenviarPendente])
+
   function aplicarStreak(r: { novoStreak: number; freezesRestantes: number; usouFreeze: boolean }) {
     setStreak(r.novoStreak)
     if (r.usouFreeze) { setStreakFreezes(r.freezesRestantes); setConqNova({ e: '🔥', nome: 'Proteção usada — sua sequência continua!' }) }
@@ -2593,8 +2681,7 @@ export default function AppPage() {
     const novasMoedas = moedas + 5 + desAcertos
     aplicarStreak(st); setXp(novoXp); setDesafioFeito(true); setDesResult(true); setMoedas(novasMoedas)
     try { localStorage.setItem('speakup_desafio', hoje) } catch (e) {}
-    // Atenção: o cliente do Supabase só envia a requisição quando a promise é consumida (.then/await).
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hoje, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    salvarProgresso({ xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hoje })
     try { track('desafio_concluido', { acertos: desAcertos }) } catch (e) {}
   }
 
@@ -2613,7 +2700,7 @@ export default function AppPage() {
     const novos = Array.from(new Set([...histDone, h.id]))
     setHistDone(novos)
     try { localStorage.setItem('speakup_hist_done', JSON.stringify(novos)) } catch (e) {}
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    salvarProgresso({ xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hojeStr })
     try { track('historia_concluida', { historia: h.id, acertos }) } catch (e) {}
   }
 
@@ -2623,7 +2710,7 @@ export default function AppPage() {
     const novasMoedas = moedas + 5 + errAcertos
     aplicarStreak(st); setXp(novoXp); setMoedas(novasMoedas); setErrResult(true); setErrbrFeito(true)
     try { localStorage.setItem('speakup_errbr', hojeStr) } catch (e) {}
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    salvarProgresso({ xp: novoXp, streak: st.novoStreak, moedas: novasMoedas, streak_freezes: st.freezesRestantes, ultima_atividade: hojeStr })
     try { track('errosbr_concluido', { acertos: errAcertos }) } catch (e) {}
   }
 
@@ -2631,7 +2718,7 @@ export default function AppPage() {
   function ganharMoedas(n: number) {
     const novo = moedas + n
     setMoedas(novo)
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    salvarProgresso({ moedas: novo })
   }
   function claimMissao(id: string, reward: number) {
     const weekNow = Math.floor(Date.now() / (7 * 86400000))
@@ -2657,7 +2744,7 @@ export default function AppPage() {
     if (moedas < custo || streakFreezes >= maxFreezes) return
     const novoM = moedas - custo, novoF = streakFreezes + 1
     setMoedas(novoM); setStreakFreezes(novoF)
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, moedas: novoM, streak_freezes: novoF, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    salvarProgresso({ moedas: novoM, streak_freezes: novoF })
   }
   async function carregarLiga() {
     setLigaLoading(true)
@@ -2823,7 +2910,7 @@ export default function AppPage() {
     setXp(novoXp)
     setProvaScoreSemana(provaAcertos)
     try { localStorage.setItem('speakup_prova', semanaProva + ':' + provaAcertos) } catch (e) {}
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, xp: novoXp, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    salvarProgresso({ xp: novoXp })
   }
 
   useEffect(() => {
@@ -2908,7 +2995,10 @@ export default function AppPage() {
           try {
             const dias: string[] = Array.isArray(prog.dias_ativos) ? prog.dias_ativos : []
             if (!dias.includes(hojeStr)) {
-              supabase.from('progresso').upsert({ user_id: user.id, dias_ativos: [...dias, hojeStr].slice(-60), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+              // Métrica nossa (retenção D1/D7/D30), não conquista do aluno: não entra na
+              // fila de reenvio, mas o erro aparece no console em vez de sumir.
+              supabase.from('progresso').upsert({ user_id: user.id, dias_ativos: [...dias, hojeStr].slice(-60), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+                .then(({ error }) => { if (error) console.error('[Progresso] dias_ativos não gravou', error) })
             }
           } catch (e) {}
           // Domínio no servidor (o "cérebro" do professor sobrevive à troca de aparelho):
@@ -2942,8 +3032,10 @@ export default function AppPage() {
           const weekNow = Math.floor(Date.now() / (7 * 86400000))
           semNumRef.current = weekNow
           semBaseRef.current = prog.sem_num === weekNow ? (prog.sem_base_xp || 0) : initialXp
-          supabase.from('progresso').upsert({ user_id: user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
-          if (!prog.email && user.email) supabase.from('progresso').update({ email: user.email }).eq('user_id', user.id).then(() => {})
+          supabase.from('progresso').upsert({ user_id: user.id, nome, sem_num: weekNow, sem_base_xp: semBaseRef.current, sem_xp: Math.max(0, initialXp - semBaseRef.current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+            .then(({ error }) => { if (error) console.error('[Progresso] liga semanal não gravou', error) })
+          if (!prog.email && user.email) supabase.from('progresso').update({ email: user.email }).eq('user_id', user.id)
+            .then(({ error }) => { if (error) console.error('[Progresso] e-mail não gravou', error) })
         }
       } else if (progReadError) {
         // Leitura falhou e não há cache: NÃO tratar como conta nova — o ramo abaixo zeraria o
@@ -3041,17 +3133,12 @@ export default function AppPage() {
     })
   }, [])
 
-  async function salvarProgresso(novoXp: number, novasLicoes: string[], streakInfo?: { novoStreak: number; freezesRestantes: number }) {
-    if (!userId) return
-    const payload: any = { user_id: userId, xp: novoXp, licoes_concluidas: novasLicoes, ultima_atividade: dataLocal(0), updated_at: new Date().toISOString() }
-    if (streakInfo) { payload.streak = streakInfo.novoStreak; payload.streak_freezes = streakInfo.freezesRestantes }
-    console.log('[XP][Licao] Antes de gravar no Supabase', { tabela: 'progresso', payload })
-    const { error } = await supabase.from('progresso').upsert(payload, { onConflict: 'user_id' })
-    if (error) {
-      console.log('[XP][Licao] Resposta do Supabase: erro', { tabela: 'progresso', error })
-    } else {
-      console.log('[XP][Licao] Resposta do Supabase: sucesso', { tabela: 'progresso', userId, xp: novoXp })
-    }
+  // Lição concluída — o caso mais importante: além do XP, grava QUAIS lições ele fez.
+  // Passa por salvarProgresso, então ganha fila de reenvio e aviso na tela de graça.
+  async function salvarProgressoLicao(novoXp: number, novasLicoes: string[], streakInfo?: { novoStreak: number; freezesRestantes: number }) {
+    const patch: Record<string, any> = { xp: novoXp, licoes_concluidas: novasLicoes, ultima_atividade: dataLocal(0) }
+    if (streakInfo) { patch.streak = streakInfo.novoStreak; patch.streak_freezes = streakInfo.freezesRestantes }
+    await salvarProgresso(patch)
   }
 
   async function logout() { await supabase.auth.signOut(); router.push('/login') }
@@ -3223,7 +3310,7 @@ export default function AppPage() {
       }
       const st = calcularStreakHoje()
       aplicarStreak(st)
-      salvarProgresso(novoXp, novasLicoes, st)
+      salvarProgressoLicao(novoXp, novasLicoes, st)
       if (treinoAtivo) treinoLicaoRef.current = titulo
       try { track('licao_concluida', { licao: titulo, nivel: level }) } catch (e) {}
       if (ehNova && novasLicoes.length === 1) eventoAtivacao('primeira_licao', { nivel: level })
@@ -3679,7 +3766,7 @@ export default function AppPage() {
     if (autoVoz) setTimeout(() => falarIngles(scenario.opener, 0), 400)
     const novo = `${hojeStr}:${simulacoesHoje + 1}`
     try { localStorage.setItem('speakup_sim_dia', novo) } catch (e) {} ; setSimDiaData(novo)
-    if (userId) supabase.from('progresso').upsert({ user_id: userId, ultima_atividade: hojeStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {})
+    salvarProgresso({ ultima_atividade: hojeStr })
   }
 
   async function sendConvMsg() {
@@ -3717,7 +3804,7 @@ export default function AppPage() {
   const marcarVocab = (en: string, estado: string) => { try { localStorage.setItem('speakup_vocab_dia', hojeStr) } catch (e) {} ; setVocabDiaData(hojeStr); setVocabSrs(prev => { const next = { ...prev, [en]: estado }; try { localStorage.setItem('speakup_vocab_srs', JSON.stringify(next)) } catch (e) {} ; salvarDominio({ vocab_srs: next }); return next }) }
   const vocabFeitoHoje = vocabDiaData === hojeStr
   const OBJETIVO_PADRAO = 'Conversar 30 minutos em inglês sem usar português'
-  function salvarPerfil(novo: any) { setPerfilIa(novo); if (userId) supabase.from('progresso').upsert({ user_id: userId, perfil_ia: novo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(() => {}) }
+  function salvarPerfil(novo: any) { setPerfilIa(novo); salvarProgresso({ perfil_ia: novo }) }
   // Domínio no servidor: upsert SEPARADO (se as colunas de dominio_columns.sql ainda
   // não existirem no banco, só esta gravação falha — XP/streak seguem intactos).
   function salvarDominio(campos: Record<string, any>) {
@@ -4399,6 +4486,21 @@ export default function AppPage() {
             </div>
             <button onClick={() => setLojaModal(false)} style={{ width: '100%', padding: 12, marginTop: 14, background: 'none', color: '#5c6b7a', border: 'none', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
           </div>
+        </div>
+      )}
+
+      {/* Progresso conquistado que ainda não chegou ao servidor. Fica visível em qualquer aba
+          porque o aluno precisa saber ANTES de fechar o app — e some sozinho no reenvio. */}
+      {progressoPendente && (
+        <div
+          onClick={reenviarPendente}
+          style={{ background: '#FFF4D6', borderBottom: '1px solid #F0DFA8', color: '#7C4A00', padding: '9px 14px', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexShrink: 0 }}
+        >
+          <span style={{ fontSize: 15 }}>📶</span>
+          <span style={{ flex: 1, lineHeight: 1.4 }}>
+            Seu progresso de agora ainda não foi salvo — está guardado aqui e vai sozinho quando a internet voltar.
+          </span>
+          <span style={{ fontWeight: 700, textDecoration: 'underline', flexShrink: 0 }}>Tentar</span>
         </div>
       )}
 
