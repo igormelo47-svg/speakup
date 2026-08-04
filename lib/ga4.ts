@@ -3,6 +3,35 @@
 // muitas vezes com o app fechado). Chave em env (GA4_MP_API_SECRET), nunca no código.
 // Dedup com o evento client-side: mesmo transaction_id nas duas pontas.
 
+// Envia um evento qualquer pelo Measurement Protocol. Existe porque o disparo pelo
+// dataLayer só chega ao GA4 se houver uma tag correspondente no GTM — que é conta do
+// gestor de tráfego, não nossa. Pelo servidor o evento chega mesmo sem tag nenhuma.
+export async function enviarEventoGA4(opts: {
+  nome: string
+  userId: string
+  clientId?: string | null
+  params?: Record<string, any>
+}) {
+  const secret = process.env.GA4_MP_API_SECRET
+  const mid = process.env.GA4_MEASUREMENT_ID || 'G-S3Q5Q2NQY0'
+  if (!secret) return { sent: false, reason: 'sem GA4_MP_API_SECRET na Vercel' }
+  const body = {
+    client_id: opts.clientId || pseudoCid(opts.userId),
+    user_id: opts.userId,
+    events: [{ name: opts.nome, params: { origem: 'servidor', ...(opts.params || {}) } }],
+  }
+  try {
+    const r = await fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${mid}&api_secret=${encodeURIComponent(secret)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    return { sent: r.status >= 200 && r.status < 300, status: r.status }
+  } catch (e: any) {
+    return { sent: false, reason: String(e?.message || e) }
+  }
+}
+
 export async function enviarPurchaseGA4(opts: {
   userId: string
   clientId?: string | null

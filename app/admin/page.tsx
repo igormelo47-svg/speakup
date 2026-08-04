@@ -12,9 +12,11 @@ const ESCURO = '#103D77'
 
 type Dia = { dia: string; total: number; anuncio: number; organico: number; internos: number }
 type Assinante = { email: string; interno: boolean; canal: string; validoAte: string | null; xp: number; streak: number; ultimaAtividade: string }
+type Fatia = { contas: number; ativados: number; taxa: number }
 type Dados = {
   geradoEm: string
   totais: { contas: number; contas7d: number; viaAnuncio: number; assinantesReais: number; assinantesInternos: number; receitaMensalEstimada: number }
+  ativacao?: { geral: Fatia; anuncio: Fatia; organico: Fatia }
   porDia: Dia[]
   assinantes: Assinante[]
 }
@@ -90,6 +92,32 @@ export default function Admin() {
             </div>
           ))}
         </div>
+
+        {/* Ativação — quantos dos que se cadastraram realmente usaram o app.
+            Comparar anúncio x orgânico é o que separa problema de TRÁFEGO de problema de PRODUTO. */}
+        {d.ativacao && (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, marginBottom: 4 }}>Ativação — quem usou o app de verdade</div>
+            <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>
+              Criou conta e chegou a fazer o nivelamento, uma lição ou uma conversa.
+            </div>
+            {([['Geral', d.ativacao.geral], ['Veio de anúncio', d.ativacao.anuncio], ['Orgânico/direto', d.ativacao.organico]] as [string, Fatia][]).map(([rotulo, f]) => (
+              <div key={rotulo} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 116, fontSize: 12.5, color: '#5B6B82' }}>{rotulo}</div>
+                <div style={{ flex: 1, background: '#EEF1F6', borderRadius: 8, height: 22, overflow: 'hidden' }}>
+                  <div style={{ width: `${f.taxa}%`, height: '100%', background: f.taxa >= 40 ? '#16A34A' : f.taxa >= 20 ? '#F59E0B' : '#DC2626', borderRadius: 8 }} />
+                </div>
+                <div style={{ width: 92, fontSize: 12.5, fontWeight: 700, textAlign: 'right' }}>
+                  {f.ativados}/{f.contas} · {f.taxa}%
+                </div>
+              </div>
+            ))}
+            <div style={{ fontSize: 12, color: '#7C8AA0', marginTop: 10, lineHeight: 1.6 }}>
+              Se anúncio e orgânico tiverem taxas parecidas, o gargalo está <strong>depois do cadastro</strong> (produto) —
+              trocar campanha não resolve. Se o anúncio for bem pior, a segmentação está trazendo gente errada.
+            </div>
+          </div>
+        )}
 
         {/* Cadastros por dia */}
         <div style={{ ...card, marginBottom: 16 }}>

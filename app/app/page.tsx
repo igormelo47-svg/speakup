@@ -3429,12 +3429,38 @@ export default function AppPage() {
 
   // Medição (GTM/GA4): eventos de ativação do funil (nivelamento, 1ª lição, 1ª conversa).
   // Dispara uma única vez por aparelho — o gestor de tráfego cruza com inicio_teste no GA4.
+  //
+  // Além do evento detalhado, o PRIMEIRO deles também dispara `ativacao`: o gestor precisa de
+  // UM nome pra marcar como conversão, e "usou o app" é a mesma coisa seja qual for a porta
+  // de entrada. O detalhado continua existindo pra saber QUAL porta converte melhor.
   function eventoAtivacao(nome: string, extra?: Record<string, any>) {
     try {
       const k = `speakup_ev_${nome}`
       if (localStorage.getItem(k)) return
       localStorage.setItem(k, '1')
       ;(window as any).dataLayer?.push({ event: nome, user_id: userId || undefined, ...extra })
+      if (!localStorage.getItem('speakup_ativado')) {
+        localStorage.setItem('speakup_ativado', '1')
+        ;(window as any).dataLayer?.push({ event: 'ativacao', gatilho: nome, user_id: userId || undefined })
+        // O servidor carimba progresso.ativado_em e manda o evento pro GA4 por fora do GTM.
+        // Sem await de propósito: medição nunca pode atrasar a tela do aluno.
+        registrarAtivacaoNoServidor(nome)
+      }
+    } catch (e) {}
+  }
+
+  // Idempotência de verdade fica no banco (o localStorage some quando o aluno troca de
+  // aparelho). Falha aqui é silenciosa: perder uma medição é melhor que travar o aluno.
+  async function registrarAtivacaoNoServidor(gatilho: string) {
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) return
+      await fetch('/api/ativacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ gatilho }),
+      })
     } catch (e) {}
   }
 

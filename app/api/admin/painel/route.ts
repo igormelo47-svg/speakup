@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   if (luErr) return NextResponse.json({ error: luErr.message }, { status: 500 })
   const { data: progressos, error: pErr } = await admin
     .from('progresso')
-    .select('user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at')
+    .select('user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at, ativado_em')
   if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 })
   const porUser = new Map((progressos || []).map(p => [p.user_id, p]))
 
@@ -39,13 +39,17 @@ export async function GET(req: NextRequest) {
     const d = new Date(new Date(hoje + 'T12:00:00Z').getTime() - i * MS_DIA).toISOString().slice(0, 10)
     porDia[d] = { total: 0, anuncio: 0, organico: 0, internos: 0 }
   }
-  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean }[] = []
+  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean }[] = []
   for (const u of lista?.users || []) {
     const em = (u.email || '').toLowerCase()
     const interno = INTERNOS.has(em)
-    const attrib = porUser.get(u.id)?.attrib as any
+    const prog = porUser.get(u.id) as any
+    const attrib = prog?.attrib as any
     const anuncio = !!attrib?.gclid
-    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio })
+    // Ativado = usou o app de fato. Contas antigas (anteriores à coluna) caem no XP como
+    // aproximação, senão a taxa histórica apareceria zerada e assustaria à toa.
+    const ativado = !!prog?.ativado_em || (prog?.xp || 0) > 0
+    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado })
     const d = diaLocal(u.created_at)
     if (porDia[d]) {
       if (interno) porDia[d].internos++
@@ -74,6 +78,16 @@ export async function GET(req: NextRequest) {
 
   const reais = contas.filter(c => !c.interno)
   const seteDias = agora - 7 * MS_DIA
+
+  // Ativação por origem — a resposta para "o gargalo é o tráfego ou o produto?".
+  // Taxas parecidas nas duas colunas = o problema está depois do cadastro (produto).
+  // Anúncio bem pior que orgânico = a segmentação está trazendo gente errada.
+  const fatia = (cs: typeof reais) => ({
+    contas: cs.length,
+    ativados: cs.filter(c => c.ativado).length,
+    taxa: cs.length ? Math.round((cs.filter(c => c.ativado).length / cs.length) * 1000) / 10 : 0,
+  })
+
   return NextResponse.json({
     geradoEm: new Date().toISOString(),
     totais: {
@@ -83,6 +97,11 @@ export async function GET(req: NextRequest) {
       assinantesReais: assinantes.filter(a => !a.interno).length,
       assinantesInternos: assinantes.filter(a => a.interno).length,
       receitaMensalEstimada: assinantes.filter(a => !a.interno).length * 29.9,
+    },
+    ativacao: {
+      geral: fatia(reais),
+      anuncio: fatia(reais.filter(c => c.anuncio)),
+      organico: fatia(reais.filter(c => !c.anuncio)),
     },
     porDia: Object.entries(porDia).map(([dia, v]) => ({ dia, ...v })),
     assinantes,
