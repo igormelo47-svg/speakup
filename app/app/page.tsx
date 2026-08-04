@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from 'react'
 import { supabase } from '../../lib/supabase'
 import { mesclarPendente, sobrasAposEnvio } from '../../lib/progresso-pendente'
+import { dadosUsuarioParaAds } from '../../lib/hash-email'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -2923,6 +2924,14 @@ export default function AppPage() {
       setUserName(nome.split(' ')[0])
       setUserId(user.id)
       setUserEmail(user.email || '')
+      // Conversões otimizadas do Google Ads: o e-mail criptografado fica disponível no
+      // dataLayer ANTES de qualquer evento de conversão, porque o GTM lê essa variável no
+      // momento em que a tag dispara. Sem isso, toda conversão sem cookie se perde.
+      if (user.email) {
+        dadosUsuarioParaAds(user.email)
+          .then(ud => { if (ud) (window as any).dataLayer?.push({ user_data: ud }) })
+          .catch(() => {})
+      }
       // Troca de conta no mesmo aparelho: o estado local (onboarding, plano do dia, etc.)
       // fica no localStorage do dispositivo. Se o usuário mudou, zera tudo para começar limpo.
       try {
@@ -3069,7 +3078,11 @@ export default function AppPage() {
         try {
           if (!localStorage.getItem('speakup_it_' + user.id)) {
             localStorage.setItem('speakup_it_' + user.id, '1')
-            ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: 29.9, currency: 'BRL', user_id: user.id, ...(attrib?.gclid ? { gclid: attrib.gclid } : {}), ...(attrib?.fbclid ? { fbclid: attrib.fbclid } : {}) })
+            // O e-mail criptografado vai no PRÓPRIO evento (e não só no push separado lá em
+            // cima) porque este é o disparo mais importante e não pode depender de qual
+            // promise resolveu primeiro. Falha no hash não impede o evento de sair.
+            const ud = user.email ? await dadosUsuarioParaAds(user.email).catch(() => null) : null
+            ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: 29.9, currency: 'BRL', user_id: user.id, ...(ud ? { user_data: ud } : {}), ...(attrib?.gclid ? { gclid: attrib.gclid } : {}), ...(attrib?.fbclid ? { fbclid: attrib.fbclid } : {}) })
           }
         } catch (e) {}
         setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
