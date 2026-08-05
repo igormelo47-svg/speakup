@@ -57,8 +57,22 @@ export async function GET(req: NextRequest) {
     const licoes = Array.isArray(prog?.licoes_concluidas) ? prog.licoes_concluidas.length : 0
     const nasceu = new Date(u.created_at).getTime()
     const fimDoTrial = nasceu + 2 * MS_DIA
-    const ultima = prog?.ultima_atividade ? new Date(prog.ultima_atividade + 'T12:00:00Z').getTime()
-      : (prog?.updated_at ? new Date(prog.updated_at).getTime() : 0)
+    // ultima_atividade grava 'YYYY-MM-DD' no app do aluno, mas nem toda linha antiga
+    // esta assim -- concatenar 'T12:00:00Z' as cegas gerava Invalid Date, e NaN em
+    // comparacao e sempre falso: os dois degraus finais davam zero mesmo com gente viva.
+    const quando = (v: any): number => {
+      if (!v) return 0
+      const s = String(v)
+      const t = new Date(s.length === 10 ? `${s}T12:00:00Z` : s).getTime()
+      return Number.isFinite(t) ? t : 0
+    }
+    // O ultimo sinal de vida e o mais recente entre os tres, e nao so um deles: a
+    // ultima_atividade so e escrita em alguns fluxos, e dias_ativos guarda o dia real.
+    const ultima = Math.max(
+      quando(prog?.ultima_atividade),
+      quando(dias.length ? dias[dias.length - 1] : null),
+      quando(prog?.updated_at),
+    )
     const sobreviveuAoTrial = ativado && ultima >= fimDoTrial - MS_DIA  // ainda vivo no 2º dia
     const voltouDepoisDoTrial = ativado && ultima > fimDoTrial
 
@@ -101,19 +115,28 @@ export async function GET(req: NextRequest) {
     taxa: cs.length ? Math.round((cs.filter(c => c.ativado).length / cs.length) * 1000) / 10 : 0,
   })
 
-  // Funil de retenção: onde as pessoas somem. Cada degrau é subconjunto do anterior,
-  // então a maior queda entre dois degraus é o lugar exato para trabalhar. Enquanto o
-  // buraco estiver antes do último degrau, mexer em preço é resolver o problema errado.
+  // Onde as pessoas somem. São DUAS perguntas diferentes e juntá-las numa lista só
+  // mente: "fez 3 lições" e "voltou outro dia" medem coisas independentes (profundidade
+  // e recorrência), então numa lista única a segunda podia aparecer maior que a primeira
+  // e a "maior queda" apontava para o degrau errado. Cada funil abaixo é de verdade
+  // aninhado -- cada degrau é subconjunto do anterior.
   const ativados = reais.filter(c => c.ativado)
   const funil = {
-    criaramConta: reais.length,
-    abriramOApp: ativados.length,
-    fizeramUmaLicao: ativados.filter(c => c.licoes >= 1).length,
-    fizeramTresLicoes: ativados.filter(c => c.licoes >= 3).length,
-    usaramDoisDiasOuMais: ativados.filter(c => c.diasUsados >= 2).length,
-    aindaAtivosNoFimDoTrial: ativados.filter(c => c.sobreviveuAoTrial).length,
-    voltaramDepoisDoTrial: ativados.filter(c => c.voltouDepoisDoTrial).length,
-    assinaram: assinantes.filter(a => !a.interno).length,
+    // Profundidade: até onde a pessoa foi na primeira vez que usou.
+    profundidade: {
+      criaramConta: reais.length,
+      abriramOApp: ativados.length,
+      fizeramUmaLicao: ativados.filter(c => c.licoes >= 1).length,
+      fizeramTresLicoes: ativados.filter(c => c.licoes >= 3).length,
+    },
+    // Permanência: quem continuou existindo depois do primeiro dia.
+    permanencia: {
+      abriramOApp: ativados.length,
+      voltaramOutroDia: ativados.filter(c => c.diasUsados >= 2).length,
+      vivosNoFimDoTrial: ativados.filter(c => c.sobreviveuAoTrial).length,
+      voltaramDepoisDoTrial: ativados.filter(c => c.voltouDepoisDoTrial).length,
+      assinaram: assinantes.filter(a => !a.interno).length,
+    },
   }
   // Quantos dias cada pessoa usou, em faixas. "1 dia" é a coluna que dói: entrou,
   // olhou e nunca mais voltou -- essa pessoa nunca chegou perto de decidir pagar.
