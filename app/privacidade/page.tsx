@@ -36,6 +36,9 @@ export default function Privacidade() {
       <p>Esses anúncios são exibidos por meio do <strong>Google</strong> e da <strong>Meta</strong> em <strong>sites e apps de terceiros</strong>, incluindo os próprios serviços do Google (como YouTube e Gmail) e sites parceiros. Para saber a quem mostrar, essas empresas e nós usamos <strong>cookies e identificadores parecidos</strong> gravados no seu navegador ou aparelho, que registram que você esteve aqui.</p>
       <p>Não sabemos quem é você nessa lista: vemos apenas o tamanho do público. Nenhum dado sensível é usado para montá-la, e não fazemos anúncio direcionado a menores de idade.</p>
       <p><strong>Como sair disso:</strong> você pode desativar a personalização de anúncios do Google em <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" style={{ color: '#1E63C7' }}>google.com/settings/ads</a>, a da Meta nas preferências de anúncios da sua conta do Facebook ou Instagram, e usar as configurações do seu navegador para bloquear cookies. Sair da lista não afeta em nada o seu acesso ao app.</p>
+      {/* Link para a política do Google: exigência formal deles para rodar remarketing,
+          além dos outros quatro itens. Apontado pelo gestor de tráfego em 05/08. */}
+      <p>Para entender como o Google trata os dados que recebe, veja a política de privacidade deles em <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#1E63C7' }}>policies.google.com/privacy</a>, e a da Meta em <a href="https://www.facebook.com/privacy/policy" target="_blank" rel="noopener noreferrer" style={{ color: '#1E63C7' }}>facebook.com/privacy/policy</a>.</p>
 
       <h2 style={h2}>6. Conversas com a IA</h2>
       <p>As mensagens enviadas ao professor de IA são processadas por um provedor externo para gerar as respostas. Evite compartilhar informações pessoais sensíveis nessas conversas.</p>
