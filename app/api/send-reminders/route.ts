@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
+import { enviarEmailLembrete } from '../../../lib/email'
 
 const VAPID_PUBLIC = 'BGvDV8RzI74VwBSU6MSVcAgDJS3WF_zTGrpDW9cY26dyf85JAbJP0aRhJpU8BECmc3Z6yvHRHctbxxE0Bk-5cLo'
 
 export async function GET(req: NextRequest) {
+  // Dois disparos por dia (vercel.json): de manhã o apelo é começar o dia, de noite
+  // é não perder a sequência antes da meia-noite. Quem já estudou hoje não recebe
+  // nenhum dos dois -- isso a checagem de estudouHoje mais abaixo já garante.
+  const turno = req.nextUrl.searchParams.get('turno') === 'manha' ? 'manha' : 'noite'
   // Protegido: o Vercel Cron envia "Authorization: Bearer <CRON_SECRET>".
   const auth = req.headers.get('authorization')
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -23,7 +28,10 @@ export async function GET(req: NextRequest) {
   const agora = Date.now()
   const [{ data: subs }, { data: prog }, { data: perfis }] = await Promise.all([
     admin.from('push_subscriptions').select('user_id, subscription'),
-    admin.from('progresso').select('user_id, ultima_atividade, streak, dias_ativos, nome, is_premium, premium_expira, perfil_ia'),
+    // email e email_lembretes entram aqui para o canal de e-mail. A coluna
+    // email_lembretes pode ainda não existir no banco; o select tolera isso mais
+    // abaixo, tratando ausente como "pode receber".
+    admin.from('progresso').select('user_id, ultima_atividade, streak, dias_ativos, nome, is_premium, premium_expira, perfil_ia, email, email_lembretes'),
     admin.from('profiles').select('id, trial_expira'),
   ])
   // Usou hoje = marcador do dia em dias_ativos (gravado a cada abertura) OU a data de
@@ -70,7 +78,12 @@ export async function GET(req: NextRequest) {
       return { title: `${nome || 'Ei'}, o Vô guardou sua lição 📖`, body: fraco ? `Volte de onde parou — tem um treino de "${fraco}" te esperando.` : 'Volte de onde parou — sua trilha continua do mesmo ponto.' }
     }
 
-    // 3) Sumiu só hoje: a sequência ainda está viva — apelo de streak (quanto maior, mais forte).
+    // 3) Sumiu só hoje: a sequência ainda está viva. De manhã o apelo é abrir o dia;
+    //    de noite é a sequência morrendo à meia-noite, que só faz sentido de noite.
+    if (turno === 'manha') {
+      if (st >= 7) return { title: `Bom dia! 🔥 ${st} dias de sequência`, body: `${oi}5 minutos agora e o dia já começa com o inglês feito.` }
+      return { title: 'Bom dia! 5 minutos de inglês? ☀️', body: fraco ? `${oi}o Vô separou um treino de "${fraco}" pra hoje.` : `${oi}um treino rápido agora e sua meta do dia já sai do caminho.` }
+    }
     if (st >= 30) return { title: `🔥 ${st} dias! Não perca hoje`, body: `${oi}sua sequência de ${st} dias acaba à meia-noite. Bastam 5 minutos para mantê-la.` }
     if (st >= 7) return { title: `🔥 Sua sequência de ${st} dias está em risco`, body: `${oi}faça uma lição rápida agora e mantenha o ritmo!` }
     if (st >= 1) return { title: 'Vonai 🔥', body: `${oi}você está com ${st} ${st === 1 ? 'dia' : 'dias'} de sequência. Continue hoje!` }
@@ -78,7 +91,9 @@ export async function GET(req: NextRequest) {
   }
 
   let enviados = 0, removidos = 0
+  const comPush = new Set<string>()
   for (const s of subs || []) {
+    comPush.add(s.user_id)
     const msg = mensagemPara(s.user_id)
     if (!msg) continue
     const payload = JSON.stringify({ title: msg.title, body: msg.body, url: '/app' })
@@ -90,8 +105,34 @@ export async function GET(req: NextRequest) {
       if (e?.statusCode === 404 || e?.statusCode === 410 || e?.statusCode === 400 || String(e?.message || '').includes('p256dh')) {
         await admin.from('push_subscriptions').delete().eq('user_id', s.user_id)
         removidos++
+        comPush.delete(s.user_id)
       }
     }
   }
-  return NextResponse.json({ enviados, removidos, total: (subs || []).length })
+
+  // E-MAIL, só para quem NÃO tem push. É o único canal que alcança quem baixou pela
+  // App Store (iPhone não tem web push) e quem recusou a permissão no Android/web.
+  //
+  // Uma vez por dia, no turno da NOITE. O push vai 2x porque é barato e descartável;
+  // e-mail 2x/dia gera reclamação de spam, e reclamação queima o domínio inteiro --
+  // inclusive os e-mails de recuperação de senha, que não podem parar de chegar.
+  let emails = 0, emailsFalha = 0, emailsPulados = 0
+  if (turno === 'noite') {
+    for (const p of prog || []) {
+      const uid = (p as any).user_id as string
+      if (comPush.has(uid)) { emailsPulados++; continue }      // já recebeu push, não duplica
+      const para = String((p as any).email || '')
+      if (!para.includes('@')) { emailsPulados++; continue }
+      // Coluna pode não existir ainda (email_lembretes_column.sql). undefined = pode
+      // receber; só FALSE explícito bloqueia -- quem clicou em "não quero mais".
+      if ((p as any).email_lembretes === false) { emailsPulados++; continue }
+      const msg = mensagemPara(uid)
+      if (!msg) { emailsPulados++; continue }
+      const r = await enviarEmailLembrete({ para, userId: uid, titulo: msg.title, corpo: msg.body })
+      if (r.ok) emails++
+      else { emailsFalha++; console.error('[Lembrete e-mail] falhou', r.motivo) }
+    }
+  }
+
+  return NextResponse.json({ turno, enviados, removidos, total: (subs || []).length, emails, emailsFalha, emailsPulados })
 }
