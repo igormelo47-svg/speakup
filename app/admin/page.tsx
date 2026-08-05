@@ -21,12 +21,14 @@ type Funil = {
   diasDeUso?: DiasDeUso
 }
 type Origem = 'anuncio' | 'organico' | 'todos'
+type Canais = { contas: number; push: number; email: number; algumCanal: number; nenhumCanal: number; soPorEmail: number }
 type Dados = {
   geradoEm: string
   totais: { contas: number; contas7d: number; viaAnuncio: number; assinantesReais: number; assinantesInternos: number; receitaMensalEstimada: number }
   ativacao?: { geral: Fatia; anuncio: Fatia; organico: Fatia }
   funil?: Funil
   funilPorOrigem?: Record<Origem, Funil>
+  canais?: Canais
   diasDeUso?: DiasDeUso
   porDia: Dia[]
   assinantes: Assinante[]
@@ -169,6 +171,42 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {/* Canais de retorno. Existe porque "ninguém volta no 2º dia" só é veredicto
+            sobre o produto se a pessoa tiver sido chamada de volta. Se ninguém foi
+            convidado, o número não diz nada sobre o app. */}
+        {d.canais && (() => {
+          const c = d.canais
+          const pct = (n: number) => Math.round((n / Math.max(1, c.contas)) * 100)
+          const critico = c.nenhumCanal > c.algumCanal
+          return (
+            <div style={{ ...card, marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, marginBottom: 4 }}>Canais de retorno — por onde dá para chamar de volta</div>
+              <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>
+                Push só funciona para quem aceitou a permissão, e no iPhone da App Store não existe. E-mail cobre o resto.
+              </div>
+              {([
+                ['🔔 Aceitaram push', c.push, '#1E63C7'],
+                ['✉️ Alcançáveis por e-mail', c.email, '#16A34A'],
+                ['📭 Só por e-mail (sem push)', c.soPorEmail, '#65A30D'],
+                ['🚫 Nenhum canal', c.nenhumCanal, '#DC2626'],
+              ] as [string, number, string][]).map(([rotulo, valor, cor]) => (
+                <div key={rotulo} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 168, fontSize: 12.5, color: '#5B6B82' }}>{rotulo}</div>
+                  <div style={{ flex: 1, background: '#EEF1F6', borderRadius: 8, height: 22, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.max(pct(valor), valor > 0 ? 2 : 0)}%`, height: '100%', background: cor, borderRadius: 8 }} />
+                  </div>
+                  <div style={{ width: 70, fontSize: 12.5, fontWeight: 700, textAlign: 'right' }}>{valor} · {pct(valor)}%</div>
+                </div>
+              ))}
+              <div style={{ fontSize: 12.5, color: critico ? '#B91C1C' : '#7C8AA0', marginTop: 10, lineHeight: 1.6, borderTop: '1px solid #EEF1F6', paddingTop: 10 }}>
+                {critico
+                  ? <>A maior parte da base <strong>não tem por onde ser chamada de volta</strong>. Enquanto for assim, &quot;ninguém voltou no 2º dia&quot; não diz nada sobre o app — diz que ninguém foi convidado.</>
+                  : <>{c.algumCanal} de {c.contas} contas têm pelo menos um canal. As {c.nenhumCanal} sem canal nenhum só voltam se lembrarem sozinhas.</>}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Funil — onde as pessoas somem. A maior queda entre dois degraus é o lugar
             para trabalhar; enquanto o buraco estiver antes do último, mexer em preço

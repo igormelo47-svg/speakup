@@ -24,9 +24,16 @@ export async function GET(req: NextRequest) {
   const admin = createClient(url, service)
   const { data: lista, error: luErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
   if (luErr) return NextResponse.json({ error: luErr.message }, { status: 500 })
+  // Quem tem canal de retorno. Até 05/08 a única forma de chamar alguém de volta era
+  // push do navegador -- que no iPhone via App Store não existe, e no resto só vale
+  // para quem aceitou a permissão. Sem medir isso, "ninguém volta no 2º dia" parecia
+  // veredicto sobre o produto, quando podia ser só ausência de convite.
+  const { data: pushes } = await admin.from('push_subscriptions').select('user_id')
+  const comPush = new Set((pushes || []).map(p => p.user_id))
+
   const { data: progressos, error: pErr } = await admin
     .from('progresso')
-    .select('user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at, ativado_em, licoes_concluidas, dias_ativos, ultima_atividade')
+    .select('user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at, ativado_em, licoes_concluidas, dias_ativos, ultima_atividade, email_lembretes')
   if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 })
   const porUser = new Map((progressos || []).map(p => [p.user_id, p]))
 
@@ -39,7 +46,7 @@ export async function GET(req: NextRequest) {
     const d = new Date(new Date(hoje + 'T12:00:00Z').getTime() - i * MS_DIA).toISOString().slice(0, 10)
     porDia[d] = { total: 0, anuncio: 0, organico: 0, internos: 0 }
   }
-  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean; confirmouEmail: boolean; teveChanceDeVoltar: boolean; teveChanceDePassarDoTrial: boolean }[] = []
+  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean; confirmouEmail: boolean; teveChanceDeVoltar: boolean; teveChanceDePassarDoTrial: boolean; temPush: boolean; podeEmail: boolean }[] = []
   for (const u of lista?.users || []) {
     const em = (u.email || '').toLowerCase()
     const interno = INTERNOS.has(em)
@@ -87,7 +94,12 @@ export async function GET(req: NextRequest) {
     // configuracao do Supabase, nao a primeira licao.
     const confirmouEmail = !!(u as any).email_confirmed_at || !!(u as any).confirmed_at
 
-    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado, diasUsados: dias.length, licoes, sobreviveuAoTrial, voltouDepoisDoTrial, confirmouEmail, teveChanceDeVoltar, teveChanceDePassarDoTrial })
+    // Canais de retorno. `email_lembretes` só bloqueia quando é FALSE explícito: se a
+    // coluna ainda não existir no banco, vem undefined e a pessoa é alcançável.
+    const temPush = comPush.has(u.id)
+    const podeEmail = !!(prog?.email || em).includes('@') && prog?.email_lembretes !== false
+
+    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado, diasUsados: dias.length, licoes, sobreviveuAoTrial, voltouDepoisDoTrial, confirmouEmail, teveChanceDeVoltar, teveChanceDePassarDoTrial, temPush, podeEmail })
     const d = diaLocal(u.created_at)
     if (porDia[d]) {
       if (interno) porDia[d].internos++
@@ -188,6 +200,18 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Canais de retorno: de quantas pessoas a gente consegue chamar de volta, e por onde.
+  // "Nenhum canal" é a linha que importa -- essa pessoa só volta se lembrar sozinha.
+  const canais = {
+    contas: reais.length,
+    push: reais.filter(c => c.temPush).length,
+    email: reais.filter(c => c.podeEmail).length,
+    algumCanal: reais.filter(c => c.temPush || c.podeEmail).length,
+    nenhumCanal: reais.filter(c => !c.temPush && !c.podeEmail).length,
+    // Quem tem e-mail mas não tem push é exatamente quem o canal novo passou a cobrir.
+    soPorEmail: reais.filter(c => !c.temPush && c.podeEmail).length,
+  }
+
   const funilPorOrigem = {
     anuncio: montarFunil(reais.filter(c => c.anuncio)),
     organico: montarFunil(reais.filter(c => !c.anuncio)),
@@ -200,6 +224,7 @@ export async function GET(req: NextRequest) {
     geradoEm: new Date().toISOString(),
     funil,
     funilPorOrigem,
+    canais,
     diasDeUso,
     totais: {
       contas: reais.length,
