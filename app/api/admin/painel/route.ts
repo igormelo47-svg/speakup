@@ -125,44 +125,66 @@ export async function GET(req: NextRequest) {
   // e recorrência), então numa lista única a segunda podia aparecer maior que a primeira
   // e a "maior queda" apontava para o degrau errado. Cada funil abaixo é de verdade
   // aninhado -- cada degrau é subconjunto do anterior.
-  const ativados = reais.filter(c => c.ativado)
-  const funil = {
-    // Profundidade: até onde a pessoa foi na primeira vez que usou.
-    profundidade: {
-      criaramConta: reais.length,
-      abriramOApp: ativados.length,
-      fizeramUmaLicao: ativados.filter(c => c.licoes >= 1).length,
-      fizeramTresLicoes: ativados.filter(c => c.licoes >= 3).length,
-    },
-    // Barreira do e-mail: mede se a maior perda do funil é uma configuração, e não o app.
-    email: {
-      criaramConta: reais.length,
-      confirmaram: reais.filter(c => c.confirmouEmail).length,
-      naoConfirmaram: reais.filter(c => !c.confirmouEmail).length,
-      naoConfirmaramENaoUsaram: reais.filter(c => !c.confirmouEmail && !c.ativado).length,
-    },
-    // Permanência: quem continuou existindo depois do primeiro dia.
-    permanencia: {
-      abriramOApp: ativados.length,
-      voltaramOutroDia: ativados.filter(c => c.diasUsados >= 2).length,
-      vivosNoFimDoTrial: ativados.filter(c => c.sobreviveuAoTrial).length,
-      voltaramDepoisDoTrial: ativados.filter(c => c.voltouDepoisDoTrial).length,
-      assinaram: assinantes.filter(a => !a.interno).length,
-    },
+  // Segmentar por origem não é detalhe: boa parte das contas orgânicas é gente que o
+  // Emmanuel pediu pessoalmente para baixar e avaliar. Essa pessoa entra, olha e sai --
+  // ela nunca teve intenção de aprender inglês, e misturá-la com quem clicou num anúncio
+  // faz o funil parecer pior do que é. Quem decide o negócio é a coluna do anúncio.
+  const premiumPorId = new Set(
+    (progressos || [])
+      .filter(p => p.is_premium && (!p.premium_expira || new Date(p.premium_expira).getTime() > agora))
+      .map(p => p.user_id)
+  )
+  const idPorEmail = new Map((lista?.users || []).map(u => [(u.email || '').toLowerCase(), u.id]))
+
+  function montarFunil(cs: typeof reais) {
+    const ativs = cs.filter(c => c.ativado)
+    const faixa = (min: number, max: number) => ativs.filter(c => c.diasUsados >= min && c.diasUsados <= max).length
+    return {
+      // Profundidade: até onde a pessoa foi na primeira vez que usou.
+      profundidade: {
+        criaramConta: cs.length,
+        abriramOApp: ativs.length,
+        fizeramUmaLicao: ativs.filter(c => c.licoes >= 1).length,
+        fizeramTresLicoes: ativs.filter(c => c.licoes >= 3).length,
+      },
+      // Barreira do e-mail: mede se a maior perda do funil é uma configuração, e não o app.
+      email: {
+        criaramConta: cs.length,
+        confirmaram: cs.filter(c => c.confirmouEmail).length,
+        naoConfirmaram: cs.filter(c => !c.confirmouEmail).length,
+        naoConfirmaramENaoUsaram: cs.filter(c => !c.confirmouEmail && !c.ativado).length,
+      },
+      // Permanência: quem continuou existindo depois do primeiro dia.
+      permanencia: {
+        abriramOApp: ativs.length,
+        voltaramOutroDia: ativs.filter(c => c.diasUsados >= 2).length,
+        vivosNoFimDoTrial: ativs.filter(c => c.sobreviveuAoTrial).length,
+        voltaramDepoisDoTrial: ativs.filter(c => c.voltouDepoisDoTrial).length,
+        assinaram: cs.filter(c => { const id = idPorEmail.get(c.email); return id ? premiumPorId.has(id) : false }).length,
+      },
+      // Quantos dias cada pessoa usou. "1 dia" é a coluna que dói: entrou, olhou e
+      // nunca mais voltou -- essa nunca chegou perto de decidir pagar.
+      diasDeUso: {
+        umDia: faixa(0, 1),
+        doisATres: faixa(2, 3),
+        quatroASeis: faixa(4, 6),
+        seteOuMais: ativs.filter(c => c.diasUsados >= 7).length,
+      },
+    }
   }
-  // Quantos dias cada pessoa usou, em faixas. "1 dia" é a coluna que dói: entrou,
-  // olhou e nunca mais voltou -- essa pessoa nunca chegou perto de decidir pagar.
-  const faixa = (min: number, max: number) => ativados.filter(c => c.diasUsados >= min && c.diasUsados <= max).length
-  const diasDeUso = {
-    umDia: faixa(0, 1),
-    doisATres: faixa(2, 3),
-    quatroASeis: faixa(4, 6),
-    seteOuMais: ativados.filter(c => c.diasUsados >= 7).length,
+
+  const funilPorOrigem = {
+    anuncio: montarFunil(reais.filter(c => c.anuncio)),
+    organico: montarFunil(reais.filter(c => !c.anuncio)),
+    todos: montarFunil(reais),
   }
+  const funil = funilPorOrigem.todos              // compatibilidade com a versão anterior
+  const diasDeUso = funilPorOrigem.todos.diasDeUso
 
   return NextResponse.json({
     geradoEm: new Date().toISOString(),
     funil,
+    funilPorOrigem,
     diasDeUso,
     totais: {
       contas: reais.length,

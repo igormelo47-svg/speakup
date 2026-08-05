@@ -13,17 +13,20 @@ const ESCURO = '#103D77'
 type Dia = { dia: string; total: number; anuncio: number; organico: number; internos: number }
 type Assinante = { email: string; interno: boolean; canal: string; validoAte: string | null; xp: number; streak: number; ultimaAtividade: string }
 type Fatia = { contas: number; ativados: number; taxa: number }
+type DiasDeUso = { umDia: number; doisATres: number; quatroASeis: number; seteOuMais: number }
 type Funil = {
   profundidade: { criaramConta: number; abriramOApp: number; fizeramUmaLicao: number; fizeramTresLicoes: number }
   email?: { criaramConta: number; confirmaram: number; naoConfirmaram: number; naoConfirmaramENaoUsaram: number }
   permanencia: { abriramOApp: number; voltaramOutroDia: number; vivosNoFimDoTrial: number; voltaramDepoisDoTrial: number; assinaram: number }
+  diasDeUso?: DiasDeUso
 }
-type DiasDeUso = { umDia: number; doisATres: number; quatroASeis: number; seteOuMais: number }
+type Origem = 'anuncio' | 'organico' | 'todos'
 type Dados = {
   geradoEm: string
   totais: { contas: number; contas7d: number; viaAnuncio: number; assinantesReais: number; assinantesInternos: number; receitaMensalEstimada: number }
   ativacao?: { geral: Fatia; anuncio: Fatia; organico: Fatia }
   funil?: Funil
+  funilPorOrigem?: Record<Origem, Funil>
   diasDeUso?: DiasDeUso
   porDia: Dia[]
   assinantes: Assinante[]
@@ -76,6 +79,9 @@ export default function Admin() {
   const [estado, setEstado] = useState<'carregando' | 'sem-login' | 'negado' | 'erro' | 'ok'>('carregando')
   const [dados, setDados] = useState<Dados | null>(null)
   const [mostrarInternos, setMostrarInternos] = useState(false)
+  // Começa em "anúncio" de propósito: boa parte do orgânico é gente que foi convidada
+  // a olhar o app, não aluno. Misturar as duas dá um retrato mais feio do que a verdade.
+  const [origem, setOrigem] = useState<Origem>('anuncio')
 
   useEffect(() => {
     ;(async () => {
@@ -167,38 +173,66 @@ export default function Admin() {
         {/* Funil — onde as pessoas somem. A maior queda entre dois degraus é o lugar
             para trabalhar; enquanto o buraco estiver antes do último, mexer em preço
             é resolver o problema errado. */}
-        {d.funil && (
+        {(d.funilPorOrigem || d.funil) && (() => {
+          const f: Funil = d.funilPorOrigem ? d.funilPorOrigem[origem] : d.funil!
+          const poucoDado = f.profundidade.criaramConta < 20
+          return (
           <div style={{ ...card, marginBottom: 16 }}>
             <div style={{ fontWeight: 800, marginBottom: 4 }}>Onde as pessoas somem</div>
-            <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>
               Dois funis separados de propósito: um mede <strong>até onde a pessoa foi</strong>, outro mede <strong>se ela voltou</strong>.
               Misturar os dois numa lista só apontaria o degrau errado. A barra vermelha é a maior queda de cada um.
             </div>
+
+            {/* Quem decide o negócio é a coluna do anúncio. O orgânico está cheio de gente
+                convidada a olhar o app, que entra, vê e sai -- não é aluno. */}
+            {d.funilPorOrigem && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                {([['anuncio', '🎯 Só anúncio'], ['organico', '🤝 Só orgânico'], ['todos', 'Todos']] as [Origem, string][]).map(([k, rotulo]) => (
+                  <button key={k} onClick={() => setOrigem(k)} style={{
+                    fontSize: 12.5, fontWeight: 700, padding: '7px 13px', borderRadius: 20, cursor: 'pointer',
+                    border: origem === k ? `1px solid ${AZUL}` : '1px solid #E2E8F0',
+                    background: origem === k ? AZUL : '#fff', color: origem === k ? '#fff' : '#5B6B82',
+                  }}>{rotulo} · {d.funilPorOrigem![k].profundidade.criaramConta}</button>
+                ))}
+              </div>
+            )}
+            {origem === 'organico' && (
+              <div style={{ fontSize: 12, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '9px 12px', marginBottom: 12, lineHeight: 1.55 }}>
+                Boa parte destas contas é gente convidada a baixar e avaliar. Elas entram, olham e saem — isso não é churn de aluno. Não tire conclusão de produto daqui.
+              </div>
+            )}
+            {poucoDado && (
+              <div style={{ fontSize: 12, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '9px 12px', marginBottom: 12, lineHeight: 1.55 }}>
+                São só {f.profundidade.criaramConta} contas neste recorte. Serve para ver a direção, não para concluir: uma pessoa a mais ou a menos mexe muito na porcentagem.
+              </div>
+            )}
+
             <Funil
               titulo="Profundidade — até onde chegou na primeira vez"
               degraus={[
-                ['Criaram conta', d.funil.profundidade.criaramConta, 'chegaram até o cadastro'],
-                ['Abriram o app', d.funil.profundidade.abriramOApp, 'fizeram nivelamento, lição ou conversa'],
-                ['1ª lição', d.funil.profundidade.fizeramUmaLicao, 'concluíram pelo menos uma lição'],
-                ['3 lições', d.funil.profundidade.fizeramTresLicoes, 'já pegaram o ritmo'],
+                ['Criaram conta', f.profundidade.criaramConta, 'chegaram até o cadastro'],
+                ['Abriram o app', f.profundidade.abriramOApp, 'fizeram nivelamento, lição ou conversa'],
+                ['1ª lição', f.profundidade.fizeramUmaLicao, 'concluíram pelo menos uma lição'],
+                ['3 lições', f.profundidade.fizeramTresLicoes, 'já pegaram o ritmo'],
               ]}
             />
             <div style={{ height: 18 }} />
             <Funil
               titulo="Permanência — quem continuou existindo"
               degraus={[
-                ['Abriram o app', d.funil.permanencia.abriramOApp, 'ponto de partida'],
-                ['Voltaram outro dia', d.funil.permanencia.voltaramOutroDia, 'usaram em 2 dias diferentes ou mais'],
-                ['Vivos no fim do trial', d.funil.permanencia.vivosNoFimDoTrial, 'ainda usavam quando os 2 dias grátis acabaram'],
-                ['Voltaram depois do trial', d.funil.permanencia.voltaramDepoisDoTrial, 'usaram o app já sem Premium'],
-                ['Assinaram', d.funil.permanencia.assinaram, 'viraram pagantes'],
+                ['Abriram o app', f.permanencia.abriramOApp, 'ponto de partida'],
+                ['Voltaram outro dia', f.permanencia.voltaramOutroDia, 'usaram em 2 dias diferentes ou mais'],
+                ['Vivos no fim do trial', f.permanencia.vivosNoFimDoTrial, 'ainda usavam quando os 2 dias grátis acabaram'],
+                ['Voltaram depois do trial', f.permanencia.voltaramDepoisDoTrial, 'usaram o app já sem Premium'],
+                ['Assinaram', f.permanencia.assinaram, 'viraram pagantes'],
               ]}
             />
             {/* A barreira do e-mail explica ou descarta a primeira queda de uma vez: quem
                 nunca confirmou não conseguia entrar, e some sem nunca ter visto o app. */}
-            {d.funil.email && (() => {
-              const e = d.funil.email!
-              const culpado = e.naoConfirmaram > 0 && e.naoConfirmaramENaoUsaram >= Math.max(1, Math.round((d.funil!.profundidade.criaramConta - d.funil!.profundidade.abriramOApp) * 0.5))
+            {f.email && (() => {
+              const e = f.email!
+              const culpado = e.naoConfirmaram > 0 && e.naoConfirmaramENaoUsaram >= Math.max(1, Math.round((f.profundidade.criaramConta - f.profundidade.abriramOApp) * 0.5))
               return (
                 <div style={{ marginTop: 18, background: culpado ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${culpado ? '#FECACA' : '#BBF7D0'}`, borderRadius: 12, padding: '14px 16px' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: culpado ? '#B91C1C' : '#15803D', marginBottom: 6 }}>
@@ -214,32 +248,34 @@ export default function Admin() {
                 </div>
               )
             })()}
+            {/* Quantos dias cada pessoa usou. "1 dia" é a coluna que dói: entrou, olhou
+                e nunca mais voltou. Segue o mesmo recorte de origem escolhido acima. */}
+            {(f.diasDeUso || d.diasDeUso) && (() => {
+              const du = f.diasDeUso || d.diasDeUso!
+              const total = Math.max(1, du.umDia + du.doisATres + du.quatroASeis + du.seteOuMais)
+              return (
+                <div style={{ marginTop: 18, borderTop: '1px solid #EEF1F6', paddingTop: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#102A4C', marginBottom: 10 }}>Quantos dias cada pessoa usou <span style={{ fontWeight: 400, color: '#9AA7B8' }}>— só quem abriu o app</span></div>
+                  {([['Só 1 dia', du.umDia, '#DC2626'], ['2 a 3 dias', du.doisATres, '#F59E0B'], ['4 a 6 dias', du.quatroASeis, '#65A30D'], ['7 dias ou mais', du.seteOuMais, '#16A34A']] as [string, number, string][]).map(([rotulo, valor, cor]) => (
+                    <div key={rotulo} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <div style={{ width: 108, fontSize: 12.5, color: '#5B6B82' }}>{rotulo}</div>
+                      <div style={{ flex: 1, background: '#EEF1F6', borderRadius: 8, height: 22, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.round((valor / total) * 100)}%`, height: '100%', background: cor, borderRadius: 8 }} />
+                      </div>
+                      <div style={{ width: 68, fontSize: 12.5, fontWeight: 700, textAlign: 'right' }}>{valor} · {Math.round((valor / total) * 100)}%</div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+
             <div style={{ fontSize: 12.5, color: '#7C8AA0', marginTop: 14, lineHeight: 1.6, borderTop: '1px solid #EEF1F6', paddingTop: 10 }}>
               Enquanto o buraco estiver antes de &quot;Vivos no fim do trial&quot;, o problema <strong>não é preço</strong>:
               a pessoa desiste antes de ter motivo para pagar, e baixar o valor não muda nada.
             </div>
           </div>
-        )}
-
-        {/* Quantos dias cada pessoa usou. "1 dia" é a coluna que dói. */}
-        {d.diasDeUso && (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, marginBottom: 4 }}>Quantos dias cada pessoa usou</div>
-            <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>Só quem chegou a abrir o app.</div>
-            {([['Só 1 dia', d.diasDeUso.umDia, '#DC2626'], ['2 a 3 dias', d.diasDeUso.doisATres, '#F59E0B'], ['4 a 6 dias', d.diasDeUso.quatroASeis, '#65A30D'], ['7 dias ou mais', d.diasDeUso.seteOuMais, '#16A34A']] as [string, number, string][]).map(([rotulo, valor, cor]) => {
-              const total = Math.max(1, d.diasDeUso!.umDia + d.diasDeUso!.doisATres + d.diasDeUso!.quatroASeis + d.diasDeUso!.seteOuMais)
-              return (
-                <div key={rotulo} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 108, fontSize: 12.5, color: '#5B6B82' }}>{rotulo}</div>
-                  <div style={{ flex: 1, background: '#EEF1F6', borderRadius: 8, height: 22, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.round((valor / total) * 100)}%`, height: '100%', background: cor, borderRadius: 8 }} />
-                  </div>
-                  <div style={{ width: 68, fontSize: 12.5, fontWeight: 700, textAlign: 'right' }}>{valor} · {Math.round((valor / total) * 100)}%</div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+          )
+        })()}
 
         {/* Cadastros por dia */}
         <div style={{ ...card, marginBottom: 16 }}>
