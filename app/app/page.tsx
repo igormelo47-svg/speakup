@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, type CSSProperties, type Reac
 import { supabase } from '../../lib/supabase'
 import { mesclarPendente, sobrasAposEnvio } from '../../lib/progresso-pendente'
 import { dadosUsuarioParaAds } from '../../lib/hash-email'
+import { VALOR, MOEDA } from '../../lib/valor-eventos'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -3010,6 +3011,19 @@ export default function AppPage() {
               // fila de reenvio, mas o erro aparece no console em vez de sumir.
               supabase.from('progresso').upsert({ user_id: user.id, dias_ativos: [...dias, hojeStr].slice(-60), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
                 .then(({ error }) => { if (error) console.error('[Progresso] dias_ativos não gravou', error) })
+
+              // Voltou num SEGUNDO dia. Degrau mais alto do funil antes da venda, e o mais
+              // preditivo que temos: dos alunos que largaram no 1º dia, nenhum assinou.
+              // Vale muito mais que cadastrar para o algoritmo de lances -- ver
+              // lib/valor-eventos.ts. Idempotente por usuário: só o 2º dia dispara, e o
+              // localStorage é só um atalho; a condição real é o tamanho de dias_ativos.
+              if (dias.length === 1) {
+                const chaveD2 = 'speakup_ret_d2_' + user.id
+                if (!localStorage.getItem(chaveD2)) {
+                  localStorage.setItem(chaveD2, '1')
+                  ;(window as any).dataLayer?.push({ event: 'retencao_d2', value: VALOR.retencaoD2, currency: MOEDA, user_id: user.id })
+                }
+              }
             }
           } catch (e) {}
           // Domínio no servidor (o "cérebro" do professor sobrevive à troca de aparelho):
@@ -3075,7 +3089,9 @@ export default function AppPage() {
         // Cookie _fbp = browser id do pixel do Meta: o webhook manda junto no Purchase da
         // API de Conversões, o que melhora a correspondência (pedido do gestor de tráfego).
         try { const f = document.cookie.match(/_fbp=([^;]+)/); if (f) attrib = { ...(attrib || {}), fbp: decodeURIComponent(f[1]) } } catch (e) {}
-        // Medição (GTM/GA4): conta nova = início do trial de 2 dias. Valor = mensalidade como proxy.
+        // Medição (GTM/GA4): conta nova = início do trial de 2 dias.
+        // O valor NÃO é mais a mensalidade. Ia 29,90 aqui, igual a uma venda, e isso
+        // ensinava o lance que cadastro e assinatura valem o mesmo -- ver lib/valor-eventos.ts.
         // Guarda idempotente: só 1x por usuário (senão cada reload do /app re-dispara o trial_start).
         try {
           if (!localStorage.getItem('speakup_it_' + user.id)) {
@@ -3084,7 +3100,7 @@ export default function AppPage() {
             // cima) porque este é o disparo mais importante e não pode depender de qual
             // promise resolveu primeiro. Falha no hash não impede o evento de sair.
             const ud = user.email ? await dadosUsuarioParaAds(user.email).catch(() => null) : null
-            ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: 29.9, currency: 'BRL', user_id: user.id, ...(ud ? { user_data: ud } : {}), ...(attrib?.gclid ? { gclid: attrib.gclid } : {}), ...(attrib?.fbclid ? { fbclid: attrib.fbclid } : {}) })
+            ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: VALOR.inicioTeste, currency: MOEDA, user_id: user.id, ...(ud ? { user_data: ud } : {}), ...(attrib?.gclid ? { gclid: attrib.gclid } : {}), ...(attrib?.fbclid ? { fbclid: attrib.fbclid } : {}) })
           }
         } catch (e) {}
         setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
@@ -3481,7 +3497,7 @@ export default function AppPage() {
               // deduplicar com o evento server-side do webhook RevenueCat.
               try {
                 const tid = res?.transaction?.transactionIdentifier || `rc_${userId}_${Date.now()}`
-                ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: plano === 'anual' ? 289.9 : 29.9, currency: 'BRL', user_id: userId, transaction_id: tid })
+                ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: plano === 'anual' ? VALOR.assinaturaAnualIOS : VALOR.assinaturaMensal, currency: MOEDA, user_id: userId, transaction_id: tid })
                 await new Promise(r => setTimeout(r, 600)) // dá tempo da tag disparar antes do reload
               } catch (e) {}
               // Espera o webhook do RevenueCat gravar no servidor (até ~20s) antes de recarregar —
@@ -3550,7 +3566,7 @@ export default function AppPage() {
               localStorage.setItem('speakup_purchase_' + userId, '1')
               const pl = localStorage.getItem('speakup_plano_checkout') || 'mensal'
               let atb: any = null; try { const raw = localStorage.getItem('speakup_attrib'); if (raw) atb = JSON.parse(raw) } catch (e2) {}
-              ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: pl === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId, transaction_id: 'kiwify_' + userId, ...(atb?.gclid ? { gclid: atb.gclid } : {}), ...(atb?.fbclid ? { fbclid: atb.fbclid } : {}) })
+              ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: pl === 'anual' ? VALOR.assinaturaAnual : VALOR.assinaturaMensal, currency: MOEDA, user_id: userId, transaction_id: 'kiwify_' + userId, ...(atb?.gclid ? { gclid: atb.gclid } : {}), ...(atb?.fbclid ? { fbclid: atb.fbclid } : {}) })
             }
           } catch (e) {}
           return
@@ -3578,7 +3594,7 @@ export default function AppPage() {
       ;(window as any).dataLayer?.push({ event: nome, user_id: userId || undefined, ...extra })
       if (!localStorage.getItem('speakup_ativado')) {
         localStorage.setItem('speakup_ativado', '1')
-        ;(window as any).dataLayer?.push({ event: 'ativacao', gatilho: nome, user_id: userId || undefined })
+        ;(window as any).dataLayer?.push({ event: 'ativacao', value: VALOR.ativacao, currency: MOEDA, gatilho: nome, user_id: userId || undefined })
         // O servidor carimba progresso.ativado_em e manda o evento pro GA4 por fora do GTM.
         // Sem await de propósito: medição nunca pode atrasar a tela do aluno.
         registrarAtivacaoNoServidor(nome)

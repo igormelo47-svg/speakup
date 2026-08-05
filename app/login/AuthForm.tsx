@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
+import { VALOR, MOEDA } from '../../lib/valor-eventos'
 
 // Formulário de login/cadastro compartilhado entre /login (modo login) e /cadastro (modo cadastro).
 // O CTA da landing aponta pra /cadastro: o visitante novo cai direto na criação de conta.
@@ -61,7 +62,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       // Medição (GTM/GA4): marca o cadastro no MOMENTO do envio, no dataLayer que a campanha usa —
       // o inicio_teste só dispara ao carregar o /app; se o aluno travar na confirmação de e-mail,
       // este evento garante que o topo do funil não some da medição do Google Ads.
-      try { ;(window as any).dataLayer?.push({ event: 'cadastro_enviado', user_id: data.user?.id || undefined }) } catch (e) {}
+      try { ;(window as any).dataLayer?.push({ event: 'cadastro_enviado', value: VALOR.cadastro, currency: MOEDA, user_id: data.user?.id || undefined }) } catch (e) {}
       // Se a confirmação de e-mail estiver ligada no Supabase, não vem sessão: avisa o aluno.
       if (!data.session) {
         setAviso('Conta criada! Confirme seu e-mail (verifique também o spam) e depois entre.')
