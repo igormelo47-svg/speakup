@@ -13,10 +13,17 @@ const ESCURO = '#103D77'
 type Dia = { dia: string; total: number; anuncio: number; organico: number; internos: number }
 type Assinante = { email: string; interno: boolean; canal: string; validoAte: string | null; xp: number; streak: number; ultimaAtividade: string }
 type Fatia = { contas: number; ativados: number; taxa: number }
+type Funil = {
+  criaramConta: number; abriramOApp: number; fizeramUmaLicao: number; fizeramTresLicoes: number
+  usaramDoisDiasOuMais: number; aindaAtivosNoFimDoTrial: number; voltaramDepoisDoTrial: number; assinaram: number
+}
+type DiasDeUso = { umDia: number; doisATres: number; quatroASeis: number; seteOuMais: number }
 type Dados = {
   geradoEm: string
   totais: { contas: number; contas7d: number; viaAnuncio: number; assinantesReais: number; assinantesInternos: number; receitaMensalEstimada: number }
   ativacao?: { geral: Fatia; anuncio: Fatia; organico: Fatia }
+  funil?: Funil
+  diasDeUso?: DiasDeUso
   porDia: Dia[]
   assinantes: Assinante[]
 }
@@ -116,6 +123,77 @@ export default function Admin() {
               Se anúncio e orgânico tiverem taxas parecidas, o gargalo está <strong>depois do cadastro</strong> (produto) —
               trocar campanha não resolve. Se o anúncio for bem pior, a segmentação está trazendo gente errada.
             </div>
+          </div>
+        )}
+
+        {/* Funil — onde as pessoas somem. A maior queda entre dois degraus é o lugar
+            para trabalhar; enquanto o buraco estiver antes do último, mexer em preço
+            é resolver o problema errado. */}
+        {d.funil && (() => {
+          const f = d.funil
+          const degraus: [string, number, string][] = [
+            ['Criaram conta', f.criaramConta, 'chegaram até o cadastro'],
+            ['Abriram o app', f.abriramOApp, 'fizeram nivelamento, lição ou conversa'],
+            ['1ª lição', f.fizeramUmaLicao, 'concluíram pelo menos uma lição'],
+            ['3 lições', f.fizeramTresLicoes, 'já pegaram o ritmo'],
+            ['Voltaram outro dia', f.usaramDoisDiasOuMais, 'usaram em 2 dias diferentes ou mais'],
+            ['Vivos no fim do trial', f.aindaAtivosNoFimDoTrial, 'ainda usavam quando os 2 dias grátis acabaram'],
+            ['Voltaram depois do trial', f.voltaramDepoisDoTrial, 'usaram o app já sem Premium'],
+            ['Assinaram', f.assinaram, 'viraram pagantes'],
+          ]
+          const base = Math.max(1, f.criaramConta)
+          // Maior queda percentual entre dois degraus seguidos = o buraco.
+          let piorI = 1, piorQueda = -1
+          for (let i = 1; i < degraus.length; i++) {
+            const antes = degraus[i - 1][1], depois = degraus[i][1]
+            const queda = antes > 0 ? (antes - depois) / antes : 0
+            if (queda > piorQueda) { piorQueda = queda; piorI = i }
+          }
+          return (
+            <div style={{ ...card, marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, marginBottom: 4 }}>Funil — onde as pessoas somem</div>
+              <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>Cada degrau é um pedaço do anterior. A barra vermelha é a maior queda.</div>
+              {degraus.map(([rotulo, valor, ajuda], i) => {
+                const pct = Math.round((valor / base) * 100)
+                const eOBuraco = i === piorI
+                return (
+                  <div key={rotulo} style={{ marginBottom: 9 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 130, fontSize: 12.5, color: eOBuraco ? '#B91C1C' : '#5B6B82', fontWeight: eOBuraco ? 700 : 400 }}>{rotulo}</div>
+                      <div style={{ flex: 1, background: '#EEF1F6', borderRadius: 8, height: 22, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.max(pct, valor > 0 ? 2 : 0)}%`, height: '100%', background: eOBuraco ? '#DC2626' : AZUL, borderRadius: 8 }} />
+                      </div>
+                      <div style={{ width: 74, fontSize: 12.5, fontWeight: 700, textAlign: 'right' }}>{valor} · {pct}%</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9AA7B8', marginLeft: 140, marginTop: 1 }}>{ajuda}</div>
+                  </div>
+                )
+              })}
+              <div style={{ fontSize: 12.5, color: '#7C8AA0', marginTop: 12, lineHeight: 1.6, borderTop: '1px solid #EEF1F6', paddingTop: 10 }}>
+                <strong style={{ color: '#B91C1C' }}>Maior queda: {degraus[piorI - 1][0]} → {degraus[piorI][0]}</strong> ({Math.round(piorQueda * 100)}% somem aí).
+                {' '}Se o buraco está antes de &quot;Vivos no fim do trial&quot;, o problema <strong>não é preço</strong>: a pessoa desiste antes de ter motivo para pagar, e baixar o valor não muda nada.
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Quantos dias cada pessoa usou. "1 dia" é a coluna que dói. */}
+        {d.diasDeUso && (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, marginBottom: 4 }}>Quantos dias cada pessoa usou</div>
+            <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>Só quem chegou a abrir o app.</div>
+            {([['Só 1 dia', d.diasDeUso.umDia, '#DC2626'], ['2 a 3 dias', d.diasDeUso.doisATres, '#F59E0B'], ['4 a 6 dias', d.diasDeUso.quatroASeis, '#65A30D'], ['7 dias ou mais', d.diasDeUso.seteOuMais, '#16A34A']] as [string, number, string][]).map(([rotulo, valor, cor]) => {
+              const total = Math.max(1, d.diasDeUso!.umDia + d.diasDeUso!.doisATres + d.diasDeUso!.quatroASeis + d.diasDeUso!.seteOuMais)
+              return (
+                <div key={rotulo} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 108, fontSize: 12.5, color: '#5B6B82' }}>{rotulo}</div>
+                  <div style={{ flex: 1, background: '#EEF1F6', borderRadius: 8, height: 22, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.round((valor / total) * 100)}%`, height: '100%', background: cor, borderRadius: 8 }} />
+                  </div>
+                  <div style={{ width: 68, fontSize: 12.5, fontWeight: 700, textAlign: 'right' }}>{valor} · {Math.round((valor / total) * 100)}%</div>
+                </div>
+              )
+            })}
           </div>
         )}
 

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   if (luErr) return NextResponse.json({ error: luErr.message }, { status: 500 })
   const { data: progressos, error: pErr } = await admin
     .from('progresso')
-    .select('user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at, ativado_em')
+    .select('user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at, ativado_em, licoes_concluidas, dias_ativos, ultima_atividade')
   if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 })
   const porUser = new Map((progressos || []).map(p => [p.user_id, p]))
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     const d = new Date(new Date(hoje + 'T12:00:00Z').getTime() - i * MS_DIA).toISOString().slice(0, 10)
     porDia[d] = { total: 0, anuncio: 0, organico: 0, internos: 0 }
   }
-  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean }[] = []
+  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean }[] = []
   for (const u of lista?.users || []) {
     const em = (u.email || '').toLowerCase()
     const interno = INTERNOS.has(em)
@@ -49,7 +49,20 @@ export async function GET(req: NextRequest) {
     // Ativado = usou o app de fato. Contas antigas (anteriores à coluna) caem no XP como
     // aproximação, senão a taxa histórica apareceria zerada e assustaria à toa.
     const ativado = !!prog?.ativado_em || (prog?.xp || 0) > 0
-    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado })
+
+    // Sobrevivência ao trial. A pergunta que isto responde é a que decide onde mexer:
+    // se quase ninguém CHEGA ao fim dos 2 dias ainda usando, o problema não é preço --
+    // a pessoa desistiu antes de ter motivo para pagar, e baixar o valor não muda nada.
+    const dias: string[] = Array.isArray(prog?.dias_ativos) ? prog.dias_ativos : []
+    const licoes = Array.isArray(prog?.licoes_concluidas) ? prog.licoes_concluidas.length : 0
+    const nasceu = new Date(u.created_at).getTime()
+    const fimDoTrial = nasceu + 2 * MS_DIA
+    const ultima = prog?.ultima_atividade ? new Date(prog.ultima_atividade + 'T12:00:00Z').getTime()
+      : (prog?.updated_at ? new Date(prog.updated_at).getTime() : 0)
+    const sobreviveuAoTrial = ativado && ultima >= fimDoTrial - MS_DIA  // ainda vivo no 2º dia
+    const voltouDepoisDoTrial = ativado && ultima > fimDoTrial
+
+    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado, diasUsados: dias.length, licoes, sobreviveuAoTrial, voltouDepoisDoTrial })
     const d = diaLocal(u.created_at)
     if (porDia[d]) {
       if (interno) porDia[d].internos++
@@ -88,8 +101,34 @@ export async function GET(req: NextRequest) {
     taxa: cs.length ? Math.round((cs.filter(c => c.ativado).length / cs.length) * 1000) / 10 : 0,
   })
 
+  // Funil de retenção: onde as pessoas somem. Cada degrau é subconjunto do anterior,
+  // então a maior queda entre dois degraus é o lugar exato para trabalhar. Enquanto o
+  // buraco estiver antes do último degrau, mexer em preço é resolver o problema errado.
+  const ativados = reais.filter(c => c.ativado)
+  const funil = {
+    criaramConta: reais.length,
+    abriramOApp: ativados.length,
+    fizeramUmaLicao: ativados.filter(c => c.licoes >= 1).length,
+    fizeramTresLicoes: ativados.filter(c => c.licoes >= 3).length,
+    usaramDoisDiasOuMais: ativados.filter(c => c.diasUsados >= 2).length,
+    aindaAtivosNoFimDoTrial: ativados.filter(c => c.sobreviveuAoTrial).length,
+    voltaramDepoisDoTrial: ativados.filter(c => c.voltouDepoisDoTrial).length,
+    assinaram: assinantes.filter(a => !a.interno).length,
+  }
+  // Quantos dias cada pessoa usou, em faixas. "1 dia" é a coluna que dói: entrou,
+  // olhou e nunca mais voltou -- essa pessoa nunca chegou perto de decidir pagar.
+  const faixa = (min: number, max: number) => ativados.filter(c => c.diasUsados >= min && c.diasUsados <= max).length
+  const diasDeUso = {
+    umDia: faixa(0, 1),
+    doisATres: faixa(2, 3),
+    quatroASeis: faixa(4, 6),
+    seteOuMais: ativados.filter(c => c.diasUsados >= 7).length,
+  }
+
   return NextResponse.json({
     geradoEm: new Date().toISOString(),
+    funil,
+    diasDeUso,
     totais: {
       contas: reais.length,
       contas7d: reais.filter(c => new Date(c.criadoEm).getTime() > seteDias).length,
