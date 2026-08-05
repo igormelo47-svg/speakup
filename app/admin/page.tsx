@@ -15,6 +15,7 @@ type Assinante = { email: string; interno: boolean; canal: string; validoAte: st
 type Fatia = { contas: number; ativados: number; taxa: number }
 type Funil = {
   profundidade: { criaramConta: number; abriramOApp: number; fizeramUmaLicao: number; fizeramTresLicoes: number }
+  email?: { criaramConta: number; confirmaram: number; naoConfirmaram: number; naoConfirmaramENaoUsaram: number }
   permanencia: { abriramOApp: number; voltaramOutroDia: number; vivosNoFimDoTrial: number; voltaramDepoisDoTrial: number; assinaram: number }
 }
 type DiasDeUso = { umDia: number; doisATres: number; quatroASeis: number; seteOuMais: number }
@@ -193,6 +194,26 @@ export default function Admin() {
                 ['Assinaram', d.funil.permanencia.assinaram, 'viraram pagantes'],
               ]}
             />
+            {/* A barreira do e-mail explica ou descarta a primeira queda de uma vez: quem
+                nunca confirmou não conseguia entrar, e some sem nunca ter visto o app. */}
+            {d.funil.email && (() => {
+              const e = d.funil.email!
+              const culpado = e.naoConfirmaram > 0 && e.naoConfirmaramENaoUsaram >= Math.max(1, Math.round((d.funil!.profundidade.criaramConta - d.funil!.profundidade.abriramOApp) * 0.5))
+              return (
+                <div style={{ marginTop: 18, background: culpado ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${culpado ? '#FECACA' : '#BBF7D0'}`, borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: culpado ? '#B91C1C' : '#15803D', marginBottom: 6 }}>
+                    {culpado ? '⚠️ A confirmação de e-mail está engolindo o funil' : '✅ A confirmação de e-mail não é o problema'}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#5B6B82', lineHeight: 1.65 }}>
+                    <strong>{e.naoConfirmaram}</strong> de {e.criaramConta} contas nunca confirmaram o e-mail —
+                    e <strong>{e.naoConfirmaramENaoUsaram}</strong> delas também nunca abriram o app.
+                    {culpado
+                      ? ' Isso é a maior perda do produto, e não é o app: quem não clica no link do e-mail não consegue entrar. Desligar "Confirm email" no Supabase (Authentication → Providers → Email) devolve essa gente ao funil no mesmo dia.'
+                      : ' A perda entre cadastro e primeiro uso está no app, não no e-mail.'}
+                  </div>
+                </div>
+              )
+            })()}
             <div style={{ fontSize: 12.5, color: '#7C8AA0', marginTop: 14, lineHeight: 1.6, borderTop: '1px solid #EEF1F6', paddingTop: 10 }}>
               Enquanto o buraco estiver antes de &quot;Vivos no fim do trial&quot;, o problema <strong>não é preço</strong>:
               a pessoa desiste antes de ter motivo para pagar, e baixar o valor não muda nada.

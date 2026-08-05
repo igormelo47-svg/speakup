@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     const d = new Date(new Date(hoje + 'T12:00:00Z').getTime() - i * MS_DIA).toISOString().slice(0, 10)
     porDia[d] = { total: 0, anuncio: 0, organico: 0, internos: 0 }
   }
-  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean }[] = []
+  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean; confirmouEmail: boolean }[] = []
   for (const u of lista?.users || []) {
     const em = (u.email || '').toLowerCase()
     const interno = INTERNOS.has(em)
@@ -76,7 +76,12 @@ export async function GET(req: NextRequest) {
     const sobreviveuAoTrial = ativado && ultima >= fimDoTrial - MS_DIA  // ainda vivo no 2º dia
     const voltouDepoisDoTrial = ativado && ultima > fimDoTrial
 
-    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado, diasUsados: dias.length, licoes, sobreviveuAoTrial, voltouDepoisDoTrial })
+    // Quem nunca clicou no link do e-mail nao consegue entrar -- e some do funil sem
+    // nunca ter visto o app. Se esse numero for grande, a maior perda do produto e uma
+    // configuracao do Supabase, nao a primeira licao.
+    const confirmouEmail = !!(u as any).email_confirmed_at || !!(u as any).confirmed_at
+
+    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado, diasUsados: dias.length, licoes, sobreviveuAoTrial, voltouDepoisDoTrial, confirmouEmail })
     const d = diaLocal(u.created_at)
     if (porDia[d]) {
       if (interno) porDia[d].internos++
@@ -128,6 +133,13 @@ export async function GET(req: NextRequest) {
       abriramOApp: ativados.length,
       fizeramUmaLicao: ativados.filter(c => c.licoes >= 1).length,
       fizeramTresLicoes: ativados.filter(c => c.licoes >= 3).length,
+    },
+    // Barreira do e-mail: mede se a maior perda do funil é uma configuração, e não o app.
+    email: {
+      criaramConta: reais.length,
+      confirmaram: reais.filter(c => c.confirmouEmail).length,
+      naoConfirmaram: reais.filter(c => !c.confirmouEmail).length,
+      naoConfirmaramENaoUsaram: reais.filter(c => !c.confirmouEmail && !c.ativado).length,
     },
     // Permanência: quem continuou existindo depois do primeiro dia.
     permanencia: {
