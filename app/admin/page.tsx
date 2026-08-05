@@ -17,7 +17,7 @@ type DiasDeUso = { umDia: number; doisATres: number; quatroASeis: number; seteOu
 type Funil = {
   profundidade: { criaramConta: number; abriramOApp: number; fizeramUmaLicao: number; fizeramTresLicoes: number }
   email?: { criaramConta: number; confirmaram: number; naoConfirmaram: number; naoConfirmaramENaoUsaram: number }
-  permanencia: { abriramOApp: number; voltaramOutroDia: number; vivosNoFimDoTrial: number; voltaramDepoisDoTrial: number; assinaram: number }
+  permanencia: { abriramOApp: number; voltaramOutroDia: number; vivosNoFimDoTrial: number; voltaramDepoisDoTrial: number; assinaram: number; novasDemaisParaContar?: number }
   diasDeUso?: DiasDeUso
 }
 type Origem = 'anuncio' | 'organico' | 'todos'
@@ -218,10 +218,15 @@ export default function Admin() {
               ]}
             />
             <div style={{ height: 18 }} />
+            {!!f.permanencia.novasDemaisParaContar && (
+              <div style={{ fontSize: 12, color: '#5B6B82', background: '#F6F8FB', borderRadius: 10, padding: '9px 12px', marginBottom: 10, lineHeight: 1.55 }}>
+                {f.permanencia.novasDemaisParaContar} {f.permanencia.novasDemaisParaContar === 1 ? 'conta ficou de fora' : 'contas ficaram de fora'} do funil abaixo por {f.permanencia.novasDemaisParaContar === 1 ? 'ser nova' : 'serem novas'} demais — quem se cadastrou ontem ainda não teve chance de voltar, e contar como perda seria fabricar churn.
+              </div>
+            )}
             <Funil
               titulo="Permanência — quem continuou existindo"
               degraus={[
-                ['Abriram o app', f.permanencia.abriramOApp, 'ponto de partida'],
+                ['Abriram o app', f.permanencia.abriramOApp, 'ponto de partida (só quem já teve tempo de voltar)'],
                 ['Voltaram outro dia', f.permanencia.voltaramOutroDia, 'usaram em 2 dias diferentes ou mais'],
                 ['Vivos no fim do trial', f.permanencia.vivosNoFimDoTrial, 'ainda usavam quando os 2 dias grátis acabaram'],
                 ['Voltaram depois do trial', f.permanencia.voltaramDepoisDoTrial, 'usaram o app já sem Premium'],

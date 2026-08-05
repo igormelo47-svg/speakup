@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     const d = new Date(new Date(hoje + 'T12:00:00Z').getTime() - i * MS_DIA).toISOString().slice(0, 10)
     porDia[d] = { total: 0, anuncio: 0, organico: 0, internos: 0 }
   }
-  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean; confirmouEmail: boolean }[] = []
+  const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean; confirmouEmail: boolean; teveChanceDeVoltar: boolean; teveChanceDePassarDoTrial: boolean }[] = []
   for (const u of lista?.users || []) {
     const em = (u.email || '').toLowerCase()
     const interno = INTERNOS.has(em)
@@ -75,13 +75,19 @@ export async function GET(req: NextRequest) {
     )
     const sobreviveuAoTrial = ativado && ultima >= fimDoTrial - MS_DIA  // ainda vivo no 2º dia
     const voltouDepoisDoTrial = ativado && ultima > fimDoTrial
+    // Quem se cadastrou ontem ainda NAO TEVE CHANCE de voltar no dia seguinte nem de
+    // ver o trial acabar. Contar essa pessoa como "nao voltou" e fabricar churn: ela
+    // aparece como perda sem ter tido oportunidade de ficar. Só entra na conta de
+    // retencao quem ja viveu tempo suficiente para o desfecho existir.
+    const teveChanceDeVoltar = Date.now() - nasceu >= 2 * MS_DIA
+    const teveChanceDePassarDoTrial = Date.now() - nasceu >= 3 * MS_DIA
 
     // Quem nunca clicou no link do e-mail nao consegue entrar -- e some do funil sem
     // nunca ter visto o app. Se esse numero for grande, a maior perda do produto e uma
     // configuracao do Supabase, nao a primeira licao.
     const confirmouEmail = !!(u as any).email_confirmed_at || !!(u as any).confirmed_at
 
-    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado, diasUsados: dias.length, licoes, sobreviveuAoTrial, voltouDepoisDoTrial, confirmouEmail })
+    contas.push({ email: em, criadoEm: u.created_at, interno, anuncio, ativado, diasUsados: dias.length, licoes, sobreviveuAoTrial, voltouDepoisDoTrial, confirmouEmail, teveChanceDeVoltar, teveChanceDePassarDoTrial })
     const d = diaLocal(u.created_at)
     if (porDia[d]) {
       if (interno) porDia[d].internos++
@@ -138,7 +144,7 @@ export async function GET(req: NextRequest) {
 
   function montarFunil(cs: typeof reais) {
     const ativs = cs.filter(c => c.ativado)
-    const faixa = (min: number, max: number) => ativs.filter(c => c.diasUsados >= min && c.diasUsados <= max).length
+    const faixa = (min: number, max: number) => ativs.filter(c => c.teveChanceDeVoltar && c.diasUsados >= min && c.diasUsados <= max).length
     return {
       // Profundidade: até onde a pessoa foi na primeira vez que usou.
       profundidade: {
@@ -154,21 +160,30 @@ export async function GET(req: NextRequest) {
         naoConfirmaram: cs.filter(c => !c.confirmouEmail).length,
         naoConfirmaramENaoUsaram: cs.filter(c => !c.confirmouEmail && !c.ativado).length,
       },
-      // Permanência: quem continuou existindo depois do primeiro dia.
-      permanencia: {
-        abriramOApp: ativs.length,
-        voltaramOutroDia: ativs.filter(c => c.diasUsados >= 2).length,
-        vivosNoFimDoTrial: ativs.filter(c => c.sobreviveuAoTrial).length,
-        voltaramDepoisDoTrial: ativs.filter(c => c.voltouDepoisDoTrial).length,
-        assinaram: cs.filter(c => { const id = idPorEmail.get(c.email); return id ? premiumPorId.has(id) : false }).length,
-      },
+      // Permanência: quem continuou existindo depois do primeiro dia. Só entra quem já
+      // teve TEMPO de voltar -- quem se cadastrou ontem não é churn, é conta nova.
+      permanencia: (() => {
+        const podiaVoltar = ativs.filter(c => c.teveChanceDeVoltar)
+        const podiaPassarDoTrial = ativs.filter(c => c.teveChanceDePassarDoTrial)
+        return {
+          abriramOApp: podiaVoltar.length,
+          voltaramOutroDia: podiaVoltar.filter(c => c.diasUsados >= 2).length,
+          vivosNoFimDoTrial: podiaPassarDoTrial.filter(c => c.sobreviveuAoTrial).length,
+          voltaramDepoisDoTrial: podiaPassarDoTrial.filter(c => c.voltouDepoisDoTrial).length,
+          assinaram: cs.filter(c => { const id = idPorEmail.get(c.email); return id ? premiumPorId.has(id) : false }).length,
+          // Quantas ficaram de fora por serem novas demais -- o painel precisa dizer
+          // isso, senão a amostra encolhe em silêncio e ninguém percebe.
+          novasDemaisParaContar: ativs.length - podiaVoltar.length,
+        }
+      })(),
       // Quantos dias cada pessoa usou. "1 dia" é a coluna que dói: entrou, olhou e
-      // nunca mais voltou -- essa nunca chegou perto de decidir pagar.
+      // nunca mais voltou -- essa nunca chegou perto de decidir pagar. Mesmo recorte
+      // de quem teve chance, pelo mesmo motivo.
       diasDeUso: {
         umDia: faixa(0, 1),
         doisATres: faixa(2, 3),
         quatroASeis: faixa(4, 6),
-        seteOuMais: ativs.filter(c => c.diasUsados >= 7).length,
+        seteOuMais: ativs.filter(c => c.teveChanceDeVoltar && c.diasUsados >= 7).length,
       },
     }
   }
