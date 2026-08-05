@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import NativeEntry from './NativeEntry'
+import { Footer } from './_marketing/ui'
 
 export const metadata = {
   title: 'Vonai — Aprenda inglês conversando com IA',
@@ -125,6 +126,11 @@ export default function Home() {
           <Beneficio e="🗣️" t="Pronúncia para a nossa boca" d='Dicas específicas para os sons que não existem em português: th, -ed, h aspirado, "is-cul".' />
           <Beneficio e="💬" t="Feedback em português" d="A IA explica seus erros na sua língua — você entende o porquê, não só o quê." />
         </div>
+        <p style={{ textAlign: 'center', fontSize: 14.5, marginTop: 24 }}>
+          <Link href="/erros-de-ingles-do-brasileiro" style={{ color: AZUL, fontWeight: 600 }}>Ver os erros que todo brasileiro comete →</Link>
+          <span style={{ color: '#C7D0DC', margin: '0 10px' }}>·</span>
+          <Link href="/teste-de-nivel-de-ingles" style={{ color: AZUL, fontWeight: 600 }}>Descobrir meu nível em 2 min →</Link>
+        </p>
       </div>
 
       {/* Planos e preços — transparência antes do cadastro qualifica o clique pago */}
@@ -155,6 +161,7 @@ export default function Home() {
             </div>
           </div>
           <p style={{ textAlign: 'center', fontSize: 12.5, color: '#7C8AA0', marginTop: 22 }}>Renovação automática · Pix, cartão ou boleto · Cancele quando quiser, sem multa</p>
+          <p style={{ textAlign: 'center', fontSize: 14, marginTop: 14 }}><Link href="/planos" style={{ color: AZUL, fontWeight: 600 }}>Ver a comparação completa dos planos →</Link></p>
         </div>
       </div>
 
@@ -180,17 +187,7 @@ export default function Home() {
         <Link href="/cadastro" style={cta}>Começar grátis →</Link>
       </div>
 
-      {/* Footer */}
-      <div style={{ borderTop: '1px solid #EEF1F6', background: '#F6F8FB' }}>
-        <div style={{ ...container, padding: '24px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#7C8AA0' }}>
-          <div>© {new Date().getFullYear()} Vonai</div>
-          <div style={{ display: 'flex', gap: 18 }}>
-            <Link href="/termos" style={{ color: '#7C8AA0' }}>Termos</Link>
-            <Link href="/privacidade" style={{ color: '#7C8AA0' }}>Privacidade</Link>
-            <Link href="/login" style={{ color: AZUL, fontWeight: 600 }}>Entrar</Link>
-          </div>
-        </div>
-      </div>
+      <Footer />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AZUL, ESCURO, container, cta, Card, PlayBadge, AppStoreBadge, Nav, Footer, StickyCta } from '../_marketing/ui'
 
 // Landing de tráfego pago para a busca "aplicativo para aprender inglês" (e variações).
 // Existe para duas coisas: (1) índice de qualidade do Google Ads — o texto conversa com
@@ -14,12 +15,6 @@ export const metadata = {
   alternates: { canonical: '/aplicativo-para-aprender-ingles' },
 }
 
-const AZUL = '#1E63C7'
-const ESCURO = '#103D77'
-const LARANJA = '#F5A623'
-const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.vercel.speakup_dusky.twa'
-const APP_STORE_URL = 'https://apps.apple.com/br/app/vonai/id6788121941'
-
 const FAQ = [
   { q: 'Qual o melhor aplicativo para aprender inglês sozinho?', a: 'O melhor aplicativo é o que faz você FALAR — é falando que a fluência aparece. O Vonai foi construído em volta disso: um professor de IA disponível 24h conversa com você, corrige sua pronúncia na hora e explica os erros em português. Apps de memorização ensinam palavras; o Vonai ensina você a usá-las numa conversa.' },
   { q: 'O aplicativo é grátis?', a: 'Você começa com 2 dias de Premium grátis, sem cadastrar cartão de crédito. Depois pode continuar no plano gratuito (com limites diários) ou assinar o Premium por R$29,90/mês. Sem multa e sem fidelidade: cancela quando quiser.' },
@@ -29,79 +24,10 @@ const FAQ = [
   { q: 'Quanto tempo por dia preciso estudar?', a: 'A partir de 5 minutos. O app monta um plano diário realista e a sequência de dias (🔥) ajuda a manter a constância — estudar um pouco todo dia vale mais do que uma hora uma vez por semana.' },
 ]
 
-function Card({ e, t, d }: { e: string; t: string; d: string }) {
-  return (
-    <div style={{ background: '#fff', border: '1px solid #E8ECF2', borderRadius: 16, padding: 20 }}>
-      <div style={{ fontSize: 30, marginBottom: 10 }}>{e}</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#102A4C', marginBottom: 5 }}>{t}</div>
-      <div style={{ fontSize: 14, color: '#5B6B82', lineHeight: 1.55 }}>{d}</div>
-    </div>
-  )
-}
-
-// target="_blank" é obrigatório: o navegador interno do Instagram/Facebook engole a
-// navegação para domínio externo na mesma janela — o toque parece "morto" sem isso.
-function LojaBadge({ href, icone, acima, nome }: { href: string; icone: React.ReactNode; acima: string; nome: string }) {
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#000', color: '#fff', borderRadius: 12, padding: '10px 18px', textDecoration: 'none' }}>
-      {icone}
-      <span style={{ textAlign: 'left', lineHeight: 1.15 }}>
-        <span style={{ display: 'block', fontSize: 10.5, opacity: 0.85 }}>{acima}</span>
-        <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{nome}</span>
-      </span>
-    </a>
-  )
-}
-// Logo da Apple em SVG (path do Font Awesome Free/brands, CC BY 4.0) — emoji de maçã
-// destoava e o  (U+F8FF) só renderiza em aparelhos Apple.
-function AppleSvg() {
-  return (
-    <svg width="22" height="26" viewBox="0 0 384 512" aria-hidden="true">
-      <path fill="#fff" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
-    </svg>
-  )
-}
-function PlaySvg() {
-  return (
-    <svg width="22" height="24" viewBox="0 0 512 512" aria-hidden="true">
-      <path fill="#34A853" d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1z" />
-      <path fill="#4285F4" d="M47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0z" />
-      <path fill="#FBBC04" d="M472.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8z" />
-      <path fill="#EA4335" d="M104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
-    </svg>
-  )
-}
-function PlayBadge() {
-  return <LojaBadge href={PLAY_URL} icone={<PlaySvg />} acima="Disponível no" nome="Google Play" />
-}
-function AppStoreBadge() {
-  return <LojaBadge href={APP_STORE_URL} icone={<AppleSvg />} acima="Baixar na" nome="App Store" />
-}
-
 export default function AplicativoParaAprenderIngles() {
-  const container: React.CSSProperties = { maxWidth: 1040, margin: '0 auto', padding: '0 20px' }
-  const cta: React.CSSProperties = { display: 'inline-block', background: LARANJA, color: '#fff', fontWeight: 700, fontSize: 16, padding: '14px 30px', borderRadius: 30, textDecoration: 'none', boxShadow: '0 6px 18px rgba(245,166,35,0.4)' }
   return (
     <div style={{ fontFamily: 'inherit', color: '#102A4C', background: '#fff' }}>
-      {/* Barra fixa de CTA no celular — a maioria do tráfego pago é mobile e o botão
-          precisa estar SEMPRE a um toque, em qualquer ponto da rolagem. */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        .vn-sticky-cta { display: none; }
-        @media (max-width: 720px) {
-          .vn-sticky-cta { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-            background: #fff; border-top: 1px solid #E8ECF2; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-            gap: 10px; align-items: center; justify-content: space-between; box-shadow: 0 -6px 18px rgba(16,42,76,0.08); }
-          .vn-body-pad { padding-bottom: 76px; }
-        }
-      `}} />
-
-      {/* Nav */}
-      <div style={{ borderBottom: '1px solid #EEF1F6' }}>
-        <div style={{ ...container, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>
-          <Link href="/" style={{ fontSize: 20, fontWeight: 800, color: '#102A4C', textDecoration: 'none' }}>Von<span style={{ color: AZUL }}>ai</span></Link>
-          <Link href="/login" style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
-        </div>
-      </div>
+      <Nav />
 
       <div className="vn-body-pad">
         {/* Hero — fala a língua da busca + prova social real */}
@@ -252,27 +178,9 @@ export default function AplicativoParaAprenderIngles() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ borderTop: '1px solid #EEF1F6', background: '#F6F8FB' }}>
-          <div style={{ ...container, padding: '24px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#7C8AA0' }}>
-            <div>© {new Date().getFullYear()} Vonai</div>
-            <div style={{ display: 'flex', gap: 18 }}>
-              <Link href="/termos" style={{ color: '#7C8AA0' }}>Termos</Link>
-              <Link href="/privacidade" style={{ color: '#7C8AA0' }}>Privacidade</Link>
-              <Link href="/login" style={{ color: AZUL, fontWeight: 600 }}>Entrar</Link>
-            </div>
-          </div>
-        </div>
+        <Footer />
       </div>
-
-      {/* Barra fixa mobile: nota real + botão sempre visível */}
-      <div className="vn-sticky-cta">
-        <div style={{ fontSize: 12.5, color: '#5B6B82', lineHeight: 1.3 }}>
-          <div style={{ fontWeight: 700, color: '#102A4C' }}>⭐ 5,0 na App Store</div>
-          2 dias grátis · sem cartão
-        </div>
-        <Link href="/cadastro" style={{ ...cta, fontSize: 14.5, padding: '11px 20px', whiteSpace: 'nowrap' }}>Testar grátis →</Link>
-      </div>
+      <StickyCta texto="Testar grátis →" />
     </div>
   )
 }
