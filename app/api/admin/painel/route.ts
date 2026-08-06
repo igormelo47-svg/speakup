@@ -31,9 +31,17 @@ export async function GET(req: NextRequest) {
   const { data: pushes } = await admin.from('push_subscriptions').select('user_id')
   const comPush = new Set((pushes || []).map(p => p.user_id))
 
-  const { data: progressos, error: pErr } = await admin
-    .from('progresso')
-    .select('user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at, ativado_em, licoes_concluidas, dias_ativos, ultima_atividade, email_lembretes')
+  // Colunas opcionais (email_lembretes veio de email_lembretes_column.sql) NÃO podem
+  // derrubar o painel inteiro. O PostgREST recusa o SELECT todo quando uma coluna não
+  // existe, então a primeira tentativa pede tudo e a segunda repete sem as opcionais.
+  // Foi exatamente isso que quebrou o /admin em 05/08: o SQL ainda não tinha sido
+  // aplicado e a tela virou "Erro ao carregar" por causa de um dado acessório.
+  const BASE = 'user_id, email, attrib, is_premium, premium_expira, xp, streak, updated_at, ativado_em, licoes_concluidas, dias_ativos, ultima_atividade'
+  let { data: progressos, error: pErr } = await admin.from('progresso').select(`${BASE}, email_lembretes`)
+  if (pErr && /email_lembretes/.test(pErr.message || '')) {
+    console.warn('[Painel] coluna email_lembretes ausente — aplicar email_lembretes_column.sql')
+    ;({ data: progressos, error: pErr } = await admin.from('progresso').select(BASE) as any)
+  }
   if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 })
   const porUser = new Map((progressos || []).map(p => [p.user_id, p]))
 
