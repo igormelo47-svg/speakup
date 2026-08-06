@@ -96,7 +96,9 @@ export default function Teste() {
           <div style={{ fontSize: 14.5, color: '#D6E6FA', lineHeight: 1.6, marginBottom: 18 }}>
             No app, o professor de IA começa exatamente daqui, conversa com você e corrige sua pronúncia na hora. 2 dias grátis, sem cartão.
           </div>
-          <Link href="/cadastro" style={{ ...botao, display: 'inline-block' }} onClick={() => evento('teste_nivel_cta', { nivel: r.nivel })}>Começar do {r.nivel} grátis →</Link>
+          {/* O nível vai na URL para o cadastro guardar e o app começar a trilha dali.
+              Sem isso a promessa "comece do seu nível" morre no formulário. */}
+          <Link href={`/cadastro?nivel=${r.nivel}`} style={{ ...botao, display: 'inline-block' }} onClick={() => evento('teste_nivel_cta', { nivel: r.nivel })}>Começar do {r.nivel} grátis →</Link>
         </div>
 
         {/* Gabarito depois do CTA: quem quer estudar o erro rola mais, quem quer o app já clicou */}

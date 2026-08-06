@@ -26,6 +26,15 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       if (ref) { localStorage.setItem('speakup_ref', ref); setIndicado(true); setModo('cadastro') }
       // vindo do app nativo (?novo=1): já abre no cadastro
       if (params.get('novo')) setModo('cadastro')
+      // Vindo do teste de nível público (?nivel=B1): guarda para o app abrir a trilha
+      // exatamente dali — é a promessa do CTA "Começar do B1 grátis". O app lê
+      // speakup_nivel no primeiro load (app/app/page.tsx). Whitelist porque isso é URL:
+      // qualquer valor fora dos seis níveis é lixo e não pode entrar no estado do app.
+      const nivel = params.get('nivel')
+      if (nivel && ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(nivel)) {
+        localStorage.setItem('speakup_nivel', nivel)
+        setModo('cadastro')
+      }
     } catch (e) {}
   }, [])
 
