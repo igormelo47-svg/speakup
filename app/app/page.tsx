@@ -1708,85 +1708,86 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
           <stop offset="1" stopColor="#1E63C7" />
         </linearGradient>
       </defs>
-      {/* ===== O Vô de verdade (redesign 06/08): um vovô professor — pele quente,
-          bigode e sobrancelhas brancas, óculos dourados, cardigã azul da marca e o
-          capelo de formatura. Mesmos humores de antes, personagem novo. ===== */}
-      {/* bracinho acenando — o gesto de boas-vindas do Vô */}
+      {/* ===== Redesign 2 (06/08): uma ARARA-AZUL professora. O bicho brasileiro que
+          FALA — que é exatamente o que o app ensina a fazer. Corpo no azul da marca,
+          peito dourado, óculos e sobrancelhas brancas de vô, capelo de formatura.
+          Mesmos humores, mesma API. ===== */}
+      {/* asa acenando — boas-vindas */}
       {humor === 'acena' && (
-        <g style={{ transformOrigin: '53px 50px', animation: 'su_wave 1.1s ease-in-out infinite' }}>
-          <path d="M53 50 Q61 42 59 32" stroke="#1E63C7" strokeWidth="5" fill="none" strokeLinecap="round" />
-          <circle cx="59" cy="30" r="3.8" fill="#F6C39A" />
+        <g style={{ transformOrigin: '50px 40px', animation: 'su_wave 1.1s ease-in-out infinite' }}>
+          <path d="M50 40 Q60 33 59 22 Q52 26 48 33 Z" fill="#164E96" />
         </g>
       )}
-      {/* bracinhos para cima na comemoração */}
+      {/* asas para cima na comemoração */}
       {humor === 'comemora' && (<>
-        <path d="M12 54 Q4 46 7 37" stroke="#1E63C7" strokeWidth="4.6" fill="none" strokeLinecap="round" />
-        <path d="M52 54 Q60 46 57 37" stroke="#1E63C7" strokeWidth="4.6" fill="none" strokeLinecap="round" />
-        <circle cx="7" cy="35" r="3.4" fill="#F6C39A" />
-        <circle cx="57" cy="35" r="3.4" fill="#F6C39A" />
+        <path d="M14 40 Q4 32 6 20 Q13 25 17 33 Z" fill="#164E96" />
+        <path d="M50 40 Q60 32 58 20 Q51 25 47 33 Z" fill="#164E96" />
       </>)}
-      {/* cardigã (ombros) com botão dourado */}
-      <path d="M13 64 Q13 49 32 49 Q51 49 51 64 Z" fill="url(#vonaiMasc)" />
-      <path d="M27 51 L32 56 L37 51" stroke="#FFD98A" strokeWidth="2" fill="none" strokeLinecap="round" />
-      {/* orelhas + cabeça */}
-      <circle cx="13.5" cy="33" r="3.6" fill="#F6C39A" />
-      <circle cx="50.5" cy="33" r="3.6" fill="#F6C39A" />
-      <circle cx="32" cy="31" r="19" fill="#F6C39A" />
-      {/* cabelo branco nas laterais */}
-      <path d="M14 25 Q11 34 14.5 41 Q18 37 17 27 Z" fill="#EDF1F4" />
-      <path d="M50 25 Q53 34 49.5 41 Q46 37 47 27 Z" fill="#EDF1F4" />
-      {/* topo: capelo de professor OU cabelo branco penteado */}
-      {prof ? (<>
-        <path d="M16 16 Q32 9 48 16 L48 21 Q32 15 16 21 Z" fill="#122A4C" />
-        <path d="M32 3 L59 12 L32 21 L5 12 Z" fill="#16212C" />
-        <path d="M32 6 L52 12 L32 18 L12 12 Z" fill="#1E63C7" opacity="0.35" />
-        <circle cx="32" cy="12" r="2.2" fill="#FFD98A" />
-        <path d="M57 13 L57 23" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="57" cy="25.5" r="2.6" fill="#FFD98A" />
-      </>) : (
-        <path d="M15 24 Q18 13 32 12.5 Q46 13 49 24 Q42 19 32 19 Q22 19 15 24 Z" fill="#EDF1F4" />
+      {/* corpo */}
+      <ellipse cx="32" cy="36" rx="20" ry="21" fill="url(#vonaiMasc)" />
+      {/* asas em repouso */}
+      {humor !== 'comemora' && humor !== 'acena' && (
+        <path d="M51 31 Q55 45 45 54 Q49 42 47 30 Z" fill="#164E96" />
       )}
-      {/* sobrancelhas brancas fartas (tristes inclinam) */}
+      {humor !== 'comemora' && (
+        <path d="M13 31 Q9 45 19 54 Q15 42 17 30 Z" fill="#164E96" />
+      )}
+      {/* peito dourado */}
+      <ellipse cx="32" cy="47" rx="10.5" ry="9.5" fill="#FFD98A" />
+      <path d="M25 44 Q32 48 39 44" stroke="#EABF6B" strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.7" />
+      {/* máscara facial branca (marca da arara) */}
+      <circle cx="24" cy="28" r="8.6" fill="#F6F9FC" />
+      <circle cx="40" cy="28" r="8.6" fill="#F6F9FC" />
+      {/* capelo de professor com borla dourada */}
+      {prof && (<>
+        <path d="M17 15.5 Q32 9 47 15.5 L47 20 Q32 14.5 17 20 Z" fill="#122A4C" />
+        <path d="M32 2.5 L58 11 L32 19.5 L6 11 Z" fill="#16212C" />
+        <path d="M32 5.5 L51 11 L32 16.5 L13 11 Z" fill="#1E63C7" opacity="0.35" />
+        <circle cx="32" cy="11" r="2.2" fill="#FFD98A" />
+        <path d="M56 12 L56 22" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="56" cy="24.5" r="2.6" fill="#FFD98A" />
+      </>)}
+      {/* penachos/sobrancelhas brancas de vô (tristes inclinam) */}
       {humor === 'triste' ? (<>
-        <path d="M18 24.5 Q24 26 29 28.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-        <path d="M46 24.5 Q40 26 35 28.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M18 21.5 Q24 23 29 25.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M46 21.5 Q40 23 35 25.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
       </>) : (<>
-        <path d="M17.5 25.5 Q24 22.5 30 25" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-        <path d="M34 25 Q40 22.5 46.5 25.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M17.5 22.5 Q24 19.5 30 22" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M34 22 Q40 19.5 46.5 22.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
       </>)}
       {/* olhos */}
       {alegre ? (<>
-        <path d="M20 32 Q24 27.5 28 32" stroke="#4A3628" strokeWidth="2.8" fill="none" strokeLinecap="round" />
-        <path d="M36 32 Q40 27.5 44 32" stroke="#4A3628" strokeWidth="2.8" fill="none" strokeLinecap="round" />
+        <path d="M20 29 Q24 24.5 28 29" stroke="#16212C" strokeWidth="2.8" fill="none" strokeLinecap="round" />
+        <path d="M36 29 Q40 24.5 44 29" stroke="#16212C" strokeWidth="2.8" fill="none" strokeLinecap="round" />
       </>) : (<>
-        <circle cx="24" cy="31.5" r="2.9" fill="#4A3628" />
-        <circle cx="40" cy="31.5" r="2.9" fill="#4A3628" />
-        <circle cx="23" cy="30.6" r="1" fill="#fff" />
-        <circle cx="39" cy="30.6" r="1" fill="#fff" />
+        <circle cx="24" cy="28.5" r="3" fill="#16212C" />
+        <circle cx="40" cy="28.5" r="3" fill="#16212C" />
+        <circle cx="23" cy="27.5" r="1" fill="#fff" />
+        <circle cx="39" cy="27.5" r="1" fill="#fff" />
       </>)}
-      {humor === 'triste' && <path d="M46.5 36 Q49 40.5 46.5 42.5 Q44 40.5 46.5 36" fill="#9BD1FF" />}
+      {humor === 'triste' && <path d="M45.5 33 Q48 37.5 45.5 39.5 Q43 37.5 45.5 33" fill="#9BD1FF" />}
       {/* óculos redondos dourados */}
-      <circle cx="24" cy="31" r="8" stroke="#D9A83E" strokeWidth="2" fill="none" />
-      <circle cx="40" cy="31" r="8" stroke="#D9A83E" strokeWidth="2" fill="none" />
-      <path d="M30.5 29.5 Q32 28.5 33.5 29.5" stroke="#D9A83E" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <path d="M16 29.5 L11.5 28.5" stroke="#D9A83E" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M48 29.5 L52.5 28.5" stroke="#D9A83E" strokeWidth="1.8" strokeLinecap="round" />
-      {/* nariz */}
-      <ellipse cx="32" cy="37.5" rx="3.2" ry="3.8" fill="#EFA97E" />
-      {/* boca por baixo do bigode */}
-      {humor === 'comemora' ? (
-        <ellipse cx="32" cy="49" rx="4.8" ry="3.4" fill="#7A3B2E" />
-      ) : humor === 'triste' ? (
-        <path d="M27 50.5 Q32 47.5 37 50.5" stroke="#B0623F" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-      ) : (
-        <path d="M26.5 47.5 Q32 51.5 37.5 47.5" stroke="#B0623F" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-      )}
-      {/* bigode branco farto (desenhado por cima da boca) */}
-      <path d="M32 41.5 Q25 38.5 20 42.5 Q23 47 31 45 L32 44.5 L33 45 Q41 47 44 42.5 Q39 38.5 32 41.5 Z" fill="#F2F5F7" />
+      <circle cx="24" cy="28" r="8" stroke="#D9A83E" strokeWidth="2" fill="none" />
+      <circle cx="40" cy="28" r="8" stroke="#D9A83E" strokeWidth="2" fill="none" />
+      <path d="M30.5 26.5 Q32 25.5 33.5 26.5" stroke="#D9A83E" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <path d="M16 26.5 L12 25.5" stroke="#D9A83E" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M48 26.5 L52 25.5" stroke="#D9A83E" strokeWidth="1.8" strokeLinecap="round" />
+      {/* bico de arara */}
+      {humor === 'comemora' ? (<>
+        <path d="M26 34.5 Q32 31.5 38 34.5 Q37 39 32 40.5 Q27 39 26 34.5 Z" fill="#3A4048" />
+        <ellipse cx="32" cy="43" rx="4.6" ry="3" fill="#7A3B2E" />
+        <path d="M28 46 Q32 48.5 36 46" stroke="#3A4048" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+      </>) : (<>
+        <path d="M25.5 34.5 Q32 31.5 38.5 34.5 Q38 42.5 32 45.5 Q26 42.5 25.5 34.5 Z" fill="#3A4048" />
+        <path d="M28.5 35.5 Q32 34 35.5 35.5" stroke="#5A616B" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        {humor === 'triste'
+          ? <path d="M29 43.5 Q32 42 35 43.5" stroke="#22262C" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          : <path d="M29 41.5 Q32 44 35 41.5" stroke="#22262C" strokeWidth="1.6" fill="none" strokeLinecap="round" />}
+      </>)}
       {/* bochechas */}
       {humor !== 'triste' && (<>
-        <circle cx="17.5" cy="40" r="2.8" fill="#F49A8A" opacity="0.5" />
-        <circle cx="46.5" cy="40" r="2.8" fill="#F49A8A" opacity="0.5" />
+        <circle cx="18.5" cy="33" r="2.6" fill="#F49A8A" opacity="0.55" />
+        <circle cx="45.5" cy="33" r="2.6" fill="#F49A8A" opacity="0.55" />
       </>)}
     </svg>
   )
