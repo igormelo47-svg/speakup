@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { mesclarPendente, sobrasAposEnvio } from '../../lib/progresso-pendente'
 import { dadosUsuarioParaAds } from '../../lib/hash-email'
 import { VALOR, MOEDA } from '../../lib/valor-eventos'
+import { fatiarIngles, trechosIngles, semMarcacao } from '../../lib/fatiar-ingles'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -2172,12 +2173,25 @@ function colapsarRepeticao(text: string): string {
   return out.join(' ')
 }
 
-// A IA às vezes responde com markdown mesmo sem pedirmos. Renderiza o básico (**negrito**)
-// e remove separadores "---" em vez de mostrar os asteriscos crus na tela.
-function TextoIA({ text }: { text: string }) {
+// A IA às vezes responde com markdown mesmo sem pedirmos. Renderiza o básico (**negrito**),
+// remove separadores "---" e pinta o inglês de azul. Com onPraticar, cada trecho em inglês
+// vira um botão: tocar nele abre a avaliação de pronúncia daquela frase.
+function TextoIA({ text, onPraticar }: { text: string; onPraticar?: (frase: string) => void }) {
   const limpo = text.split('\n').filter(l => l.trim() !== '---').join('\n').replace(/\s+---\s+/g, '\n')
-  const partes = limpo.split(/\*\*([^*]+)\*\*/g)
-  return <>{partes.map((p, i) => (i % 2 === 1 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>))}</>
+  const fatias = fatiarIngles(limpo, !!onPraticar, textoEmIngles)
+  return <>{fatias.map((f, i) => {
+    if (!f.en) {
+      const partes = f.txt.split(/\*\*([^*]+)\*\*/g)
+      return <span key={i}>{partes.map((p, j) => (j % 2 === 1 ? <b key={j}>{p}</b> : <span key={j}>{p}</span>))}</span>
+    }
+    const estilo: React.CSSProperties = { color: '#1E63C7', fontWeight: 700, background: 'rgba(46,114,214,0.10)', borderRadius: 6, padding: '1px 5px', whiteSpace: 'normal' }
+    if (!onPraticar) return <span key={i} style={estilo}>{f.txt}</span>
+    return (
+      <span key={i} role="button" tabIndex={0} onClick={() => onPraticar(f.txt)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onPraticar(f.txt) }}
+        title="Toque para praticar a pronúncia"
+        style={{ ...estilo, cursor: 'pointer', borderBottom: '1.5px dashed rgba(30,99,199,0.45)' }}>{f.txt}<span aria-hidden style={{ fontSize: '0.82em', marginLeft: 4, opacity: 0.85 }}>🎤</span></span>
+    )
+  })}</>
 }
 
 // Bloco pulsante de carregamento (skeleton) — sensação de app vivo enquanto os dados chegam.
@@ -2385,6 +2399,9 @@ export default function AppPage() {
   const [pronScore, setPronScore] = useState<number | null>(null)
   const [pronTip, setPronTip] = useState('')
   const [pronLoadingTip, setPronLoadingTip] = useState(false)
+  // Frase em inglês que o aluno tocou dentro do chat do Vô para treinar a pronúncia.
+  // Reusa o mesmo motor da aba Pronúncia (gravarPron/avaliarPron); isto só guarda o alvo.
+  const [chatPronFrase, setChatPronFrase] = useState<string | null>(null)
   // ----- Treino encadeado (Etapa B): aquecimento → lição → fala → resultado -----
   // O professor conduz a sessão inteira; o aluno só avança. treinoAtivo liga o modo.
   const [treinoAtivo, setTreinoAtivo] = useState(false)
@@ -2915,6 +2932,24 @@ export default function AppPage() {
       sttServidorRef.current = false
       alert('Preciso da permissão do microfone para avaliar sua pronúncia. 🎤')
     }
+  }
+
+  // Aluno tocou numa frase em inglês do chat: abre o treino de pronúncia daquela frase
+  // e já fala ela em voz alta, para ele ouvir o modelo antes de repetir.
+  function praticarNoChat(frase: string) {
+    if (pronListening) return
+    // Os dois microfones dividem o mesmo recognitionRef: deixar o mic de digitar ligado
+    // faria a fala do treino cair dentro do campo de texto do chat.
+    if (listening) pararMic()
+    setChatPronFrase(frase)
+    setPronHeard(''); setPronScore(null); setPronTip('')
+    try { track('chat_pronuncia_aberta', {}) } catch (e) {}
+    speakEN(frase, 90210)
+  }
+
+  function fecharPronChat() {
+    if (pronListening) { try { if (mediaRecRef.current) mediaRecRef.current.stop(); else recognitionRef.current?.stop() } catch (e) {} }
+    setChatPronFrase(null); setPronHeard(''); setPronScore(null); setPronTip('')
   }
 
   function gravarPron(target: string) {
@@ -3535,6 +3570,8 @@ export default function AppPage() {
 
   function micChat() {
     if (listening) { pararMic(); return }
+    // Mesmo recognitionRef do treino de pronúncia: um de cada vez.
+    if (pronListening) return
     ouvirEDigitar(chatInput, t => setChatInput(t))
   }
 
@@ -3876,6 +3913,11 @@ export default function AppPage() {
 
   function falarIngles(text: string, id: number) {
     let t = text.replace(/\*\*/g, '').replace(/\*/g, '')
+    // Prioridade máxima: o que a IA marcou como inglês. Antes disto a voz ADIVINHAVA
+    // pelo formato da frase e às vezes lia português com sotaque americano.
+    const marcados = trechosIngles(t)
+    if (marcados.length) { speakEN(marcados.join('. '), id); return }
+    t = semMarcacao(t)
     // Prioridade: trechos entre aspas (exemplos em ingles)
     const quoted = (t.match(/["“”]([^"“”]+)["“”]/g) || []).map(s => s.replace(/["“”]/g, '').trim()).filter(Boolean)
     if (quoted.length) { speakEN(quoted.join('. '), id); return }
@@ -6715,7 +6757,7 @@ export default function AppPage() {
               <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
                 {m.role === 'ai' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-background-primary)', border: '1.5px solid rgba(245,166,35,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #3E86E8, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
+                  <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #3E86E8, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} onPraticar={praticarNoChat} /> : m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: speakingId === 1000 + i ? 'su_pulse 1.2s infinite' : 'none' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> {/["“”]/.test(m.text) || textoEmIngles(m.text) ? 'Ouvir em inglês' : 'Ouvir'}</>}</button>}
                 </div>
               </div>
@@ -6732,6 +6774,34 @@ export default function AppPage() {
               </div>
             )}
           </div>
+          {/* Pronúncia dentro do chat: o aluno toca numa frase em inglês do Vô e treina
+              ali mesmo, com nota. Antes ele precisava sair para a aba Pronúncia e a frase
+              que ACABOU de aprender ficava para trás. Reusa gravarPron/avaliarPron. */}
+          {chatPronFrase && (
+            <div style={{ padding: '12px 14px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', flexShrink: 0, animation: 'su_risefade 0.3s ease both' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: 0.4 }}>Repita esta frase</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1E63C7', marginTop: 3, lineHeight: 1.35 }}>{chatPronFrase}</div>
+                </div>
+                <button onClick={fecharPronChat} aria-label="Fechar treino de pronúncia" style={{ background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)', border: 'none', borderRadius: '50%', width: 28, height: 28, fontSize: 14, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}>✕</button>
+              </div>
+              {pronScore !== null && (
+                <div style={{ background: pronScore >= 80 ? greenLight : pronScore >= 50 ? '#FEF3E2' : '#FBEAE8', borderRadius: 12, padding: 12, marginBottom: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: pronScore >= 80 ? '#16A34A' : pronScore >= 50 ? '#E08A1E' : '#C0392B' }}>{pronScore}%</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{pronScore >= 90 ? 'Perfeito! Pronúncia certeira 🎉' : pronScore >= 70 ? 'Muito bom! Quase lá 👍' : 'Boa tentativa — ouça e repita 💪'}</div>
+                  {pronHeard && <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 6, fontStyle: 'italic' }}>Ouvi: “{pronHeard}”</div>}
+                  {pronLoadingTip && <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 6 }}>o Vô está ouvindo com atenção…</div>}
+                  {pronTip && <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 8, lineHeight: 1.45, textAlign: 'left' }}><Ic e="💡" /> {pronTip}</div>}
+                </div>
+              )}
+              {pronScore === null && pronHeard && <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginBottom: 10, fontStyle: 'italic', textAlign: 'center' }}>{pronHeard}</div>}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => speakEN(chatPronFrase, 90210)} disabled={pronListening} style={{ flex: 1, padding: 12, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: pronListening ? 'default' : 'pointer', opacity: pronListening ? 0.5 : 1, fontFamily: 'inherit' }}><Ic e="🔊" /> Ouvir</button>
+                <button onClick={() => gravarPron(chatPronFrase)} style={{ flex: 1.4, padding: 12, background: pronListening ? '#E24B4A' : blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{pronListening ? <><Ic e="⏹️" /> Parar</> : pronScore !== null ? <><Ic e="🎤" /> Tentar de novo</> : <><Ic e="🎤" /> Falar</>}</button>
+              </div>
+            </div>
+          )}
           {/* Enquanto o mic está ligado, uma faixa de ondas reage por cima da barra —
               a pessoa VÊ que está sendo ouvida, que é o que dá coragem de falar. */}
           {listening && (
