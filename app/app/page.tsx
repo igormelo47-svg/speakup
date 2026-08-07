@@ -5,6 +5,7 @@ import { mesclarPendente, sobrasAposEnvio } from '../../lib/progresso-pendente'
 import { dadosUsuarioParaAds } from '../../lib/hash-email'
 import { VALOR, MOEDA } from '../../lib/valor-eventos'
 import { fatiarIngles, trechosIngles, semMarcacao } from '../../lib/fatiar-ingles'
+import { alvoDeRolagem } from '../../lib/rolagem-chat'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -2444,6 +2445,7 @@ export default function AppPage() {
   const [ligaData, setLigaData] = useState<{ nome: string; sem_xp: number }[]>([])
   const [ligaLoading, setLigaLoading] = useState(false)
   const convEndRef = useRef<HTMLDivElement>(null)
+  const chatBoxRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   const lessons: Record<string, Lesson[]> = { A1: [], A2: [], B1: [], B2: [], C1: [], C2: [] }
@@ -3252,6 +3254,21 @@ export default function AppPage() {
   }, [xp, userId, xpHydrated])
 
   useEffect(() => { convEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [convMsgs])
+
+  // A conversa com o Vô desce sozinha ao mandar a pergunta e ao chegar a resposta. Sem isto
+  // o aluno ficava olhando a própria pergunta, sem saber que a resposta já estava logo abaixo.
+  // Rola o PRÓPRIO quadro (não scrollIntoView) para não arrastar a página inteira junto.
+  useEffect(() => {
+    const box = chatBoxRef.current
+    if (!box) return
+    const msgs = box.querySelectorAll<HTMLElement>('[data-msg]')
+    const el = msgs[msgs.length - 1]
+    const ultima = el
+      ? { topoRelativo: el.getBoundingClientRect().top - box.getBoundingClientRect().top, altura: el.offsetHeight }
+      : null
+    box.scrollTo({ top: alvoDeRolagem(box, ultima, loadingChat), behavior: 'smooth' })
+    // `tab` na lista: ao abrir o chat com histórico, ele já abre no fim da conversa.
+  }, [chatMsgs, loadingChat, chatPronFrase, tab])
 
   useEffect(() => {
     supabase.from('licoes').select('*').order('ordem').then(({ data }) => {
@@ -6726,7 +6743,7 @@ export default function AppPage() {
               {!isPremium && <div style={{ fontSize: 11, color: profBloqueado ? '#FFD98A' : '#B5D4F4', marginTop: 3, fontWeight: profBloqueado ? 600 : 400 }}>{profBloqueado ? '🌟 Limite de hoje atingido — vire Premium p/ conversar sem limite' : `${PROF_LIMIT - profHoje} de ${PROF_LIMIT} mensagens grátis hoje`}</div>}
             </div>
           </div>
-          <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+          <div ref={chatBoxRef} style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', overscrollBehavior: 'contain' }}>
             {chatMsgs.length <= 1 && (
               <>
                 {/* Boas-vindas: o Vô num "palco" com halo e ondas de voz. Convida a falar
@@ -6754,7 +6771,7 @@ export default function AppPage() {
               </>
             )}
             {chatMsgs.map((m, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
+              <div key={i} data-msg style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
                 {m.role === 'ai' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-background-primary)', border: '1.5px solid rgba(245,166,35,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #3E86E8, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} onPraticar={praticarNoChat} /> : m.text}</div>
