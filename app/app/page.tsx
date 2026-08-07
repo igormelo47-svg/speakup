@@ -1644,13 +1644,64 @@ const pronCategorias = [
   ] },
 ]
 
+// Voz do Vô em português, pelo sintetizador do próprio aparelho (grátis e offline —
+// a voz em inglês continua sendo a do /api/tts, esta é só para o mascote conversar
+// com o aluno). Pitch levemente grave para soar "vô". Respeita o mudo do aluno.
+function falarPt(texto: string) {
+  try {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    if (localStorage.getItem('speakup_vo_mudo') === '1') return
+    const u = new SpeechSynthesisUtterance(texto.replace(/[👋💙😄🎉🔥⭐🌟]/g, ''))
+    u.lang = 'pt-BR'; u.rate = 1.04; u.pitch = 0.88
+    const voz = window.speechSynthesis.getVoices().find(v => (v.lang || '').toLowerCase().startsWith('pt'))
+    if (voz) u.voice = voz
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(u)
+  } catch (e) {}
+}
+
+// O Vô falando: mascote + balão com efeito de digitação + voz. É o componente que
+// deixa o app "conversado" — toque no Vô repete a fala; o alto-falante silencia
+// para sempre (speakup_vo_mudo), porque voz não consentida vira desinstalação.
+function VoFala({ fala, humor = 'feliz', size = 64, voz = false, escuro = false }: { fala: string; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' | 'acena'; size?: number; voz?: boolean; escuro?: boolean }) {
+  const [mostrado, setMostrado] = useState('')
+  const [mudo, setMudo] = useState(false)
+  useEffect(() => {
+    try { setMudo(localStorage.getItem('speakup_vo_mudo') === '1') } catch (e) {}
+    setMostrado('')
+    let i = 0
+    const id = setInterval(() => { i += 2; setMostrado(fala.slice(0, i)); if (i >= fala.length) clearInterval(id) }, 28)
+    if (voz) falarPt(fala)
+    return () => { clearInterval(id); try { window.speechSynthesis?.cancel() } catch (e) {} }
+  }, [fala, voz])
+  function alternarMudo() {
+    const novo = !mudo; setMudo(novo)
+    try { localStorage.setItem('speakup_vo_mudo', novo ? '1' : '0') } catch (e) {}
+    if (novo) { try { window.speechSynthesis?.cancel() } catch (e) {} } else falarPt(fala)
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+      {/* size 0 = só o balão (quando o mascote grande já está desenhado acima) */}
+      {size > 0 && (
+        <div onClick={() => falarPt(fala)} title="Toque para me ouvir" style={{ flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite' }}>
+          <Mascote size={size} prof humor={humor} />
+        </div>
+      )}
+      <div style={{ position: 'relative', background: escuro ? 'rgba(255,255,255,0.13)' : '#fff', border: escuro ? '1px solid rgba(255,255,255,0.25)' : '1px solid #E3EAF3', borderRadius: '4px 16px 16px 16px', padding: '12px 40px 12px 14px', flex: 1, minHeight: 46, boxShadow: escuro ? 'none' : '0 3px 12px rgba(16,42,76,0.08)' }}>
+        <span style={{ fontSize: 14.5, lineHeight: 1.55, color: escuro ? '#fff' : '#16212c', whiteSpace: 'pre-wrap' }}>{mostrado}{mostrado.length < fala.length && <span style={{ opacity: 0.5 }}>▍</span>}</span>
+        <button onClick={alternarMudo} aria-label={mudo ? 'Ativar voz do Vô' : 'Silenciar o Vô'} style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', fontSize: 15, cursor: 'pointer', opacity: 0.55, padding: 2 }}>{mudo ? '🔇' : '🔊'}</button>
+      </div>
+    </div>
+  )
+}
+
 // Mascote do Vonai ("Vô") — personagem próprio em SVG (fica igual em qualquer aparelho).
 // Mascote do Vonai com humor: reage ao que o aluno faz (comemora acertos, fica
-// triste com erros). 'comemora' quica e ergue os bracinhos.
-function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora'; prof?: boolean }) {
-  const alegre = humor === 'feliz' || humor === 'comemora'
+// triste com erros). 'comemora' quica e ergue os bracinhos; 'acena' dá tchauzinho.
+function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' | 'acena'; prof?: boolean }) {
+  const alegre = humor === 'feliz' || humor === 'comemora' || humor === 'acena'
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block', animation: humor === 'comemora' ? 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block', overflow: 'visible', animation: humor === 'comemora' ? 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
       <defs>
         <linearGradient id="vonaiMasc" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#3E86E8" />
@@ -1662,6 +1713,13 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
         <rect x="30.5" y="4" width="3" height="8" rx="1.5" fill="#FFD98A" />
         <circle cx="32" cy="4" r="3.4" fill="#FFD98A" />
       </>)}
+      {/* bracinho acenando — o gesto de boas-vindas do Vô */}
+      {humor === 'acena' && (
+        <g style={{ transformOrigin: '55px 38px', animation: 'su_wave 1.1s ease-in-out infinite' }}>
+          <path d="M55 38 Q62 30 60 21" stroke="#1E63C7" strokeWidth="4.5" fill="none" strokeLinecap="round" />
+          <circle cx="60" cy="19" r="3.6" fill="#FFD98A" />
+        </g>
+      )}
       {/* bracinhos para cima na comemoração */}
       {humor === 'comemora' && (<>
         <path d="M8 30 Q2 22 6 15" stroke="#1E63C7" strokeWidth="4" fill="none" strokeLinecap="round" />
@@ -3962,14 +4020,22 @@ export default function AppPage() {
   // O resumo do perfil que personaliza o Professor/Simulador agora é montado NO SERVIDOR
   // (app/api/chat/prompts.ts, resumoPerfilServidor) a partir do banco — nada vem do cliente.
   const metaDiaria = perfilIa.meta_diaria || 50
-  function concluirOnboarding(nivel?: string, irNivelamento?: boolean) {
-    salvarPerfil({ ...perfilIa, objetivo: onbObj || OBJETIVO_PADRAO, meta_diaria: onbMeta })
-    if (nivel) { setLevel(nivel); try { localStorage.setItem('speakup_nivel', nivel) } catch (e) {} }
+  // O aluno escolhe COMO quer aprender (decisão de produto de 06/08: autonomia em vez
+  // de funil único). Cada estilo cai direto no lugar certo:
+  //   conversa → chat com o professor;  licoes → trilha (com nivelamento SÓ aqui);
+  //   tarefas → treino guiado do dia. O estilo fica no perfil_ia para o professor
+  //   conhecer o aluno e para medirmos qual porta retém melhor.
+  function concluirOnboarding(o: { nivel?: string; irNivelamento?: boolean; estilo?: string; destino?: 'ai' | 'trilha' | 'treino' }) {
+    salvarPerfil({ ...perfilIa, objetivo: onbObj || OBJETIVO_PADRAO, meta_diaria: onbMeta, ...(o.estilo ? { estilo_aprender: o.estilo } : {}) })
+    if (o.nivel) { setLevel(o.nivel); try { localStorage.setItem('speakup_nivel', o.nivel) } catch (e) {} }
     try { localStorage.setItem('speakup_onboarded', '1') } catch (e) {}
     setOnboarded(true)
-    if (irNivelamento) { setNivIdx(0); setNivScore([0, 0, 0, 0, 0, 0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') }
-    // Ativação D0: quem escolheu o nível direto cai DENTRO do 1º treino, sem precisar achar
-    // o botão na home (via useEffect, para o iniciarTreino enxergar o nível recém-escolhido).
+    try { track('onboarding_estilo', { estilo: o.estilo || 'nenhum' }) } catch (e) {}
+    if (o.irNivelamento) { setNivIdx(0); setNivScore([0, 0, 0, 0, 0, 0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') }
+    else if (o.destino === 'ai') setTab('ai')
+    else if (o.destino === 'trilha') setTab('trilha')
+    // Ativação D0: cair DENTRO do 1º treino, sem precisar achar o botão na home
+    // (via useEffect, para o iniciarTreino enxergar o nível recém-escolhido).
     else setTreinoAposOnboarding(true)
   }
   const onbOpt: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 14, padding: '14px 16px', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }
@@ -4264,7 +4330,7 @@ export default function AppPage() {
           {/* HERO — o coração da home: UMA mensagem, UMA ação */}
           <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 22, padding: 18, marginBottom: 16, boxShadow: '0 8px 22px rgba(75,63,191,0.32)', animation: 'su_risefade 0.5s ease both' }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={42} prof humor="feliz" /></div>
+              <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={42} prof humor="feliz" /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <span style={{ fontSize: 10.5, fontWeight: 800, color: '#D6CFFF', letterSpacing: 0.5 }}>VÔ · SEU PROFESSOR</span>
@@ -4510,6 +4576,7 @@ export default function AppPage() {
         @keyframes su_pulse { 0% { box-shadow: 0 0 0 0 rgba(226,75,74,0.5) } 70% { box-shadow: 0 0 0 9px rgba(226,75,74,0) } 100% { box-shadow: 0 0 0 0 rgba(226,75,74,0) } }
         @keyframes su_bounce { 0% { transform: scale(0) rotate(-15deg); opacity: 0 } 50% { transform: scale(1.3) rotate(8deg) } 70% { transform: scale(0.9) rotate(-4deg) } 100% { transform: scale(1) rotate(0); opacity: 1 } }
         @keyframes su_bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+        @keyframes su_wave { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(-24deg) } }
         @keyframes su_xppop { 0% { transform: scale(0) translateY(20px); opacity: 0 } 60% { transform: scale(1.2) translateY(0) } 100% { transform: scale(1); opacity: 1 } }
         @keyframes su_confetti { 0% { transform: translateY(-20px) rotate(0); opacity: 1 } 100% { transform: translateY(320px) rotate(420deg); opacity: 0 } }
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
@@ -4663,7 +4730,7 @@ export default function AppPage() {
               return (
                 <div style={{ background: 'linear-gradient(135deg, #6A5ACD, #4B3FBF)', borderRadius: 20, padding: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(75,63,191,0.3)', animation: 'su_risefade 0.5s ease both' }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={44} prof humor="feliz" /></div>
+                    <div onClick={() => falarPt(linhas.join(' '))} title="Toque para ouvir o Vô" style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={44} prof humor="feliz" /></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 11, fontWeight: 800, color: '#D6CFFF', letterSpacing: 0.5 }}>VÔ · SEU PROFESSOR PARTICULAR</span>
@@ -4982,30 +5049,51 @@ export default function AppPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, display: 'flex', padding: 24, overflowY: 'auto' }}>
           <div key={onbStep} style={{ maxWidth: 420, margin: 'auto', width: '100%', color: '#fff', animation: 'su_screen 0.32s ease' }}>
             {onbStep === 0 && (<>
-              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Bem-vindo ao Vonai! <Ic e="🎉" /></div>
-              <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Qual é o seu principal objetivo com o inglês?</div>
-              {[{ e: '✈️', t: 'Me virar em viagens', o: 'Me virar em viagens no exterior' }, { e: '💼', t: 'Trabalho e carreira', o: 'Usar inglês no trabalho e na carreira' }, { e: '💬', t: 'Conversar com fluência', o: 'Conversar com fluência em inglês' }, { e: '🎓', t: 'Estudos e provas', o: 'Passar em provas e estudar em inglês' }].map(op => (
-                <button key={op.t} onClick={() => { setOnbObj(op.o); setOnbStep(1) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span> {op.t}</button>
-              ))}
+              {/* Boas-vindas do Vô: a primeira coisa que o aluno vê é uma pessoa (bem,
+                  um vô-robô) falando com ele — não um formulário. Voz ligada aqui. */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
+                <div style={{ width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', animation: 'su_bob 2.4s ease-in-out infinite' }}>
+                  <Mascote size={92} prof humor="acena" />
+                </div>
+              </div>
+              <VoFala escuro voz size={0} fala={`Oi${userName ? ', ' + userName.split(' ')[0] : ''}! Eu sou o Vô, seu professor de inglês aqui do Vonai. 👋 Que alegria receber você! Vou te acompanhar em cada passo — e pode errar à vontade, que errar comigo não tem plateia. 😄`} />
+              <button onClick={() => setOnbStep(1)} style={{ ...onbOpt, justifyContent: 'center', background: '#F5A623', border: 'none', fontWeight: 800, fontSize: 16, marginTop: 20 }}>Oi, Vô! Vamos começar →</button>
             </>)}
             {onbStep === 1 && (<>
-              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Quanto tempo por dia? <Ic e="⏳" /></div>
-              <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Escolha uma meta diária realista — dá pra mudar depois.</div>
-              {[{ e: '☕', t: 'Casual', d: '~5 min por dia', m: 20 }, { e: '🎯', t: 'Regular', d: '~10 min por dia', m: 50 }, { e: '🔥', t: 'Sério', d: '~15 min por dia', m: 80 }, { e: '🚀', t: 'Intenso', d: '20+ min por dia', m: 120 }].map(op => (
-                <button key={op.t} onClick={() => { setOnbMeta(op.m); setOnbStep(2) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span><span style={{ flex: 1, textAlign: 'left' }}>{op.t}<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>{op.d}</span></span></button>
+              <VoFala escuro fala="Primeiro me conta: qual é o seu grande objetivo com o inglês?" />
+              <div style={{ height: 16 }} />
+              {[{ e: '✈️', t: 'Me virar em viagens', o: 'Me virar em viagens no exterior' }, { e: '💼', t: 'Trabalho e carreira', o: 'Usar inglês no trabalho e na carreira' }, { e: '💬', t: 'Conversar com fluência', o: 'Conversar com fluência em inglês' }, { e: '🎓', t: 'Estudos e provas', o: 'Passar em provas e estudar em inglês' }].map(op => (
+                <button key={op.t} onClick={() => { setOnbObj(op.o); setOnbStep(2) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span> {op.t}</button>
               ))}
-              <button onClick={() => setOnbStep(0)} style={onbBack}>← Voltar</button>
             </>)}
             {onbStep === 2 && (<>
-              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Qual é o seu nível? <Ic e="📊" /></div>
-              <div style={{ fontSize: 15, color: '#D6E6FA', marginBottom: 22 }}>Assim começamos você no ponto certo da trilha.</div>
-              <button onClick={() => concluirOnboarding('A1')} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
-              <button onClick={() => concluirOnboarding('A2')} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
-              <button onClick={() => concluirOnboarding(undefined, true)} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span> Fazer teste de nível (2 min)</button>
+              <VoFala escuro fala="Combinado! E quanto tempo por dia você tem pra mim? Prometo aproveitar cada minuto — e dá pra mudar depois." />
+              <div style={{ height: 16 }} />
+              {[{ e: '☕', t: 'Casual', d: '~5 min por dia', m: 20 }, { e: '🎯', t: 'Regular', d: '~10 min por dia', m: 50 }, { e: '🔥', t: 'Sério', d: '~15 min por dia', m: 80 }, { e: '🚀', t: 'Intenso', d: '20+ min por dia', m: 120 }].map(op => (
+                <button key={op.t} onClick={() => { setOnbMeta(op.m); setOnbStep(3) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span><span style={{ flex: 1, textAlign: 'left' }}>{op.t}<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>{op.d}</span></span></button>
+              ))}
               <button onClick={() => setOnbStep(1)} style={onbBack}>← Voltar</button>
             </>)}
+            {onbStep === 3 && (<>
+              {/* A pergunta da autonomia: cada aluno aprende de um jeito, e quem escolhe
+                  a porta de entrada é ele. O nivelamento só existe no caminho das lições. */}
+              <VoFala escuro fala="Última pergunta, e é a mais importante: como VOCÊ prefere aprender? Aqui quem manda é você." />
+              <div style={{ height: 16 }} />
+              <button onClick={() => concluirOnboarding({ estilo: 'conversa', destino: 'ai' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>💬</span><span style={{ flex: 1, textAlign: 'left' }}>Conversando com o professor<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Fale comigo e eu corrijo na hora, em português</span></span></button>
+              <button onClick={() => { try { if (localStorage.getItem('speakup_nivel')) { concluirOnboarding({ estilo: 'licoes', destino: 'trilha' }); return } } catch (e) {}; setOnbStep(4) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📖</span><span style={{ flex: 1, textAlign: 'left' }}>Com lições passo a passo<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Trilha do básico ao avançado, no seu ritmo</span></span></button>
+              <button onClick={() => concluirOnboarding({ estilo: 'tarefas', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>✅</span><span style={{ flex: 1, textAlign: 'left' }}>Com tarefas diárias<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Um treino curtinho por dia, montado pra você</span></span></button>
+              <button onClick={() => setOnbStep(2)} style={onbBack}>← Voltar</button>
+            </>)}
+            {onbStep === 4 && (<>
+              <VoFala escuro fala="Boa escolha! Pra trilha começar no ponto certo: qual é o seu nível hoje? Se não souber, eu descubro pra você em 2 minutinhos." />
+              <div style={{ height: 16 }} />
+              <button onClick={() => concluirOnboarding({ nivel: 'A1', estilo: 'licoes', destino: 'trilha' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
+              <button onClick={() => concluirOnboarding({ nivel: 'A2', estilo: 'licoes', destino: 'trilha' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
+              <button onClick={() => concluirOnboarding({ estilo: 'licoes', irNivelamento: true })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span> Descobrir meu nível (2 min)</button>
+              <button onClick={() => setOnbStep(3)} style={onbBack}>← Voltar</button>
+            </>)}
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 24 }}>
-              {[0, 1, 2].map(s => <div key={s} style={{ width: 8, height: 8, borderRadius: '50%', background: s === onbStep ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
+              {[0, 1, 2, 3].map(s => <div key={s} style={{ width: 8, height: 8, borderRadius: '50%', background: s === Math.min(onbStep, 3) ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
             </div>
           </div>
         </div>

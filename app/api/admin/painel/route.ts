@@ -7,6 +7,8 @@ import { createClient } from '@supabase/supabase-js'
 
 const DONOS = ['igorckl@hotmail.com', 'igormelo47@gmail.com']
 const INTERNOS = new Set([...DONOS, 'apple.review.2026@vonai-teste.com', 'google.review@vonai.com.br'])
+// Qualquer conta @vonai-teste.com é de QA — fica fora de todos os números do painel.
+const ehInterno = (em: string) => INTERNOS.has(em) || em.endsWith('@vonai-teste.com')
 
 export async function GET(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -57,7 +59,7 @@ export async function GET(req: NextRequest) {
   const contas: { email: string; criadoEm: string; interno: boolean; anuncio: boolean; ativado: boolean; diasUsados: number; licoes: number; sobreviveuAoTrial: boolean; voltouDepoisDoTrial: boolean; confirmouEmail: boolean; teveChanceDeVoltar: boolean; teveChanceDePassarDoTrial: boolean; temPush: boolean; podeEmail: boolean }[] = []
   for (const u of lista?.users || []) {
     const em = (u.email || '').toLowerCase()
-    const interno = INTERNOS.has(em)
+    const interno = ehInterno(em)
     const prog = porUser.get(u.id) as any
     const attrib = prog?.attrib as any
     const anuncio = !!attrib?.gclid
@@ -124,7 +126,7 @@ export async function GET(req: NextRequest) {
       const em = (p.email || emailPorId.get(p.user_id) || '').toLowerCase()
       return {
         email: em,
-        interno: INTERNOS.has(em),
+        interno: ehInterno(em),
         canal: p.premium_expira ? 'Kiwify (web/Android)' : 'Apple (iOS) ou manual',
         validoAte: p.premium_expira,
         xp: p.xp || 0,

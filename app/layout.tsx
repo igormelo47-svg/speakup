@@ -55,10 +55,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={nunito.variable}>
       <head>
-        {/* Google Tag Manager — o gestor de tráfego opera tags/GA4 por aqui */}
+        {/* Google Tag Manager — o gestor de tráfego opera tags/GA4 por aqui.
+            Só carrega no domínio real: teste em localhost/preview já sujou a medição
+            uma vez (o "Purchase fantasma" de 01/08 que o gestor achou no pixel) e
+            evento de QA em GA4/pixel vira número falso em relatório. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-N5794SWR');`,
+            __html: `if(/(^|\\.)vonai\\.com\\.br$/.test(location.hostname)||location.hostname==='speakup-dusky.vercel.app'){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-N5794SWR');}`,
           }}
         />
         <link rel="manifest" href="/manifest.json" />
