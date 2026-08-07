@@ -39,14 +39,31 @@ export default function Teste() {
     evento('teste_nivel_iniciado')
   }
 
+  // Concluir o teste é o evento pelo qual a campanha do Meta OTIMIZA. Ele sai por dois
+  // caminhos com o MESMO id: o pixel (via GTM) e o nosso servidor. O pixel some quando a
+  // pessoa usa bloqueador; o id igual faz o Meta contar UMA vez quando os dois chegam.
+  function idEvento() {
+    const c = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}${Math.random().toString(16).slice(2)}`
+    return `vonai-lead-${c}`
+  }
+
   function responder() {
     if (escolha === null) return
     const novas = [...respostas, escolha]
     setRespostas(novas)
     setEscolha(null)
     if (novas.length === total) {
-      const n = classificar(novas.filter((r, k) => r === PERGUNTAS[k].certa).length).nivel
-      evento('teste_nivel_concluido', { nivel: n, acertos: novas.filter((r, k) => r === PERGUNTAS[k].certa).length })
+      const acertos = novas.filter((r, k) => r === PERGUNTAS[k].certa).length
+      const n = classificar(acertos).nivel
+      const eventId = idEvento()
+      evento('teste_nivel_concluido', { nivel: n, acertos, event_id: eventId })
+      // Best-effort e sem await: medição nunca pode segurar a tela do resultado.
+      try {
+        fetch('/api/lead-meta', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_id: eventId, nivel: n }), keepalive: true,
+        }).catch(() => {})
+      } catch { /* medição é opcional; o teste tem que funcionar de qualquer jeito */ }
     } else {
       setI(novas.length)
     }
