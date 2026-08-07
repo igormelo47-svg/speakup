@@ -1708,77 +1708,85 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
           <stop offset="1" stopColor="#1E63C7" />
         </linearGradient>
       </defs>
-      {/* antena com ponto dourado (só sem capelo) */}
-      {!prof && (<>
-        <rect x="30.5" y="4" width="3" height="8" rx="1.5" fill="#FFD98A" />
-        <circle cx="32" cy="4" r="3.4" fill="#FFD98A" />
-      </>)}
+      {/* ===== O Vô de verdade (redesign 06/08): um vovô professor — pele quente,
+          bigode e sobrancelhas brancas, óculos dourados, cardigã azul da marca e o
+          capelo de formatura. Mesmos humores de antes, personagem novo. ===== */}
       {/* bracinho acenando — o gesto de boas-vindas do Vô */}
       {humor === 'acena' && (
-        <g style={{ transformOrigin: '55px 38px', animation: 'su_wave 1.1s ease-in-out infinite' }}>
-          <path d="M55 38 Q62 30 60 21" stroke="#1E63C7" strokeWidth="4.5" fill="none" strokeLinecap="round" />
-          <circle cx="60" cy="19" r="3.6" fill="#FFD98A" />
+        <g style={{ transformOrigin: '53px 50px', animation: 'su_wave 1.1s ease-in-out infinite' }}>
+          <path d="M53 50 Q61 42 59 32" stroke="#1E63C7" strokeWidth="5" fill="none" strokeLinecap="round" />
+          <circle cx="59" cy="30" r="3.8" fill="#F6C39A" />
         </g>
       )}
       {/* bracinhos para cima na comemoração */}
       {humor === 'comemora' && (<>
-        <path d="M8 30 Q2 22 6 15" stroke="#1E63C7" strokeWidth="4" fill="none" strokeLinecap="round" />
-        <path d="M56 30 Q62 22 58 15" stroke="#1E63C7" strokeWidth="4" fill="none" strokeLinecap="round" />
-        <circle cx="6" cy="14" r="3" fill="#FFD98A" />
-        <circle cx="58" cy="14" r="3" fill="#FFD98A" />
+        <path d="M12 54 Q4 46 7 37" stroke="#1E63C7" strokeWidth="4.6" fill="none" strokeLinecap="round" />
+        <path d="M52 54 Q60 46 57 37" stroke="#1E63C7" strokeWidth="4.6" fill="none" strokeLinecap="round" />
+        <circle cx="7" cy="35" r="3.4" fill="#F6C39A" />
+        <circle cx="57" cy="35" r="3.4" fill="#F6C39A" />
       </>)}
-      {/* corpo */}
-      <rect x="7" y="11" width="50" height="45" rx="19" fill="url(#vonaiMasc)" />
-      {/* capelo de professor (formatura) com borla dourada */}
-      {prof && (<>
-        <path d="M16 14 Q32 7 48 14 L48 19 Q32 13 16 19 Z" fill="#122A4C" />
-        <path d="M32 1 L59 10 L32 19 L5 10 Z" fill="#16212C" />
-        <path d="M32 4 L52 10 L32 16 L12 10 Z" fill="#1E63C7" opacity="0.35" />
-        <circle cx="32" cy="10" r="2.2" fill="#FFD98A" />
-        <path d="M57 11 L57 21" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="57" cy="23.5" r="2.6" fill="#FFD98A" />
+      {/* cardigã (ombros) com botão dourado */}
+      <path d="M13 64 Q13 49 32 49 Q51 49 51 64 Z" fill="url(#vonaiMasc)" />
+      <path d="M27 51 L32 56 L37 51" stroke="#FFD98A" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* orelhas + cabeça */}
+      <circle cx="13.5" cy="33" r="3.6" fill="#F6C39A" />
+      <circle cx="50.5" cy="33" r="3.6" fill="#F6C39A" />
+      <circle cx="32" cy="31" r="19" fill="#F6C39A" />
+      {/* cabelo branco nas laterais */}
+      <path d="M14 25 Q11 34 14.5 41 Q18 37 17 27 Z" fill="#EDF1F4" />
+      <path d="M50 25 Q53 34 49.5 41 Q46 37 47 27 Z" fill="#EDF1F4" />
+      {/* topo: capelo de professor OU cabelo branco penteado */}
+      {prof ? (<>
+        <path d="M16 16 Q32 9 48 16 L48 21 Q32 15 16 21 Z" fill="#122A4C" />
+        <path d="M32 3 L59 12 L32 21 L5 12 Z" fill="#16212C" />
+        <path d="M32 6 L52 12 L32 18 L12 12 Z" fill="#1E63C7" opacity="0.35" />
+        <circle cx="32" cy="12" r="2.2" fill="#FFD98A" />
+        <path d="M57 13 L57 23" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="57" cy="25.5" r="2.6" fill="#FFD98A" />
+      </>) : (
+        <path d="M15 24 Q18 13 32 12.5 Q46 13 49 24 Q42 19 32 19 Q22 19 15 24 Z" fill="#EDF1F4" />
+      )}
+      {/* sobrancelhas brancas fartas (tristes inclinam) */}
+      {humor === 'triste' ? (<>
+        <path d="M18 24.5 Q24 26 29 28.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M46 24.5 Q40 26 35 28.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+      </>) : (<>
+        <path d="M17.5 25.5 Q24 22.5 30 25" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M34 25 Q40 22.5 46.5 25.5" stroke="#EDF1F4" strokeWidth="3.4" fill="none" strokeLinecap="round" />
       </>)}
       {/* olhos */}
       {alegre ? (<>
-        <path d="M18 32 Q24 25 30 32" stroke="#fff" strokeWidth="3.6" fill="none" strokeLinecap="round" />
-        <path d="M34 32 Q40 25 46 32" stroke="#fff" strokeWidth="3.6" fill="none" strokeLinecap="round" />
-      </>) : humor === 'triste' ? (<>
-        <circle cx="24" cy="31" r="8.2" fill="#fff" />
-        <circle cx="40" cy="31" r="8.2" fill="#fff" />
-        <path d="M16 25 L31 28" stroke="#1E63C7" strokeWidth="5" strokeLinecap="round" />
-        <path d="M48 25 L33 28" stroke="#1E63C7" strokeWidth="5" strokeLinecap="round" />
-        <circle cx="25" cy="33.5" r="3.7" fill="#0F2E5C" />
-        <circle cx="41" cy="33.5" r="3.7" fill="#0F2E5C" />
-        <path d="M47.5 40 Q50 44.5 47.5 46.5 Q45 44.5 47.5 40" fill="#9BD1FF" />
+        <path d="M20 32 Q24 27.5 28 32" stroke="#4A3628" strokeWidth="2.8" fill="none" strokeLinecap="round" />
+        <path d="M36 32 Q40 27.5 44 32" stroke="#4A3628" strokeWidth="2.8" fill="none" strokeLinecap="round" />
       </>) : (<>
-        <circle cx="24" cy="31" r="8.2" fill="#fff" />
-        <circle cx="40" cy="31" r="8.2" fill="#fff" />
-        <circle cx="25" cy="32" r="3.7" fill="#0F2E5C" />
-        <circle cx="41" cy="32" r="3.7" fill="#0F2E5C" />
-        <circle cx="23.4" cy="30.4" r="1.2" fill="#fff" />
-        <circle cx="39.4" cy="30.4" r="1.2" fill="#fff" />
+        <circle cx="24" cy="31.5" r="2.9" fill="#4A3628" />
+        <circle cx="40" cy="31.5" r="2.9" fill="#4A3628" />
+        <circle cx="23" cy="30.6" r="1" fill="#fff" />
+        <circle cx="39" cy="30.6" r="1" fill="#fff" />
       </>)}
-      {/* óculos redondos do professor */}
-      {prof && (<>
-        <circle cx="24" cy="31" r="9.6" stroke="#FFD98A" strokeWidth="2.2" fill="none" />
-        <circle cx="40" cy="31" r="9.6" stroke="#FFD98A" strokeWidth="2.2" fill="none" />
-        <path d="M14.4 29 L8.5 27" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
-        <path d="M49.6 29 L55.5 27" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
-      </>)}
-      {/* boca */}
+      {humor === 'triste' && <path d="M46.5 36 Q49 40.5 46.5 42.5 Q44 40.5 46.5 36" fill="#9BD1FF" />}
+      {/* óculos redondos dourados */}
+      <circle cx="24" cy="31" r="8" stroke="#D9A83E" strokeWidth="2" fill="none" />
+      <circle cx="40" cy="31" r="8" stroke="#D9A83E" strokeWidth="2" fill="none" />
+      <path d="M30.5 29.5 Q32 28.5 33.5 29.5" stroke="#D9A83E" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <path d="M16 29.5 L11.5 28.5" stroke="#D9A83E" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M48 29.5 L52.5 28.5" stroke="#D9A83E" strokeWidth="1.8" strokeLinecap="round" />
+      {/* nariz */}
+      <ellipse cx="32" cy="37.5" rx="3.2" ry="3.8" fill="#EFA97E" />
+      {/* boca por baixo do bigode */}
       {humor === 'comemora' ? (
-        <ellipse cx="32" cy="45" rx="7" ry="5.5" fill="#0F2E5C" />
-      ) : humor === 'feliz' ? (
-        <path d="M22 42 Q32 52 42 42" stroke="#fff" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+        <ellipse cx="32" cy="49" rx="4.8" ry="3.4" fill="#7A3B2E" />
       ) : humor === 'triste' ? (
-        <path d="M24 48 Q32 42 40 48" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d="M27 50.5 Q32 47.5 37 50.5" stroke="#B0623F" strokeWidth="2.4" fill="none" strokeLinecap="round" />
       ) : (
-        <path d="M23 43 Q32 50 41 43" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d="M26.5 47.5 Q32 51.5 37.5 47.5" stroke="#B0623F" strokeWidth="2.4" fill="none" strokeLinecap="round" />
       )}
+      {/* bigode branco farto (desenhado por cima da boca) */}
+      <path d="M32 41.5 Q25 38.5 20 42.5 Q23 47 31 45 L32 44.5 L33 45 Q41 47 44 42.5 Q39 38.5 32 41.5 Z" fill="#F2F5F7" />
       {/* bochechas */}
       {humor !== 'triste' && (<>
-        <circle cx="15.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
-        <circle cx="48.5" cy="39" r="3" fill="#FFB4A2" opacity="0.55" />
+        <circle cx="17.5" cy="40" r="2.8" fill="#F49A8A" opacity="0.5" />
+        <circle cx="46.5" cy="40" r="2.8" fill="#F49A8A" opacity="0.5" />
       </>)}
     </svg>
   )
@@ -2254,6 +2262,10 @@ export default function AppPage() {
   const [vocabDiaData, setVocabDiaData] = useState('')
   const [perfilIa, setPerfilIa] = useState<any>({})
   const [onboarded, setOnboarded] = useState(false)
+  // Dica do botão flutuante do Vô: mostra até o primeiro toque (ou fechar) e nunca mais.
+  const [voFabDicaVista, setVoFabDicaVista] = useState(true)
+  useEffect(() => { try { setVoFabDicaVista(localStorage.getItem('speakup_vo_fab_dica') === '1') } catch (e) {} }, [])
+  function marcarVoFabDica() { setVoFabDicaVista(true); try { localStorage.setItem('speakup_vo_fab_dica', '1') } catch (e) {} }
   const [hist, setHist] = useState<Record<string, number>>({})
   const [feedbackModal, setFeedbackModal] = useState(false)
   // Convite para avaliar o app na loja. Aparece UMA vez, depois de uma conquista real.
@@ -4566,7 +4578,9 @@ export default function AppPage() {
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
-    <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 0 40px rgba(0,0,0,0.10)' }}>
+    {/* position:relative ancora o botão flutuante do Vô DENTRO da coluna de 430px —
+        sem isso, no desktop ele fugiria para o canto da janela, fora do app. */}
+    <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 0 40px rgba(0,0,0,0.10)', position: 'relative' }}>
 
       <style>{`
         @keyframes su_fade { from { opacity: 0 } to { opacity: 1 } }
@@ -6688,6 +6702,24 @@ export default function AppPage() {
       )}
 
       </div>
+
+      {/* O Vô sempre à mão: botão flutuante em toda tela (menos no próprio chat, onde
+          seria redundante, e durante o onboarding, que já é dele). Um toque leva ao
+          professor. O balão-dica aparece até o primeiro uso e some para sempre —
+          convite bom convida uma vez, não fica gritando. */}
+      {onboarded && !mostrarOnboarding && tab !== 'ai' && (
+        <div style={{ position: 'absolute', right: 12, bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          {!voFabDicaVista && (
+            <div style={{ position: 'relative', background: '#fff', borderRadius: '14px 14px 4px 14px', padding: '9px 30px 9px 12px', boxShadow: '0 4px 16px rgba(16,42,76,0.22)', maxWidth: 190, animation: 'su_risefade 0.5s ease both' }}>
+              <span style={{ fontSize: 12.5, color: '#16212c', lineHeight: 1.45 }}>Precisa de ajuda? É só me tocar que eu te ajudo! 😊</span>
+              <button onClick={() => marcarVoFabDica()} aria-label="Fechar dica" style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', fontSize: 13, color: '#9AA7B8', cursor: 'pointer', padding: 2 }}>✕</button>
+            </div>
+          )}
+          <button onClick={() => { marcarVoFabDica(); encerrarTreino(); setTab('ai'); try { track('vo_fab') } catch (e) {} }} aria-label="Falar com o Vô, seu professor" style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff', border: '2.5px solid #F5A623', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px rgba(16,42,76,0.3)', padding: 0, animation: 'su_bob 2.6s ease-in-out infinite' }}>
+            <Mascote size={42} prof humor="feliz" />
+          </button>
+        </div>
+      )}
 
       {/* Barra com itens no MEIO: o excedente do safe-area do iPhone é dividido meio a meio
           entre cima e baixo, então os ícones ficam no centro exato do retângulo azul. */}
