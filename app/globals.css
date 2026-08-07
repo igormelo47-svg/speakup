@@ -79,3 +79,18 @@ button:active { transform: scale(0.95); }
 [style*="cursor: pointer"]:active { transform: scale(0.975); }
 
 @keyframes su_screen { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
+
+/* ===== Nada de zoom nem de conteúdo vazando pelas margens (06/08) =====
+   O iOS dá zoom automático ao focar input com fonte < 16px, e esse zoom FICA:
+   a tela sai do centro e a interface parece "cortada" nas laterais. Os inputs do
+   app já foram para 16px um a um; este bloco é a rede de segurança para qualquer
+   campo novo que alguém adicione esquecendo disso. */
+input, textarea, select { font-size: 16px; }
+
+/* O iPhone infla o texto ao girar a tela se isto não estiver travado. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* Nenhum elemento pode empurrar a página para os lados: o app é uma coluna de
+   430px centralizada, e barra de rolagem horizontal é sempre bug, nunca recurso. */
+body { overflow-x: hidden; }
+* { min-width: 0; }

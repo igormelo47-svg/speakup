@@ -43,6 +43,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Trava o zoom (app-like). Sem isso o iOS dá zoom automático ao focar qualquer
+  // input com fonte < 16px e o zoom FICA PRESO — a tela sai do centro e as margens
+  // "vazam" (reportado pelo Emmanuel no iPhone em 06/08). Os inputs de chat também
+  // foram para 16px, que é a correção de raiz; isto aqui segura aparelhos antigos.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#185FA5',
 }

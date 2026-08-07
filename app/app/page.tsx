@@ -5021,7 +5021,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c' }}>Enviar feedback</div>
               </div>
               <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.5, marginBottom: 14 }}>Encontrou um problema ou tem uma sugestão? Conta pra gente — a sua opinião ajuda demais.</div>
-              <textarea value={feedbackTxt} onChange={e => setFeedbackTxt(e.target.value)} placeholder="Escreva aqui seu feedback, sugestão ou problema..." rows={5} style={{ width: '100%', padding: '12px 14px', border: '1px solid #e4e9ef', borderRadius: 12, fontSize: 14, background: '#f2f5f8', color: '#16212c', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+              <textarea value={feedbackTxt} onChange={e => setFeedbackTxt(e.target.value)} placeholder="Escreva aqui seu feedback, sugestão ou problema..." rows={5} style={{ width: '100%', padding: '12px 14px', border: '1px solid #e4e9ef', borderRadius: 12, fontSize: 16, background: '#f2f5f8', color: '#16212c', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
               <button onClick={enviarFeedback} style={{ width: '100%', padding: 14, marginTop: 12, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Enviar <Ic e="→" /></button>
               <button onClick={() => setFeedbackModal(false)} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
             </>)}
@@ -5168,7 +5168,7 @@ export default function AppPage() {
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)' }}>Receba dicas no WhatsApp</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Dicas de inglês e lembretes do seu desafio diário, direto no seu WhatsApp.</div>
-            <input value={whatsappInput} onChange={e => setWhatsappInput(e.target.value)} placeholder="(00) 00000-0000" inputMode="tel" style={{ width: '100%', padding: 13, borderRadius: 10, border: '1px solid var(--color-border-tertiary)', fontSize: 15, marginBottom: 10, boxSizing: 'border-box' }} />
+            <input value={whatsappInput} onChange={e => setWhatsappInput(e.target.value)} placeholder="(00) 00000-0000" inputMode="tel" style={{ width: '100%', padding: 13, borderRadius: 10, border: '1px solid var(--color-border-tertiary)', fontSize: 16, marginBottom: 10, boxSizing: 'border-box' }} />
             <button onClick={async () => { if (await salvarWhatsapp()) setZapModal(false) }} style={{ width: '100%', padding: 14, background: '#25D366', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 8 }}>{whatsapp ? 'Atualizar número' : 'Quero receber'}</button>
             <button onClick={() => setZapModal(false)} style={{ width: '100%', padding: 12, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 14, cursor: 'pointer' }}>Agora não</button>
             <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>Ao informar, você concorda em receber mensagens. Cancele quando quiser.</div>
@@ -5822,7 +5822,7 @@ export default function AppPage() {
               </div>
               <div style={{ padding: '12px 16px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', gap: 8 }}>
                 <button onClick={() => toggleMic(setConvInput)} style={{ padding: '10px 14px', background: listening ? '#E24B4A' : 'var(--color-background-secondary)', color: listening ? '#fff' : purple, border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}><Ic e={listening ? '⏹️' : '🎤'} /></button>
-                <input value={convInput} onChange={e => setConvInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendConvMsg()} placeholder={listening ? '🎙️ Pode falar em inglês...' : 'Digite ou fale em inglês...'} style={{ flex: 1, padding: '10px 12px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, fontSize: 14, background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
+                <input value={convInput} onChange={e => setConvInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendConvMsg()} placeholder={listening ? '🎙️ Pode falar em inglês...' : 'Digite ou fale em inglês...'} style={{ flex: 1, padding: '10px 12px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, fontSize: 16, background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
                 <button onClick={sendConvMsg} disabled={loadingConv} style={{ padding: '10px 16px', background: purple, color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}><Ic e="→" /></button>
               </div>
               {convMsgs.length >= 3 && (
@@ -6696,7 +6696,7 @@ export default function AppPage() {
           </div>
           <div style={{ padding: '10px 12px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
             <button onClick={micChat} style={{ width: 44, height: 44, background: listening ? '#E24B4A' : blueLight, color: listening ? '#fff' : blue, border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: listening ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e={listening ? '⏹️' : '🎤'} /></button>
-            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? '🎙️ Gravando... toque ⏹️ para parar' : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 14, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
+            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? '🎙️ Gravando... toque ⏹️ para parar' : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 16, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
             <button onClick={sendChat} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}><Ic e="→" /></button>
           </div>
         </div>
@@ -6727,13 +6727,17 @@ export default function AppPage() {
       {/* Barra com itens no MEIO: o excedente do safe-area do iPhone é dividido meio a meio
           entre cima e baixo, então os ícones ficam no centro exato do retângulo azul. */}
       <div style={{ background: `linear-gradient(180deg, #2A66B0, ${blueDark})`, borderTop: '0.5px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', padding: 'calc(8px + max(0px, env(safe-area-inset-bottom) - 16px) / 2) 4px calc(8px + max(0px, env(safe-area-inset-bottom) - 16px) / 2)', flexShrink: 0 }}>
-        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Listening'], ['dict', '🔤', 'Dicionário'], ['ai', '🦜', 'Professor']].map(([t, icon, label]) => {
+        {/* Rótulos curtos: com 6 abas numa tela de 360px, "Listening"/"Dicionário"/
+            "Professor" não cabem e a última saía cortada ("Pr..."). minWidth:0 deixa o
+            flex encolher de verdade — sem isso o conteúdo trava a largura e estoura a
+            barra, empurrando a tela para o lado. */}
+        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Ouvir'], ['dict', '🔤', 'Palavras'], ['ai', '🦜', 'Vô']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
-          <button key={t} onClick={() => { encerrarTreino(); setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: '3px 7px', borderRadius: 10, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s' }}>
+          <button key={t} onClick={() => { encerrarTreino(); setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: '1 1 0', minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: '3px 4px', borderRadius: 10, background: ativo ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background 0.2s', maxWidth: '100%' }}>
               <span style={{ fontSize: 17, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#FFD98A' : '#9FC0E8'} /></span>
-              <span style={{ fontSize: 9.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{label}</span>
+              <span style={{ fontSize: 9.5, color: ativo ? '#ffffff' : '#9FC0E8', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
             </div>
           </button>
           )
