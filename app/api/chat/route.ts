@@ -94,9 +94,11 @@ export async function POST(req: NextRequest) {
 
     // 4) Monta o prompt do sistema NO SERVIDOR.
     let system = ""
-    const perfilTxt = resumoPerfilServidor(
-      perfil?.nome || "", NIVEIS.includes(body.nivel) ? body.nivel : "A1", prog)
-    if (mode === "professor") system = PROMPTS.professor + perfilTxt
+    const nivelAluno = NIVEIS.includes(body.nivel) ? body.nivel : "A1"
+    const perfilTxt = resumoPerfilServidor(perfil?.nome || "", nivelAluno, prog)
+    // Quem está no A1/A2 é quem mais desiste. Jargão de gramática com esse aluno é o jeito
+    // mais rápido de fazer ele fechar o app, então o Vô ganha regras extras de simplicidade.
+    if (mode === "professor") system = PROMPTS.professor + (nivelAluno === "A1" || nivelAluno === "A2" ? PROMPTS.professor_basico : "") + perfilTxt
     else if (mode === "simulador") {
       const sp = SCENARIO_PROMPTS[String(body.scenarioId || "")]
       if (!sp) return NextResponse.json({ error: "invalid scenario" }, { status: 400 })

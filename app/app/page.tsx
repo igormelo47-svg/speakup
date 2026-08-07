@@ -2409,6 +2409,9 @@ export default function AppPage() {
   // Frase em inglês que o aluno tocou dentro do chat do Vô para treinar a pronúncia.
   // Reusa o mesmo motor da aba Pronúncia (gravarPron/avaliarPron); isto só guarda o alvo.
   const [chatPronFrase, setChatPronFrase] = useState<string | null>(null)
+  // Microfone do chat em PORTUGUÊS por padrão: quem está no básico é justamente quem mais
+  // precisa perguntar falando, e pergunta na língua dele. Botão PT/EN troca e o app lembra.
+  const [micPt, setMicPt] = useState(true)
   // ----- Treino encadeado (Etapa B): aquecimento → lição → fala → resultado -----
   // O professor conduz a sessão inteira; o aluno só avança. treinoAtivo liga o modo.
   const [treinoAtivo, setTreinoAtivo] = useState(false)
@@ -3262,6 +3265,12 @@ export default function AppPage() {
 
   useEffect(() => { convEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [convMsgs])
 
+  // Idioma escolhido para o microfone do chat. Só sobrescreve o padrão (português) se o
+  // aluno já tiver trocado alguma vez.
+  useEffect(() => {
+    try { if (localStorage.getItem('speakup_mic_pt') === '0') setMicPt(false) } catch (e) {}
+  }, [])
+
   // A conversa com o Vô desce sozinha ao mandar a pergunta e ao chegar a resposta. Sem isto
   // o aluno ficava olhando a própria pergunta, sem saber que a resposta já estava logo abaixo.
   // Rola o PRÓPRIO quadro (não scrollIntoView) para não arrastar a página inteira junto.
@@ -3550,7 +3559,10 @@ export default function AppPage() {
   //     sobrevive aos reinícios de sessão do Android (não perde nem duplica);
   // (3) colapsarRepeticao() como rede de segurança: mesmo que o motor do celular
   //     re-entregue trechos, blocos repetidos são removidos antes de exibir.
-  function ouvirEDigitar(baseInicial: string, aplicar: (texto: string) => void) {
+  // `idioma`: o simulador é uma conversa EM inglês, mas o chat do Vô é uma conversa
+  // SOBRE inglês, feita em português. Quem está no A1 fala português — travar o mic em
+  // en-US fazia a pergunta dele virar nada.
+  function ouvirEDigitar(baseInicial: string, aplicar: (texto: string) => void, idioma = 'en-US') {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert('Seu navegador não suporta voz. Tente o Chrome no Android ou no computador. 🎤'); return }
     silenciarVozes()
@@ -3562,7 +3574,7 @@ export default function AppPage() {
     const paraExibir = (interim: string) => colapsarRepeticao((prefixo + finalTranscript + ' ' + interim).replace(/\s+/g, ' ').trim())
     const novaSessao = () => {
       const rec = new SR()
-      rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
+      rec.lang = idioma; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1
       rec.onresult = (e: any) => {
         let interim = ''
         // resultIndex: começa no primeiro resultado que mudou (não reprocessa os antigos).
@@ -3596,7 +3608,16 @@ export default function AppPage() {
     if (listening) { pararMic(); return }
     // Mesmo recognitionRef do treino de pronúncia: um de cada vez.
     if (pronListening) return
-    ouvirEDigitar(chatInput, t => setChatInput(t))
+    ouvirEDigitar(chatInput, t => setChatInput(t), micPt ? 'pt-BR' : 'en-US')
+  }
+
+  // Idioma do microfone do chat. Padrão PORTUGUÊS: o aluno do básico é justamente quem
+  // mais precisa perguntar falando, e ele pergunta na língua dele.
+  function trocarIdiomaMic() {
+    if (listening) pararMic()
+    const novo = !micPt
+    setMicPt(novo)
+    try { localStorage.setItem('speakup_mic_pt', novo ? '1' : '0') } catch (e) {}
   }
 
   // Chama /api/chat sempre com o token de login (a rota exige usuário autenticado).
@@ -6832,7 +6853,21 @@ export default function AppPage() {
                     </div>
                   )}
                   <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #3E86E8, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} onPraticar={praticarNoChat} /> : m.text}</div>
-                  {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: speakingId === 1000 + i ? 'su_pulse 1.2s infinite' : 'none' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> {/["“”]/.test(m.text) || textoEmIngles(m.text) ? 'Ouvir em inglês' : 'Ouvir'}</>}</button>}
+                  {/* Dois botões quando a resposta tem inglês E explicação: quem está no
+                      básico precisa OUVIR a explicação em português, não só o exemplo em
+                      inglês. Antes existia um botão só, e ele lia apenas o inglês. */}
+                  {m.role === 'ai' && (() => {
+                    const temIngles = trechosIngles(m.text).length > 0 || /["“”]/.test(m.text) || textoEmIngles(m.text)
+                    const falandoEn = speakingId === 1000 + i
+                    const falandoPt = speakingId === 3000 + i
+                    const bt = (ativo: boolean): React.CSSProperties => ({ marginTop: 6, background: ativo ? blue : 'var(--color-background-primary)', color: ativo ? '#fff' : blue, border: ativo ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: ativo ? 'su_pulse 1.2s infinite' : 'none' })
+                    return (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginLeft: 2 }}>
+                        <button onClick={() => falarIngles(m.text, 1000 + i)} style={bt(falandoEn)}>{falandoEn ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> {temIngles ? 'Ouvir em inglês' : 'Ouvir'}</>}</button>
+                        {temIngles && <button onClick={() => falarPortugues(semMarcacao(m.text), 3000 + i)} style={bt(falandoPt)}>{falandoPt ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🗣️" /> Ouvir a explicação</>}</button>}
+                      </div>
+                    )
+                  })()}
                   {/* Continuações prontas, só na ÚLTIMA resposta. Campo de texto em branco é
                       o que mais mata conversa com IA: quem não sabe o que perguntar fecha o
                       app. Aqui o próximo passo já vem escrito, na voz do aluno, e a um toque. */}
@@ -6900,7 +6935,11 @@ export default function AppPage() {
               {listening && <span aria-hidden style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '2px solid rgba(226,75,74,0.55)', animation: 'su_halo 1.4s ease-in-out infinite' }} />}
               <Ic e={listening ? '⏹️' : '🎤'} />
             </button>
-            <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? '🎙️ Gravando... toque ⏹️ para parar' : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 16, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
+            {/* PT/EN: em qual idioma o microfone está ouvindo. Fica ao lado do próprio
+                microfone porque é ali que a dúvida aparece. */}
+            <button onClick={trocarIdiomaMic} title={micPt ? 'Estou te ouvindo em português — toque para mudar para inglês' : 'Estou te ouvindo em inglês — toque para mudar para português'} aria-label={`Microfone ouvindo em ${micPt ? 'português' : 'inglês'}`}
+              style={{ position: 'absolute', left: 34, top: 2, background: micPt ? '#16A34A' : blue, color: '#fff', border: '2px solid var(--color-background-primary)', borderRadius: 10, padding: '1px 5px', fontSize: 9.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', lineHeight: 1.5, letterSpacing: 0.3 }}>{micPt ? 'PT' : 'EN'}</button>
+            <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? (micPt ? '🎙️ Pode falar em português...' : '🎙️ Speaking in English...') : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 16, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
             <button onClick={() => sendChat()} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}><Ic e="→" /></button>
           </div>
         </div>
