@@ -6,6 +6,8 @@ import { dadosUsuarioParaAds } from '../../lib/hash-email'
 import { VALOR, MOEDA } from '../../lib/valor-eventos'
 import { fatiarIngles, trechosIngles, semMarcacao } from '../../lib/fatiar-ingles'
 import { alvoDeRolagem } from '../../lib/rolagem-chat'
+import { lerResposta, type Correcao } from '../../lib/resposta-professor'
+import { historicoParaIA } from '../../lib/historico-chat'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -671,7 +673,11 @@ const catNome: { [k: string]: string } = { basic: 'Essencial', travel: 'Viagem',
 // Uma cor viva por categoria (dá identidade visual a cada card do vocabulário).
 const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#0EA5A5', work: '#4B3FBF', food: '#E8590C', home: '#B45309', verbs: '#7C3AED', feelings: '#DB2777', daily: '#0D9488', health: '#DC2626', tech: '#4F46E5', shopping: '#C026D3', weather: '#0284C7', family: '#EA580C', nature: '#16A34A', city: '#475569' }
 
-interface Msg { role: string; text: string }
+// correcao/sugestoes só existem nas mensagens do Vô no chat do professor — vêm das
+// marcações <corr>/<sug> da resposta (lib/resposta-professor.ts) e viram interface.
+// local = mensagem escrita pelo PRÓPRIO app (saudação, erro, aviso de limite). Não é fala
+// do professor e por isso fica fora do histórico enviado à IA.
+interface Msg { role: string; text: string; correcao?: Correcao | null; sugestoes?: string[]; local?: boolean }
 type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'traduzir' | 'ditado' | 'finish' | 'fala' | 'sessaoFim'
 const nPal = (s: string) => (s || '').trim().split(/\s+/).filter(Boolean).length
 // Quebra um exemplo em pares (en,pt) limpos e alinhados. Se a frase for composta
@@ -2313,7 +2319,7 @@ export default function AppPage() {
   const [onbStep, setOnbStep] = useState(0)
   const [onbObj, setOnbObj] = useState('')
   const [onbMeta, setOnbMeta] = useState(50)
-  const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?' }])
+  const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?', local: true }])
   const [chatInput, setChatInput] = useState('')
   const [loadingChat, setLoadingChat] = useState(false)
   const [userName, setUserName] = useState('Aluno')
@@ -2446,6 +2452,7 @@ export default function AppPage() {
   const [ligaLoading, setLigaLoading] = useState(false)
   const convEndRef = useRef<HTMLDivElement>(null)
   const chatBoxRef = useRef<HTMLDivElement>(null)
+  const chatInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   const lessons: Record<string, Lesson[]> = { A1: [], A2: [], B1: [], B2: [], C1: [], C2: [] }
@@ -3768,30 +3775,40 @@ export default function AppPage() {
     setAjudaLoading(false)
   }
 
-  async function sendChat() {
-    if (!chatInput.trim() || loadingChat) return
+  // `direto` vem dos botões de sugestão do Vô, que mandam sem passar pelo campo de texto.
+  async function sendChat(direto?: string) {
+    const bruto = (direto ?? chatInput).trim()
+    if (!bruto || loadingChat) return
     if (listening) pararMic() // ao enviar o áudio, para de gravar
     try { track('professor_mensagem') } catch (e) {}
     if (!isPremium && profHoje >= PROF_LIMIT) {
-      setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser!` }])
+      setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser!`, local: true }])
       return
     }
     // Teto de uso justo do Premium (proteção de custo) — silencioso, sem expor o número ao aluno.
     if (isPremium && profHoje >= PROF_LIMIT_PREMIUM) {
-      setChatMsgs(m => [...m, { role: 'ai', text: 'Estou um pouco sobrecarregado agora. 😅 Tente de novo daqui a pouco.' }])
+      setChatMsgs(m => [...m, { role: 'ai', text: 'Estou um pouco sobrecarregado agora. 😅 Tente de novo daqui a pouco.', local: true }])
       return
     }
-    const msg = colapsarRepeticao(chatInput.trim()); setChatInput('')
+    const msg = colapsarRepeticao(bruto); setChatInput('')
     const novo = `${hojeStr}:${profHoje + 1}`; try { localStorage.setItem('speakup_prof_dia', novo) } catch (e) {} ; setProfDiaData(novo)
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
       eventoAtivacao('primeira_conversa', { origem: 'professor' })
-      const res = await callChat({ mode: 'professor', nivel: level, messages: [{ role: 'user', content: msg }] })
-      if (res.status === 429) { setChatMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.' }]); setLoadingChat(false); return }
+      const res = await callChat({ mode: 'professor', nivel: level, messages: historicoParaIA(chatMsgs, msg) })
+      if (res.status === 429) { setChatMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.', local: true }]); setLoadingChat(false); return }
       const data = await res.json()
-      setChatMsgs(m => [...m, { role: 'ai', text: data.content?.[0]?.text || 'Erro.' }])
-    } catch { setChatMsgs(m => [...m, { role: 'ai', text: 'Erro de conexão. Tente novamente.' }]) }
+      const lida = lerResposta(data.content?.[0]?.text || 'Erro.')
+      setChatMsgs(m => [...m, { role: 'ai', text: lida.texto, correcao: lida.correcao, sugestoes: lida.sugestoes }])
+    } catch { setChatMsgs(m => [...m, { role: 'ai', text: 'Erro de conexão. Tente novamente.', local: true }]) }
     setLoadingChat(false)
+  }
+
+  // Toca numa sugestão do Vô: manda direto, sem passar pelo campo de texto. O atrito de
+  // digitar é justamente o que fazia a conversa morrer na primeira resposta.
+  function usarSugestao(s: string) {
+    try { track('professor_sugestao') } catch (e) {}
+    sendChat(s)
   }
 
   async function gerarRelatorio() {
@@ -6760,12 +6777,40 @@ export default function AppPage() {
                       <span key={i} style={{ width: 4, borderRadius: 3, background: 'rgba(46,114,214,0.55)', height: 8 + (i % 3) * 5, animation: `su_onda 1.1s ease-in-out ${i * 0.11}s infinite` }} />
                     ))}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Oi! Sou o Vô 👋</div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3, lineHeight: 1.5 }}>Toque em mim pra me ouvir, segure o 🎤 pra falar<br />ou escolha um tema abaixo</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Oi{userName ? `, ${userName}` : ''}! Sou o Vô 👋</div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3, lineHeight: 1.5 }}>Toque em mim pra me ouvir, segure o 🎤 pra falar<br />ou escolha por onde começar</div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4, justifyContent: 'center' }}>
-                  {[['Como me apresentar?','👋'], ['Since vs for','⏳'], ['Present Perfect','📘'], ['Phrasal verbs','🧩']].map(([t, e], i) => (
-                    <button key={t} onClick={() => setChatInput(t)} style={{ padding: '9px 15px', border: '1px solid rgba(46,114,214,0.22)', borderRadius: 22, background: 'var(--color-background-primary)', color: blueDark, fontSize: 13, cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.45s ease ${i * 0.07}s both`, fontFamily: 'inherit' }}>{e} {t}</button>
+                {/* O servidor já manda os pontos fracos do aluno no prompt, mas o aluno nunca
+                    VIA isso. Mostrar aqui é a diferença entre "mais um chatbot" e um professor
+                    que acompanha você — e é de graça, o dado já existe. */}
+                {(() => {
+                  const fracos: string[] = (perfilIa.topicos_fracos || []).slice(-2)
+                  const sons: string[] = (perfilIa.sons_dificeis || []).slice(-1)
+                  const itens = [...fracos, ...sons.map(s => SONS_NOME[s] || s)]
+                  if (!itens.length) return null
+                  return (
+                    <div style={{ background: 'rgba(46,114,214,0.07)', border: '1px solid rgba(46,114,214,0.16)', borderRadius: 14, padding: '10px 13px', marginBottom: 4, animation: 'su_risefade 0.5s ease 0.1s both' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: blueDark, textTransform: 'uppercase', letterSpacing: 0.4 }}>Eu lembro de você</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 4, lineHeight: 1.45 }}>A gente ainda tem que apertar: {itens.join(' · ')}</div>
+                      <button onClick={() => sendChat(`Vamos treinar o que eu erro mais: ${itens.join(', ')}. Comece com uma pergunta só.`)} style={{ marginTop: 8, background: blue, color: '#fff', border: 'none', borderRadius: 20, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Treinar isso agora →</button>
+                    </div>
+                  )
+                })()}
+                {/* Quatro portas em vez de um campo em branco. Caixa de texto vazia esconde
+                    o que a ferramenta sabe fazer — quem não sabe o que perguntar fecha o app.
+                    As três primeiras já mandam a mensagem; a última só prepara a frase, porque
+                    a dúvida é do aluno e só ele sabe qual é. */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 4 }}>
+                  {([
+                    ['🎯', 'Me dá um desafio', 'Me dá um desafio rápido de inglês do meu nível, uma pergunta só, e espera minha resposta.', true],
+                    ['🗣️', 'Treinar pronúncia', 'Me dá uma frase curta em inglês do meu nível pra eu treinar a pronúncia em voz alta.', true],
+                    ['🔧', 'Corrigir meu inglês', 'Vou escrever uma frase em inglês e quero que você corrija. Me peça pra escrever.', true],
+                    ['📘', 'Tenho uma dúvida', 'Como eu digo ', false],
+                  ] as [string, string, string, boolean][]).map(([e, rotulo, envio, manda], i) => (
+                    <button key={rotulo} onClick={() => { if (manda) { try { track('professor_porta', { porta: rotulo }) } catch (err) {} ; sendChat(envio) } else { setChatInput(envio); chatInputRef.current?.focus() } }}
+                      style={{ padding: '13px 12px', border: '1px solid rgba(46,114,214,0.22)', borderRadius: 16, background: 'var(--color-background-primary)', color: blueDark, fontSize: 13, cursor: 'pointer', fontWeight: 700, boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.45s ease ${i * 0.07}s both`, fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, lineHeight: 1.25 }}>
+                      <span style={{ fontSize: 20 }} aria-hidden>{e}</span>{rotulo}
+                    </button>
                   ))}
                 </div>
               </>
@@ -6774,8 +6819,30 @@ export default function AppPage() {
               <div key={i} data-msg style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
                 {m.role === 'ai' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-background-primary)', border: '1.5px solid rgba(245,166,35,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>}
                 <div style={{ minWidth: 0 }}>
+                  {/* Cartão de correção: o aluno vê o próprio erro virar acerto na hora.
+                      É o momento em que a conversa deixa de ser papo e vira aula — e é o
+                      que faz a pessoa sentir que valeu a pena ter escrito. */}
+                  {m.correcao && (
+                    <div style={{ marginBottom: 7, background: 'var(--color-background-primary)', border: '1px solid rgba(226,75,74,0.28)', borderLeft: '4px solid #E24B4A', borderRadius: 12, padding: '10px 12px', boxShadow: '0 3px 12px rgba(16,42,76,0.10)', animation: 'su_risefade 0.4s ease both' }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#C0392B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>Ajustei uma coisa</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', textDecoration: 'line-through', textDecorationColor: 'rgba(226,75,74,0.7)' }}>{m.correcao.errado}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#16A34A', marginTop: 2 }}>{m.correcao.certo}</div>
+                      {m.correcao.porque && <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 5, lineHeight: 1.4 }}>{m.correcao.porque}</div>}
+                      <button onClick={() => praticarNoChat(m.correcao!.certo)} style={{ marginTop: 8, background: blueLight, color: blue, border: 'none', borderRadius: 20, padding: '6px 13px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}><Ic e="🎤" /> Falar do jeito certo</button>
+                    </div>
+                  )}
                   <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #3E86E8, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} onPraticar={praticarNoChat} /> : m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: speakingId === 1000 + i ? 'su_pulse 1.2s infinite' : 'none' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> {/["“”]/.test(m.text) || textoEmIngles(m.text) ? 'Ouvir em inglês' : 'Ouvir'}</>}</button>}
+                  {/* Continuações prontas, só na ÚLTIMA resposta. Campo de texto em branco é
+                      o que mais mata conversa com IA: quem não sabe o que perguntar fecha o
+                      app. Aqui o próximo passo já vem escrito, na voz do aluno, e a um toque. */}
+                  {m.role === 'ai' && !loadingChat && i === chatMsgs.length - 1 && !!m.sugestoes?.length && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                      {m.sugestoes.map((s, k) => (
+                        <button key={s} onClick={() => usarSugestao(s)} style={{ padding: '8px 14px', border: `1px solid ${blueLight}`, borderRadius: 20, background: 'var(--color-background-primary)', color: blueDark, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.4s ease ${0.05 + k * 0.07}s both` }}>{s}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -6833,8 +6900,8 @@ export default function AppPage() {
               {listening && <span aria-hidden style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '2px solid rgba(226,75,74,0.55)', animation: 'su_halo 1.4s ease-in-out infinite' }} />}
               <Ic e={listening ? '⏹️' : '🎤'} />
             </button>
-            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? '🎙️ Gravando... toque ⏹️ para parar' : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 16, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
-            <button onClick={sendChat} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}><Ic e="→" /></button>
+            <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? '🎙️ Gravando... toque ⏹️ para parar' : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 16, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
+            <button onClick={() => sendChat()} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}><Ic e="→" /></button>
           </div>
         </div>
       )}
