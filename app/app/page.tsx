@@ -6704,11 +6704,13 @@ export default function AppPage() {
 
       </div>
 
-      {/* O Vô sempre à mão: botão flutuante em toda tela (menos no próprio chat, onde
-          seria redundante, e durante o onboarding, que já é dele). Um toque leva ao
-          professor. O balão-dica aparece até o primeiro uso e some para sempre —
-          convite bom convida uma vez, não fica gritando. */}
-      {onboarded && !mostrarOnboarding && tab !== 'ai' && (
+      {/* O Vô sempre à mão: botão flutuante em TODA tela. Só sai durante o onboarding
+          (que já é dele) e no próprio chat — não por estética: o botão fica exatamente
+          em cima do campo de digitar do chat. Um toque leva ao professor. O balão-dica
+          aparece até o primeiro uso e some para sempre.
+          NÃO condicionar a `onboarded`: essa flag é por aparelho, e aluno antigo em
+          navegador novo ficava sem o botão — foi assim que ele "sumiu" pro Emmanuel. */}
+      {!mostrarOnboarding && tab !== 'ai' && (
         <div style={{ position: 'absolute', right: 12, bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
           {!voFabDicaVista && (
             <div style={{ position: 'relative', background: '#fff', borderRadius: '14px 14px 4px 14px', padding: '9px 30px 9px 12px', boxShadow: '0 4px 16px rgba(16,42,76,0.22)', maxWidth: 190, animation: 'su_risefade 0.5s ease both' }}>
