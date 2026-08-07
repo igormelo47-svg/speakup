@@ -4592,6 +4592,17 @@ export default function AppPage() {
         @keyframes su_bounce { 0% { transform: scale(0) rotate(-15deg); opacity: 0 } 50% { transform: scale(1.3) rotate(8deg) } 70% { transform: scale(0.9) rotate(-4deg) } 100% { transform: scale(1) rotate(0); opacity: 1 } }
         @keyframes su_bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
         @keyframes su_wave { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(-24deg) } }
+        /* Ambiente do Vô: brilhos que respiram, anel de IA, ondas de voz e a entrada
+           das mensagens. Tudo em transform/opacity — o navegador anima na GPU e não
+           trava a rolagem do chat, que é onde o aluno passa mais tempo. */
+        @keyframes su_respira { 0%, 100% { transform: scale(1); opacity: 0.75 } 50% { transform: scale(1.16); opacity: 1 } }
+        @keyframes su_girar { to { transform: rotate(360deg) } }
+        @keyframes su_halo { 0%, 100% { transform: scale(1); opacity: 0.55 } 50% { transform: scale(1.14); opacity: 0.95 } }
+        @keyframes su_onda { 0%, 100% { transform: scaleY(0.45) } 50% { transform: scaleY(1.7) } }
+        @keyframes su_msg { from { opacity: 0; transform: translateY(10px) scale(0.97) } to { opacity: 1; transform: none } }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="su_respira"], [style*="su_halo"], [style*="su_onda"], [style*="su_girar"] { animation: none !important }
+        }
         @keyframes su_xppop { 0% { transform: scale(0) translateY(20px); opacity: 0 } 60% { transform: scale(1.2) translateY(0) } 100% { transform: scale(1); opacity: 1 } }
         @keyframes su_confetti { 0% { transform: translateY(-20px) rotate(0); opacity: 1 } 100% { transform: translateY(320px) rotate(420deg); opacity: 0 } }
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
@@ -6651,51 +6662,90 @@ export default function AppPage() {
       )}
 
       {tab === 'ai' && (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: 'linear-gradient(180deg, #F0EEFB 0%, #E6EAFB 60%, #DCE4FA 100%)' }}>
-          <div style={{ background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 26, animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={32} prof /></div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>Vô, seu professor de IA</div>
-              <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />Online · responde na hora</div>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: temaEscuro ? 'linear-gradient(180deg, #0E1B2E 0%, #101F35 60%, #0C1828 100%)' : 'linear-gradient(180deg, #EEF3FF 0%, #E4EBFB 55%, #DCE6FA 100%)', overflow: 'hidden' }}>
+          {/* Ambiente: dois brilhos que respiram no fundo. Dá profundidade sem pesar —
+              é o que separa "tela de chat" de "sala onde alguém te espera". */}
+          <div aria-hidden style={{ position: 'absolute', top: -120, right: -90, width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,148,240,0.30), rgba(74,148,240,0) 70%)', pointerEvents: 'none', animation: 'su_respira 7s ease-in-out infinite' }} />
+          <div aria-hidden style={{ position: 'absolute', bottom: 40, left: -110, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,166,35,0.20), rgba(245,166,35,0) 70%)', pointerEvents: 'none', animation: 'su_respira 9s ease-in-out infinite 1.5s' }} />
+
+          <div style={{ position: 'relative', background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 6px 22px rgba(16,42,76,0.28)' }}>
+            {/* anel de IA girando quando o Vô está pensando; pulsa devagar em repouso */}
+            <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ position: 'relative', width: 52, height: 52, flexShrink: 0, cursor: 'pointer' }}>
+              <span aria-hidden style={{ position: 'absolute', inset: -4, borderRadius: '50%', border: '2px solid transparent', borderTopColor: '#FFD98A', borderRightColor: 'rgba(255,217,138,0.35)', animation: loadingChat ? 'su_girar 1s linear infinite' : 'su_girar 6s linear infinite', opacity: loadingChat ? 1 : 0.55 }} />
+              <span aria-hidden style={{ position: 'absolute', inset: -10, borderRadius: '50%', background: 'rgba(255,217,138,0.16)', animation: 'su_halo 2.6s ease-in-out infinite' }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'su_bob 2.6s ease-in-out infinite' }}><Mascote size={36} prof humor={loadingChat ? 'normal' : 'feliz'} /></div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>Vô, seu professor de IA</div>
+              <div style={{ fontSize: 12, color: '#B5D4F4', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: listening ? '#E24B4A' : '#4ADE80', display: 'inline-block', animation: 'su_halo 1.8s ease-in-out infinite' }} />
+                {listening ? 'Ouvindo você…' : loadingChat ? 'Pensando na melhor resposta…' : 'Online · responde na hora'}
+              </div>
               {!isPremium && <div style={{ fontSize: 11, color: profBloqueado ? '#FFD98A' : '#B5D4F4', marginTop: 3, fontWeight: profBloqueado ? 600 : 400 }}>{profBloqueado ? '🌟 Limite de hoje atingido — vire Premium p/ conversar sem limite' : `${PROF_LIMIT - profHoje} de ${PROF_LIMIT} mensagens grátis hoje`}</div>}
             </div>
           </div>
           <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
             {chatMsgs.length <= 1 && (
               <>
-                <div style={{ textAlign: 'center', padding: '4px 0 2px' }}>
-                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ cursor: 'pointer', display: 'inline-block', animation: 'su_bob 2.2s ease-in-out infinite' }}><Mascote size={72} prof humor="feliz" /></div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>Toque no <b>Vô</b> pra me ouvir, ou escolha um tema 👇</div>
+                {/* Boas-vindas: o Vô num "palco" com halo e ondas de voz. Convida a falar
+                    antes de convidar a digitar — é um app de conversação. */}
+                <div style={{ textAlign: 'center', padding: '10px 0 2px' }}>
+                  <div onClick={() => falarIngles('Hi! I am here to help you speak English. Ask me anything!', 9100)} title="Toque para me ouvir" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 138, height: 138, cursor: 'pointer' }}>
+                    <span aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,148,240,0.26), rgba(74,148,240,0) 68%)', animation: 'su_halo 3.2s ease-in-out infinite' }} />
+                    <span aria-hidden style={{ position: 'absolute', inset: 12, borderRadius: '50%', border: '1.5px dashed rgba(74,148,240,0.45)', animation: 'su_girar 18s linear infinite' }} />
+                    <div style={{ animation: 'su_bob 2.6s ease-in-out infinite' }}><Mascote size={86} prof humor="feliz" /></div>
+                  </div>
+                  {/* ondas de voz decorativas: sugerem que aqui se FALA */}
+                  <div aria-hidden style={{ display: 'flex', gap: 4, justifyContent: 'center', alignItems: 'flex-end', height: 22, marginTop: 4 }}>
+                    {[0,1,2,3,4,5,6].map(i => (
+                      <span key={i} style={{ width: 4, borderRadius: 3, background: 'rgba(46,114,214,0.55)', height: 8 + (i % 3) * 5, animation: `su_onda 1.1s ease-in-out ${i * 0.11}s infinite` }} />
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Oi! Sou o Vô 👋</div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3, lineHeight: 1.5 }}>Toque em mim pra me ouvir, segure o 🎤 pra falar<br />ou escolha um tema abaixo</div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4, justifyContent: 'center' }}>
-                  {['Como me apresentar?', 'Since vs for', 'Present Perfect', 'Phrasal verbs'].map(t => (
-                    <button key={t} onClick={() => setChatInput(t)} style={{ padding: '8px 14px', border: 'none', borderRadius: 20, background: blueLight, color: blueDark, fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>{t}</button>
+                  {[['Como me apresentar?','👋'], ['Since vs for','⏳'], ['Present Perfect','📘'], ['Phrasal verbs','🧩']].map(([t, e], i) => (
+                    <button key={t} onClick={() => setChatInput(t)} style={{ padding: '9px 15px', border: '1px solid rgba(46,114,214,0.22)', borderRadius: 22, background: 'var(--color-background-primary)', color: blueDark, fontSize: 13, cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.45s ease ${i * 0.07}s both`, fontFamily: 'inherit' }}>{e} {t}</button>
                   ))}
                 </div>
               </>
             )}
             {chatMsgs.map((m, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                {m.role === 'ai' && <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}><Mascote size={22} prof /></div>}
+              <div key={i} style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
+                {m.role === 'ai' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-background-primary)', border: '1.5px solid rgba(245,166,35,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ padding: '11px 15px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #2E72D6, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
+                  <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #3E86E8, #185FA5)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} /> : m.text}</div>
                   {m.role === 'ai' && <button onClick={() => falarIngles(m.text, 1000 + i)} style={{ marginTop: 6, marginLeft: 2, background: speakingId === 1000 + i ? blue : 'var(--color-background-primary)', color: speakingId === 1000 + i ? '#fff' : blue, border: speakingId === 1000 + i ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: speakingId === 1000 + i ? 'su_pulse 1.2s infinite' : 'none' }}>{speakingId === 1000 + i ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> {/["“”]/.test(m.text) || textoEmIngles(m.text) ? 'Ouvir em inglês' : 'Ouvir'}</>}</button>}
                 </div>
               </div>
             ))}
             {loadingChat && (
-              <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Mascote size={22} prof /></div>
-                <div style={{ padding: '14px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 5, alignItems: 'center' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#9CB4CC', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.4s' }} />
+              <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-background-primary)', border: '1.5px solid rgba(245,166,35,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>
+                <div style={{ padding: '13px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 3px 12px rgba(16,42,76,0.10)' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: blue, display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: blue, display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: blue, display: 'inline-block', animation: 'su_dot 1.2s infinite 0.4s' }} />
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', marginLeft: 2 }}>o Vô está pensando</span>
                 </div>
               </div>
             )}
           </div>
-          <div style={{ padding: '10px 12px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-            <button onClick={micChat} style={{ width: 44, height: 44, background: listening ? '#E24B4A' : blueLight, color: listening ? '#fff' : blue, border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: listening ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e={listening ? '⏹️' : '🎤'} /></button>
+          {/* Enquanto o mic está ligado, uma faixa de ondas reage por cima da barra —
+              a pessoa VÊ que está sendo ouvida, que é o que dá coragem de falar. */}
+          {listening && (
+            <div aria-hidden style={{ display: 'flex', gap: 4, justifyContent: 'center', alignItems: 'center', height: 34, background: 'var(--color-background-primary)', borderTop: '0.5px solid var(--color-border-tertiary)', flexShrink: 0 }}>
+              {[0,1,2,3,4,5,6,7,8,9,10,11].map(i => (
+                <span key={i} style={{ width: 4, borderRadius: 3, background: '#E24B4A', height: 7 + (i % 4) * 6, animation: `su_onda 0.85s ease-in-out ${i * 0.07}s infinite` }} />
+              ))}
+            </div>
+          )}
+          <div style={{ position: 'relative', padding: '10px 12px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            <button onClick={micChat} aria-label={listening ? 'Parar gravação' : 'Falar com o Vô'} style={{ position: 'relative', width: 46, height: 46, background: listening ? '#E24B4A' : blueLight, color: listening ? '#fff' : blue, border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: listening ? '0 0 0 6px rgba(226,75,74,0.18)' : 'none', transition: 'box-shadow 0.2s' }}>
+              {listening && <span aria-hidden style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '2px solid rgba(226,75,74,0.55)', animation: 'su_halo 1.4s ease-in-out infinite' }} />}
+              <Ic e={listening ? '⏹️' : '🎤'} />
+            </button>
             <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? '🎙️ Gravando... toque ⏹️ para parar' : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 22, fontSize: 16, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
             <button onClick={sendChat} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}><Ic e="→" /></button>
           </div>
