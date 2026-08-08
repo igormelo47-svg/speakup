@@ -3650,7 +3650,7 @@ export default function AppPage() {
               // deduplicar com o evento server-side do webhook RevenueCat.
               try {
                 const tid = res?.transaction?.transactionIdentifier || `rc_${userId}_${Date.now()}`
-                ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: plano === 'anual' ? VALOR.assinaturaAnualIOS : VALOR.assinaturaMensal, currency: MOEDA, user_id: userId, transaction_id: tid })
+                ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: plano === 'anual' ? VALOR.assinaturaAnualIOS : VALOR.assinaturaMensal, currency: MOEDA, user_id: userId, transaction_id: tid, event_id: `vonai-purchase-${tid}` })
                 await new Promise(r => setTimeout(r, 600)) // dá tempo da tag disparar antes do reload
               } catch (e) {}
               // Espera o webhook do RevenueCat gravar no servidor (até ~20s) antes de recarregar —
@@ -3719,7 +3719,7 @@ export default function AppPage() {
               localStorage.setItem('speakup_purchase_' + userId, '1')
               const pl = localStorage.getItem('speakup_plano_checkout') || 'mensal'
               let atb: any = null; try { const raw = localStorage.getItem('speakup_attrib'); if (raw) atb = JSON.parse(raw) } catch (e2) {}
-              ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: pl === 'anual' ? VALOR.assinaturaAnual : VALOR.assinaturaMensal, currency: MOEDA, user_id: userId, transaction_id: 'kiwify_' + userId, ...(atb?.gclid ? { gclid: atb.gclid } : {}), ...(atb?.fbclid ? { fbclid: atb.fbclid } : {}) })
+              ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: pl === 'anual' ? VALOR.assinaturaAnual : VALOR.assinaturaMensal, currency: MOEDA, user_id: userId, transaction_id: 'kiwify_' + userId, event_id: `vonai-purchase-kiwify_${userId}`, ...(atb?.gclid ? { gclid: atb.gclid } : {}), ...(atb?.fbclid ? { fbclid: atb.fbclid } : {}) })
             }
           } catch (e) {}
           return
