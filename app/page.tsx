@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import NativeEntry from './NativeEntry'
 import { Footer } from './_marketing/ui'
+import BaixarApp from './_marketing/BaixarApp'
 
 export const metadata = {
   title: 'Vonai — Aprenda inglês conversando com IA',
@@ -40,7 +41,10 @@ export default function Home() {
       <div style={{ borderBottom: '1px solid #EEF1F6' }}>
         <div style={{ ...container, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>
           <div style={{ fontSize: 20, fontWeight: 800 }}>Von<span style={{ color: AZUL }}>ai</span></div>
-          <Link href="/login" style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <BaixarApp />
+            <Link href="/login" style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
+          </div>
         </div>
       </div>
 

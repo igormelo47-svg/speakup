@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import BaixarApp from './BaixarApp'
 
 // Peças comuns das páginas públicas de marketing (nav, footer, badges de loja, cards,
 // FAQ com JSON-LD, barra fixa de CTA no celular). Extraído da landing de tráfego pago
@@ -87,7 +88,10 @@ export function Nav() {
     <div style={{ borderBottom: '1px solid #EEF1F6' }}>
       <div style={{ ...container, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>
         <Link href="/" style={{ fontSize: 20, fontWeight: 800, color: '#102A4C', textDecoration: 'none' }}>Von<span style={{ color: AZUL }}>ai</span></Link>
-        <Link href="/login" style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <BaixarApp />
+          <Link href="/login" style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
+        </div>
       </div>
     </div>
   )
