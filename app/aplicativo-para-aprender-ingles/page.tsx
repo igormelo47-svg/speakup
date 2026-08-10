@@ -39,10 +39,14 @@ export default function AplicativoParaAprenderIngles() {
             </div>
             <h1 style={{ fontSize: 38, lineHeight: 1.15, fontWeight: 800, margin: '0 0 16px' }}>O aplicativo para aprender inglês <span style={{ color: '#FFD98A' }}>falando</span> — não decorando.</h1>
             <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 auto 26px', maxWidth: 640 }}>Um professor de IA disponível 24h conversa com você, corrige sua pronúncia na hora e monta seu plano de estudo todo dia. Do zero ao avançado, no seu ritmo.</p>
+            {/* Lojas primeiro e grandes (decisão do dono 10/08): o download é a chamada
+                principal; o cadastro segue como alternativa pra quem prefere o navegador. */}
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <PlayBadge grande />
+              <AppStoreBadge grande />
+            </div>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
               <Link href="/cadastro" style={cta}>Testar grátis agora →</Link>
-              <PlayBadge />
-              <AppStoreBadge />
             </div>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', marginTop: 20, fontSize: 13.5, color: '#B5D4F4' }}>
               <span>✓ 2 dias de Premium grátis</span>

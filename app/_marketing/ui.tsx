@@ -46,13 +46,15 @@ export function Card({ e, t, d }: { e: string; t: string; d: string }) {
 
 // target="_blank" é obrigatório: o navegador interno do Instagram/Facebook engole a
 // navegação para domínio externo na mesma janela — o toque parece "morto" sem isso.
-function LojaBadge({ href, icone, acima, nome }: { href: string; icone: React.ReactNode; acima: string; nome: string }) {
+// `grande` existe porque no topo das páginas o dono quer as lojas como chamada principal
+// (decisão de 10/08: induzir o download logo de cara), e o tamanho padrão sumia no hero.
+function LojaBadge({ href, icone, acima, nome, grande = false }: { href: string; icone: React.ReactNode; acima: string; nome: string; grande?: boolean }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#000', color: '#fff', borderRadius: 12, padding: '10px 18px', textDecoration: 'none' }}>
-      {icone}
+    <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: grande ? 12 : 10, background: '#000', color: '#fff', borderRadius: grande ? 14 : 12, padding: grande ? '13px 26px' : '10px 18px', textDecoration: 'none', border: grande ? '1px solid rgba(255,255,255,0.35)' : 'none' }}>
+      <span style={{ transform: grande ? 'scale(1.25)' : 'none', display: 'inline-flex' }}>{icone}</span>
       <span style={{ textAlign: 'left', lineHeight: 1.15 }}>
-        <span style={{ display: 'block', fontSize: 10.5, opacity: 0.85 }}>{acima}</span>
-        <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{nome}</span>
+        <span style={{ display: 'block', fontSize: grande ? 12 : 10.5, opacity: 0.85 }}>{acima}</span>
+        <span style={{ display: 'block', fontSize: grande ? 20 : 16, fontWeight: 700 }}>{nome}</span>
       </span>
     </a>
   )
@@ -76,11 +78,11 @@ function PlaySvg() {
     </svg>
   )
 }
-export function PlayBadge() {
-  return <LojaBadge href={PLAY_URL} icone={<PlaySvg />} acima="Disponível no" nome="Google Play" />
+export function PlayBadge({ grande = false }: { grande?: boolean } = {}) {
+  return <LojaBadge href={PLAY_URL} icone={<PlaySvg />} acima="Disponível no" nome="Google Play" grande={grande} />
 }
-export function AppStoreBadge() {
-  return <LojaBadge href={APP_STORE_URL} icone={<AppleSvg />} acima="Baixar na" nome="App Store" />
+export function AppStoreBadge({ grande = false }: { grande?: boolean } = {}) {
+  return <LojaBadge href={APP_STORE_URL} icone={<AppleSvg />} acima="Baixar na" nome="App Store" grande={grande} />
 }
 
 export function Nav() {

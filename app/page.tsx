@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import NativeEntry from './NativeEntry'
-import { Footer } from './_marketing/ui'
+import { Footer, PlayBadge, AppStoreBadge } from './_marketing/ui'
 import BaixarApp from './_marketing/BaixarApp'
 
 export const metadata = {
@@ -55,6 +55,13 @@ export default function Home() {
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 18 }}>🤖 Inglês com Inteligência Artificial</div>
             <h1 style={{ fontSize: 40, lineHeight: 1.1, fontWeight: 800, margin: '0 0 16px' }}>Aprenda inglês conversando com uma IA que <span style={{ color: '#FFD98A' }}>lembra de você</span>.</h1>
             <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Um professor particular 24h que monta seu plano de estudo todo dia, corrige sua pronúncia e te acompanha rumo à fluência — do zero ao avançado.</p>
+            {/* As lojas vêm ANTES do CTA de cadastro por decisão do dono (10/08): induzir o
+                download do app logo de cara. O cadastro continua logo abaixo para quem
+                prefere o navegador — e é ele que dispara a conversão do Google Ads. */}
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }}>
+              <PlayBadge grande />
+              <AppStoreBadge grande />
+            </div>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
               <Link href="/cadastro" style={cta}>Começar grátis →</Link>
               <span style={{ fontSize: 14, color: '#B5D4F4' }}>✨ 2 dias grátis · sem cartão de crédito</span>
