@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import NativeEntry from './NativeEntry'
-import { Footer, PlayBadge, AppStoreBadge } from './_marketing/ui'
+import { Footer, PlayBadge, AppStoreBadge, StickyCta } from './_marketing/ui'
 import BaixarApp from './_marketing/BaixarApp'
 
 export const metadata = {
@@ -13,6 +13,7 @@ const AZUL = '#1E63C7'
 const ESCURO = '#103D77'
 
 const FAQ = [
+  { q: 'Onde eu baixo o aplicativo?', a: 'O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — busque "Vonai" ou acesse vonai.com.br/baixar, que leva direto à loja do seu celular. Baixar é grátis e você começa com 2 dias de Premium de brinde. Se preferir, também funciona direto no navegador.' },
   { q: 'O Vonai é grátis?', a: 'Você começa com 2 dias de Premium grátis, sem cartão de crédito. Depois, pode continuar no plano gratuito (com limites diários) ou assinar o Premium por R$29,90/mês ou R$289,80/ano para usar o Professor IA e o Simulador sem limites.' },
   { q: 'Funciona para quem está começando do zero?', a: 'Sim. A trilha vai do A1 (primeiras palavras) ao C2 (nível quase nativo), e um teste rápido de nivelamento posiciona você no ponto certo. As explicações são todas em português.' },
   { q: 'Como a IA corrige minha pronúncia?', a: 'Você lê frases em voz alta e o app compara o que você falou com o esperado, mostrando palavra por palavra o que ficou bom — com dicas específicas para os sons difíceis para brasileiros, como o "th" e o "-ed".' },
@@ -35,7 +36,13 @@ export default function Home() {
   const container: React.CSSProperties = { maxWidth: 1040, margin: '0 auto', padding: '0 20px' }
   const cta: React.CSSProperties = { display: 'inline-block', background: '#F5A623', color: '#fff', fontWeight: 700, fontSize: 16, padding: '14px 30px', borderRadius: 30, textDecoration: 'none', boxShadow: '0 6px 18px rgba(245,166,35,0.4)' }
   return (
-    <div style={{ fontFamily: 'inherit', color: '#102A4C', background: '#fff' }}>
+    <div className="vn-body-pad" style={{ fontFamily: 'inherit', color: '#102A4C', background: '#fff' }}>
+      {/* QR só faz sentido em tela grande: no celular a pessoa já ESTÁ no aparelho que
+          baixa, então o QR some e ficam os selos das lojas. */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .vn-qr, .vn-qr-dica { display: none; }
+        @media (min-width: 900px) { .vn-qr { display: block; } .vn-qr-dica { display: inline; } }
+      `}} />
       <NativeEntry />
       {/* Nav */}
       <div style={{ borderBottom: '1px solid #EEF1F6' }}>
@@ -52,19 +59,28 @@ export default function Home() {
       <div style={{ background: `linear-gradient(160deg, #2E72D6, ${ESCURO})`, color: '#fff' }}>
         <div style={{ ...container, display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'center', padding: '56px 20px 64px' }}>
           <div style={{ flex: '1 1 340px' }}>
-            <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 18 }}>🤖 Inglês com Inteligência Artificial</div>
-            <h1 style={{ fontSize: 40, lineHeight: 1.1, fontWeight: 800, margin: '0 0 16px' }}>Aprenda inglês conversando com uma IA que <span style={{ color: '#FFD98A' }}>lembra de você</span>.</h1>
-            <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Um professor particular 24h que monta seu plano de estudo todo dia, corrige sua pronúncia e te acompanha rumo à fluência — do zero ao avançado.</p>
-            {/* As lojas vêm ANTES do CTA de cadastro por decisão do dono (10/08): induzir o
-                download do app logo de cara. O cadastro continua logo abaixo para quem
-                prefere o navegador — e é ele que dispara a conversão do Google Ads. */}
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }}>
-              <PlayBadge grande />
-              <AppStoreBadge grande />
+            <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+              <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>🇧🇷 Feito para brasileiros</span>
+              <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>⭐ Nota 5,0 na App Store</span>
             </div>
+            <h1 style={{ fontSize: 40, lineHeight: 1.1, fontWeight: 800, margin: '0 0 16px' }}>O aplicativo de inglês que <span style={{ color: '#FFD98A' }}>conversa com você</span> — e lembra de tudo.</h1>
+            <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Um professor particular de IA, 24h no seu bolso: monta seu plano de estudo todo dia, corrige sua pronúncia na hora e te leva do zero ao avançado.</p>
+            {/* Download primeiro (decisão do dono 10/08): as lojas são a chamada principal.
+                O QR só aparece em tela grande — quem está no computador aponta a câmera e
+                cai direto na loja certa via /baixar. No celular ele seria inútil. */}
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                <PlayBadge grande />
+                <AppStoreBadge grande />
+              </div>
+              <div className="vn-qr" style={{ background: '#fff', borderRadius: 12, padding: 6, lineHeight: 0 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/qr-baixar.png" alt="QR code para baixar o app Vonai" width={104} height={104} />
+              </div>
+            </div>
+            <div style={{ fontSize: 14, color: '#B5D4F4', marginBottom: 22 }}>Baixar é grátis — e os 2 primeiros dias são Premium, sem cartão. <span className="vn-qr-dica">Aponte a câmera do celular pro código ✨</span></div>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <Link href="/cadastro" style={cta}>Começar grátis →</Link>
-              <span style={{ fontSize: 14, color: '#B5D4F4' }}>✨ 2 dias grátis · sem cartão de crédito</span>
+              <Link href="/cadastro" style={cta}>Ou comece pelo navegador →</Link>
             </div>
           </div>
           {/* Mockup */}
@@ -89,12 +105,31 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Números / prova social */}
+      {/* Números / prova social — só número real; a nota 5,0 da App Store é verdadeira */}
       <div style={{ background: '#F6F8FB' }}>
         <div style={{ ...container, display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-around', padding: '28px 20px', textAlign: 'center' }}>
-          {[['+300', 'lições do A1 ao C2'], ['+320', 'palavras com revisão'], ['24h', 'professor de IA'], ['∞', 'conversas para praticar']].map(([n, l], i) => (
+          {[['⭐ 5,0', 'nota na App Store'], ['+300', 'lições do A1 ao C2'], ['24h', 'professor de IA'], ['∞', 'conversas para praticar']].map(([n, l], i) => (
             <div key={i}><div style={{ fontSize: 28, fontWeight: 800, color: AZUL }}>{n}</div><div style={{ fontSize: 13, color: '#5B6B82' }}>{l}</div></div>
           ))}
+        </div>
+      </div>
+
+      {/* O app por dentro — os MESMOS prints da ficha da Play (public/ads/play-*.png).
+          Quem vê a tela de verdade confia mais do que em promessa; e o convite pra
+          baixar vem logo embaixo, quando a curiosidade está no alto. */}
+      <div style={{ ...container, padding: '52px 20px 8px' }}>
+        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Veja o app por dentro</h2>
+        <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 26px' }}>É isso que você encontra assim que baixar:</p>
+        <div style={{ display: 'flex', gap: 14, overflowX: 'auto', padding: '4px 4px 16px', WebkitOverflowScrolling: 'touch' }}>
+          {[1, 2, 3, 4, 5].map(n => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={n} src={`/ads/play-${n}.png`} alt={`Tela ${n} do app Vonai`} loading="lazy" width={230} height={409}
+              style={{ borderRadius: 16, border: '1px solid #E8ECF2', flex: '0 0 auto', boxShadow: '0 6px 18px rgba(16,42,76,0.10)' }} />
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 18, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <PlayBadge />
+          <AppStoreBadge />
         </div>
       </div>
 
@@ -117,7 +152,7 @@ export default function Home() {
         <div style={{ ...container, padding: '48px 20px' }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 36px' }}>Como funciona</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-            {[['1', 'Descubra seu nível', 'Um teste rápido posiciona você no ponto certo da trilha.'], ['2', 'Siga seu plano diário', 'Lições, conversas e revisões escolhidas pela IA todos os dias.'], ['3', 'Chegue à fluência', 'Evolua com um professor que lembra de tudo e te leva ao objetivo.']].map(([n, t, d]) => (
+            {[['1', 'Baixe o app grátis', 'Google Play ou App Store — leva menos de um minuto. Prefere o navegador? Também funciona.'], ['2', 'Descubra seu nível', 'Um teste rápido de 2 minutos posiciona você no ponto certo da trilha, do A1 ao C2.'], ['3', 'Fale desde o 1º dia', 'Lições, conversas e correção de pronúncia todo dia — com um professor que lembra de tudo.']].map(([n, t, d]) => (
               <div key={n} style={{ textAlign: 'center' }}>
                 <div style={{ width: 48, height: 48, borderRadius: '50%', background: AZUL, color: '#fff', fontSize: 20, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>{n}</div>
                 <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{t}</div>
@@ -191,12 +226,21 @@ export default function Home() {
         mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
       }) }} />
 
-      {/* CTA final */}
-      <div style={{ ...container, padding: '60px 20px', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 12px' }}>Comece sua jornada hoje</h2>
-        <p style={{ fontSize: 17, color: '#5B6B82', margin: '0 0 28px' }}>Comece com 2 dias de Premium grátis — sem cartão. Crie sua conta e faça sua primeira lição em minutos.</p>
-        <Link href="/cadastro" style={cta}>Começar grátis →</Link>
+      {/* CTA final — fechamento no download, com o navegador como alternativa */}
+      <div style={{ background: `linear-gradient(160deg, #2E72D6, ${ESCURO})` }}>
+        <div style={{ ...container, padding: '56px 20px', textAlign: 'center', color: '#fff' }}>
+          <h2 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 10px' }}>Baixe o Vonai e fale inglês ainda hoje</h2>
+          <p style={{ fontSize: 17, color: '#D6E6FA', margin: '0 0 26px' }}>Grátis na loja, 2 dias de Premium de brinde — e a primeira conversa leva 5 minutos.</p>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <PlayBadge grande />
+            <AppStoreBadge grande />
+          </div>
+          <Link href="/cadastro" style={{ color: '#D6E6FA', fontSize: 15, fontWeight: 600 }}>Ou comece pelo navegador →</Link>
+        </div>
       </div>
+
+      {/* Barra fixa no celular: o download a um toque em qualquer ponto da página */}
+      <StickyCta texto="📲 Baixar o app grátis" href="/baixar" />
 
       <Footer />
     </div>
