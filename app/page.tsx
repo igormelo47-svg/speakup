@@ -121,9 +121,11 @@ export default function Home() {
         <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Veja o app por dentro</h2>
         <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 26px' }}>É isso que você encontra assim que baixar:</p>
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', padding: '4px 4px 16px', WebkitOverflowScrolling: 'touch' }}>
+          {/* Versão -mini.webp: os PNG originais da ficha somam 2 MB — em 4G isso derruba
+              a "experiência da página de destino" do Google Ads. Os webp somam 116 KB. */}
           {[1, 2, 3, 4, 5].map(n => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={n} src={`/ads/play-${n}.png`} alt={`Tela ${n} do app Vonai`} loading="lazy" width={230} height={409}
+            <img key={n} src={`/ads/play-${n}-mini.webp`} alt={`Tela ${n} do app Vonai`} loading="lazy" width={230} height={409}
               style={{ borderRadius: 16, border: '1px solid #E8ECF2', flex: '0 0 auto', boxShadow: '0 6px 18px rgba(16,42,76,0.10)' }} />
           ))}
         </div>

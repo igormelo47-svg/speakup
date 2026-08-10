@@ -19,11 +19,21 @@ export default function BaixarApp({ escuro = false }: { escuro?: boolean }) {
       if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) setHref(APP_STORE)
     } catch { /* sem userAgent, fica o Play */ }
   }, [])
+  // O clique também vira evento `clique_loja` no dataLayer (loja + página) — mesma
+  // medição dos selos, pra fechar o buraco de visibilidade do download no GA4.
+  function medir() {
+    try {
+      const w = window as unknown as { dataLayer?: unknown[] }
+      w.dataLayer = w.dataLayer || []
+      w.dataLayer.push({ event: 'clique_loja', loja: href === APP_STORE ? 'appstore' : 'play', pagina: window.location.pathname, origem: 'nav' })
+    } catch { /* medição nunca pode impedir o clique */ }
+  }
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={medir}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         color: escuro ? '#fff' : '#1E63C7', fontWeight: 600, fontSize: 15, textDecoration: 'none',
