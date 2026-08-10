@@ -108,6 +108,15 @@ export function Footer() {
           <Link href="/erros-de-ingles-do-brasileiro" style={item}>Erros do brasileiro</Link>
           <Link href="/aplicativo-para-aprender-ingles" style={item}>Aplicativo de inglês</Link>
         </div>
+        {/* As lojas ficam no rodapé, e não perto do botão principal, de propósito: mandar
+            o clique pago para a loja fura a medição de inicio_teste (a conversão que o
+            Google Ads otimiza). Aqui pega quem já rolou a página inteira e prefere app a
+            site — que hoje não tinha caminho nenhum e sumia. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+          <span style={{ fontSize: 13, color: '#7C8AA0', marginRight: 4 }}>Prefere o app no celular?</span>
+          <PlayBadge />
+          <AppStoreBadge />
+        </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#7C8AA0' }}>
           <div>© {new Date().getFullYear()} Vonai</div>
           <div style={{ display: 'flex', gap: 18 }}>

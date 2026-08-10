@@ -26,7 +26,7 @@ const NIVEIS = [
 ]
 
 const FAQ: Pergunta[] = [
-  { q: 'O teste de nível é realmente grátis?', a: 'É. São 12 perguntas, sem cadastro, sem e-mail e sem cartão. O resultado aparece na própria tela assim que você termina, junto com o gabarito comentado.' },
+  { q: 'O teste de nível é realmente grátis?', a: 'É. São 12 perguntas, sem cadastro e sem cartão. O resultado aparece na própria tela assim que você termina, junto com o gabarito comentado. No fim, se quiser, você pode deixar o e-mail para receber o plano dos primeiros dias — é opcional e não muda nada no que você já viu.' },
   { q: 'Quanto tempo leva?', a: 'Cerca de 2 minutos. As perguntas são de múltipla escolha com três opções e ficam mais difíceis conforme você avança.' },
   { q: 'O que significam A1, A2, B1, B2, C1 e C2?', a: 'São os seis níveis do Quadro Europeu Comum de Referência (CEFR), o padrão usado no mundo todo para medir domínio de idioma. A1 e A2 são o básico, B1 e B2 o intermediário, C1 e C2 o avançado. É a mesma escala que aparece em vaga de emprego e em prova de proficiência.' },
   { q: 'Esse teste vale como certificado?', a: 'Não. Nenhum teste rápido e gratuito vale como certificação — para isso existem exames pagos e presenciais como TOEFL, IELTS e Cambridge. O que este teste faz é posicionar você na escala para saber por onde começar a estudar, que é uma pergunta diferente.' },

@@ -21,6 +21,8 @@ export default function Teste() {
   const [respostas, setRespostas] = useState<number[]>([])
   const [escolha, setEscolha] = useState<number | null>(null)
   const [comecou, setComecou] = useState(false)
+  const [email, setEmail] = useState('')
+  const [envioEmail, setEnvioEmail] = useState<'parado' | 'enviando' | 'pronto' | 'erro'>('parado')
 
   const total = PERGUNTAS.length
   const acabou = respostas.length === total
@@ -73,6 +75,31 @@ export default function Teste() {
     setI(0); setRespostas([]); setEscolha(null)
   }
 
+  // Guardar o e-mail é o ÚNICO jeito de falar de novo com quem faz o teste e não cria conta
+  // na hora. Sem isso a pessoa some e o clique pago vai junto. É opcional de propósito: o
+  // teste inteiro roda sem pedir nada, e recusar aqui não esconde resultado nem gabarito.
+  async function guardarEmail(nivel: string) {
+    if (envioEmail === 'enviando' || envioEmail === 'pronto') return
+    setEnvioEmail('enviando')
+    let attrib: unknown = null
+    try { attrib = JSON.parse(localStorage.getItem('speakup_attrib') || 'null') } catch { /* sem atribuição não impede o contato */ }
+    try {
+      const r = await fetch('/api/lead-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nivel, acertos, attrib }),
+      })
+      // A rota responde 200 mesmo quando não grava (falta de credencial, teto por IP), para
+      // não estourar erro na tela por causa de infraestrutura. Quem diz a verdade é o campo
+      // "salvo" — sem ele daríamos "pronto" para um contato que se perdeu no caminho.
+      const corpo = await r.json().catch(() => null)
+      if (!r.ok || !corpo?.salvo) { setEnvioEmail('erro'); return }
+      setEnvioEmail('pronto')
+      evento('lead_email', { nivel })
+    } catch {
+      setEnvioEmail('erro')
+    }
+  }
+
   const caixa: React.CSSProperties = { background: '#fff', border: '1px solid #E8ECF2', borderRadius: 20, padding: '26px 22px', boxShadow: '0 8px 26px rgba(16,42,76,0.06)' }
   const botao: React.CSSProperties = { display: 'inline-block', background: LARANJA, color: '#fff', fontWeight: 700, fontSize: 16, padding: '14px 30px', borderRadius: 30, textDecoration: 'none', border: 'none', cursor: 'pointer', boxShadow: '0 6px 18px rgba(245,166,35,0.4)' }
 
@@ -85,7 +112,7 @@ export default function Teste() {
           As perguntas ficam mais difíceis conforme você avança. Responda o que achar certo — se não souber, chute; errar aqui não custa nada e ajuda a posicionar você melhor.
         </p>
         <p style={{ color: '#7C8AA0', fontSize: 14, lineHeight: 1.6, margin: '0 0 22px' }}>
-          Sem cadastro e sem e-mail. O resultado aparece na tela no fim.
+          Sem cadastro para responder. O resultado aparece na tela no fim.
         </p>
         <button onClick={iniciar} style={botao}>Começar o teste →</button>
       </div>
@@ -116,6 +143,39 @@ export default function Teste() {
           {/* O nível vai na URL para o cadastro guardar e o app começar a trilha dali.
               Sem isso a promessa "comece do seu nível" morre no formulário. */}
           <Link href={`/cadastro?nivel=${r.nivel}`} style={{ ...botao, display: 'inline-block' }} onClick={() => evento('teste_nivel_cta', { nivel: r.nivel })}>Começar do {r.nivel} grátis →</Link>
+        </div>
+
+        {/* Fica DEPOIS do botão de criar conta de propósito: quem vai criar conta agora já
+            clicou, e este bloco é a rede para quem não vai — sem ele essa pessoa some. */}
+        <div style={{ border: '1px solid #E8ECF2', borderRadius: 16, padding: '18px 18px 16px', marginTop: 18, background: '#F9FBFE' }}>
+          {envioEmail === 'pronto' ? (
+            <div style={{ fontSize: 15, color: '#1B7A4B', fontWeight: 700 }}>
+              Pronto ✅ Guardamos seu nível {r.nivel}. Você recebe o plano dos 7 primeiros dias no e-mail.
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: '#102A4C', marginBottom: 4 }}>Prefere não criar conta agora?</div>
+              <div style={{ fontSize: 14, color: '#5B6B82', lineHeight: 1.6, marginBottom: 12 }}>
+                Deixe seu e-mail e mandamos seu resultado com o plano dos 7 primeiros dias a partir do {r.nivel}. Sem cartão, e você sai da lista quando quiser.
+              </div>
+              <form
+                onSubmit={(e) => { e.preventDefault(); guardarEmail(r.nivel) }}
+                style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
+              >
+                <input
+                  type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com" autoComplete="email"
+                  style={{ flex: '1 1 200px', minWidth: 0, fontSize: 16, padding: '12px 14px', borderRadius: 12, border: '1px solid #D8E0EC', color: '#102A4C' }}
+                />
+                <button type="submit" disabled={envioEmail === 'enviando'} style={{ background: AZUL, color: '#fff', fontWeight: 700, fontSize: 15, padding: '12px 22px', borderRadius: 12, border: 'none', cursor: envioEmail === 'enviando' ? 'default' : 'pointer', opacity: envioEmail === 'enviando' ? 0.6 : 1 }}>
+                  {envioEmail === 'enviando' ? 'Enviando…' : 'Receber por e-mail'}
+                </button>
+              </form>
+              {envioEmail === 'erro' && (
+                <div style={{ fontSize: 13.5, color: '#B54A3A', marginTop: 8 }}>Não deu para guardar agora. Confira o e-mail e tente de novo.</div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Gabarito depois do CTA: quem quer estudar o erro rola mais, quem quer o app já clicou */}
