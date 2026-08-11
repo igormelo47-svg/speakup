@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 import { enviarEmailLembrete } from '../../../lib/email'
-import { missaoDoDia } from '../../../lib/missao'
+import { missaoPara } from '../../../lib/missao'
 
 const VAPID_PUBLIC = 'BGvDV8RzI74VwBSU6MSVcAgDJS3WF_zTGrpDW9cY26dyf85JAbJP0aRhJpU8BECmc3Z6yvHRHctbxxE0Bk-5cLo'
 
@@ -80,9 +80,9 @@ export async function GET(req: NextRequest) {
     }
 
     // 3) Sumiu só hoje: a sequência ainda está viva. A mensagem cobra a MISSÃO DO DIA —
-    //    a mesma que o card do app prometeu ontem ("destrava amanhã"). E-mail prometendo
-    //    uma coisa e app mostrando outra quebra a confiança na segunda vez.
-    const missao = missaoDoDia(hoje)
+    //    a mesma que o card do app prometeu ontem ("destrava amanhã"). Se há erro
+    //    registrado, a missão é personalizada nos DOIS lados (mesma fonte: topicos_fracos).
+    const missao = missaoPara(fracos, hoje)
     if (turno === 'manha') {
       if (st >= 7) return { title: `Bom dia! 🔥 ${st} dias de sequência`, body: `${oi}sua missão de hoje já destravou: ${missao.titulo.toLowerCase()}. 5 minutos e o dia começa ganho.` }
       return { title: `Sua missão de hoje destravou ${missao.emoji}`, body: `${oi}${missao.titulo}. ${missao.chamada}` }

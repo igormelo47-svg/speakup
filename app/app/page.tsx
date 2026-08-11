@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { mesclarPendente, sobrasAposEnvio } from '../../lib/progresso-pendente'
 import { dadosUsuarioParaAds } from '../../lib/hash-email'
 import { VALOR, MOEDA } from '../../lib/valor-eventos'
-import { missaoDoDia, diaSeguinte, DESAFIO_3_DIAS_MOEDAS } from '../../lib/missao'
+import { missaoPara, diaSeguinte, DESAFIO_3_DIAS_MOEDAS } from '../../lib/missao'
 import { fatiarIngles, trechosIngles, semMarcacao } from '../../lib/fatiar-ingles'
 import { alvoDeRolagem } from '../../lib/rolagem-chat'
 import { lerResposta, type Correcao } from '../../lib/resposta-professor'
@@ -4553,7 +4553,9 @@ export default function AppPage() {
               uma atividade concreta trancada até amanhã + o desafio dos 3 dias. O e-mail
               de lembrete do dia seguinte cobra a MESMA missão (lib/missao.ts). */}
           {(licoesHoje > 0 || simulacoesHoje > 0 || vocabFeitoHoje || desafioFeito) && (() => {
-            const m = missaoDoDia(diaSeguinte(hojeStr))
+            // Se o professor registrou um erro do aluno, a missão de amanhã é o treino
+            // DESSE erro — a memória do Vô visível, que é a promessa da marca.
+            const m = missaoPara(perfilIa?.topicos_fracos, diaSeguinte(hojeStr))
             let desafioPago = false
             try { desafioPago = !!localStorage.getItem('speakup_desafio3_' + userId) } catch (e) {}
             const dias3 = Math.min(streak, 3)
@@ -4561,7 +4563,7 @@ export default function AppPage() {
               <div style={{ background: 'linear-gradient(135deg, #1D4ED8, #103D77)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}><Ic e="🌙" /> Sua missão de amanhã</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD98A', background: 'rgba(255,217,138,0.15)', padding: '3px 10px', borderRadius: 12 }}>🔒 destrava amanhã</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD98A', background: 'rgba(255,217,138,0.15)', padding: '3px 10px', borderRadius: 12 }}>{m.personalizada ? '✨ feita dos seus erros' : '🔒 destrava amanhã'}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
                   <div style={{ fontSize: 28 }}>{m.emoji}</div>

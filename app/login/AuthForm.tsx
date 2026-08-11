@@ -46,6 +46,27 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   async function handleSubmit() {
     setLoading(true); setErro(''); setAviso('')
 
+    // Entrar sem senha (link mágico): o maior atrito de VOLTA era lembrar a senha no
+    // 2º dia — e é no 2º dia que o funil morre. O Supabase manda um link por e-mail;
+    // um clique e a pessoa está dentro. shouldCreateUser: false — criar conta continua
+    // no fluxo de cadastro, que captura o nome e monta o trial direito.
+    if (modo === 'magic') {
+      if (!email) { setErro('Digite seu e-mail.'); setLoading(false); return }
+      const redirectApp = typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: redirectApp, shouldCreateUser: false },
+      })
+      if (error) {
+        setErro(/not found|signups/i.test(error.message) ? 'Não achamos conta com esse e-mail. Confira ou crie uma conta grátis.' : error.message)
+        setLoading(false); return
+      }
+      try { track('login_magic_pedido') } catch (e) {}
+      setAviso('Link enviado! Abra seu e-mail e clique para entrar — sem senha. (Vale alguns minutos; confira o spam.)')
+      setLoading(false)
+      return
+    }
+
     // Recuperação de senha
     if (modo === 'recuperar') {
       if (!email) { setErro('Digite seu e-mail.'); setLoading(false); return }
@@ -95,8 +116,8 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     setLoading(false)
   }
 
-  const titulo = modo === 'login' ? 'Entre na sua conta' : modo === 'cadastro' ? 'Crie sua conta grátis' : 'Recuperar senha'
-  const botao = loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : modo === 'cadastro' ? (nivelTeste ? `Criar conta e começar do ${nivelTeste} →` : 'Criar conta grátis') : 'Enviar link de recuperação'
+  const titulo = modo === 'login' ? 'Entre na sua conta' : modo === 'cadastro' ? 'Crie sua conta grátis' : modo === 'magic' ? 'Entrar sem senha' : 'Recuperar senha'
+  const botao = loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : modo === 'cadastro' ? (nivelTeste ? `Criar conta e começar do ${nivelTeste} →` : 'Criar conta grátis') : modo === 'magic' ? 'Me enviar o link de acesso ✨' : 'Enviar link de recuperação'
 
   const inputStyle = {
     width: '100%', padding: '12px 14px', border: '1px solid #D8E1EC', borderRadius: 12,
@@ -138,16 +159,22 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
           <label style={labelStyle}>E-mail</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" style={inputStyle} />
         </div>
-        {modo !== 'recuperar' && (
+        {modo !== 'recuperar' && modo !== 'magic' && (
           <div style={{ marginBottom: 8 }}>
             <label style={labelStyle}>Senha</label>
             <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres"
               onKeyDown={e => e.key === 'Enter' && handleSubmit()} style={inputStyle} />
           </div>
         )}
+        {modo === 'magic' && (
+          <p style={{ fontSize: 12.5, color: '#5B6B82', margin: '0 0 14px', lineHeight: 1.5 }}>
+            Você recebe um link por e-mail — um clique e está dentro, sem digitar senha.
+          </p>
+        )}
 
         {modo === 'login' && (
-          <p style={{ textAlign: 'right', margin: '0 0 16px' }}>
+          <p style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 16px' }}>
+            <span onClick={() => { setModo('magic'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontSize: 12.5, fontWeight: 700 }}>✨ Entrar sem senha</span>
             <span onClick={() => { setModo('recuperar'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>Esqueci minha senha</span>
           </p>
         )}
@@ -161,7 +188,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
           {botao}
         </button>
 
-        {modo === 'recuperar' ? (
+        {(modo === 'recuperar' || modo === 'magic') ? (
           <p style={{ textAlign: 'center', fontSize: 13, color: '#5B6B82', marginTop: 16, marginBottom: 0 }}>
             <span onClick={() => { setModo('login'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 600 }}>← Voltar para o login</span>
           </p>

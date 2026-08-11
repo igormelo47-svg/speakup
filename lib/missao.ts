@@ -49,3 +49,25 @@ export function diaSeguinte(dataISO: string): string {
 
 // Recompensa do desafio de 3 dias (streak 3): pagamento único, em moedas.
 export const DESAFIO_3_DIAS_MOEDAS = 50
+
+export type MissaoPersonalizada = Missao & { personalizada?: boolean }
+
+// A missão que PROVA a promessa da marca ("uma IA que lembra de você"): se o professor
+// registrou erros do aluno (perfil_ia.topicos_fracos), a missão do dia deixa de ser do
+// pool genérico e vira um treino do erro mais recente — dito com todas as letras. O
+// aluno precisa VER a memória funcionando; memória invisível é igual a não ter.
+//
+// Recebe unknown porque a fonte é jsonb do banco: qualquer formato inesperado cai no
+// pool genérico em vez de quebrar o card ou o e-mail.
+export function missaoPara(topicosFracos: unknown, dataISO: string): MissaoPersonalizada {
+  const fracos = Array.isArray(topicosFracos) ? topicosFracos.filter(f => typeof f === 'string' && f.trim()) : []
+  if (!fracos.length) return missaoDoDia(dataISO)
+  const fraco = String(fracos[fracos.length - 1]).trim().slice(0, 48)
+  return {
+    emoji: '🎯',
+    titulo: `Treino do SEU erro: ${fraco}`,
+    chamada: `O Vô montou esta missão com o que você errou: "${fraco}". 5 minutos de conversa e esse erro morre.`,
+    aba: 'professor',
+    personalizada: true,
+  }
+}
