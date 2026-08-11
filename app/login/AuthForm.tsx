@@ -17,6 +17,10 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const [indicado, setIndicado] = useState(false)
+  // Nível vindo do teste público (?nivel=B2). Guardado em estado para o formulário DIZER
+  // "seu plano B2 está pronto": quem acabou de descobrir o nível caía num cadastro genérico
+  // e a continuidade morria exatamente no momento de maior motivação.
+  const [nivelTeste, setNivelTeste] = useState<string | null>(null)
 
   // Link de indicação (?ref=<id do amigo>): guarda o código para creditar o bônus após o cadastro.
   useEffect(() => {
@@ -33,6 +37,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       const nivel = params.get('nivel')
       if (nivel && ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(nivel)) {
         localStorage.setItem('speakup_nivel', nivel)
+        setNivelTeste(nivel)
         setModo('cadastro')
       }
     } catch (e) {}
@@ -91,7 +96,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   }
 
   const titulo = modo === 'login' ? 'Entre na sua conta' : modo === 'cadastro' ? 'Crie sua conta grátis' : 'Recuperar senha'
-  const botao = loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : modo === 'cadastro' ? 'Criar conta grátis' : 'Enviar link de recuperação'
+  const botao = loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : modo === 'cadastro' ? (nivelTeste ? `Criar conta e começar do ${nivelTeste} →` : 'Criar conta grátis') : 'Enviar link de recuperação'
 
   const inputStyle = {
     width: '100%', padding: '12px 14px', border: '1px solid #D8E1EC', borderRadius: 12,
@@ -110,6 +115,13 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       <div style={{ width: '100%', maxWidth: 400, background: '#fff', borderRadius: 20, padding: '26px 22px', boxShadow: '0 12px 40px rgba(8,30,60,0.35)', boxSizing: 'border-box' }}>
         <p style={{ color: '#16212C', fontSize: 17, fontWeight: 700, margin: '0 0 16px' }}>{titulo}</p>
 
+        {modo === 'cadastro' && nivelTeste && (
+          <div style={{ background: 'linear-gradient(135deg, #2E72D6, #185FA5)', color: '#fff', padding: '14px 16px', borderRadius: 12, marginBottom: 14, textAlign: 'center' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#BCD6F2', letterSpacing: 0.5 }}>SEU RESULTADO NO TESTE</div>
+            <div style={{ fontSize: 20, fontWeight: 800, margin: '2px 0' }}>Seu plano {nivelTeste} está pronto ✅</div>
+            <div style={{ fontSize: 12.5, color: '#D6E6FA' }}>A trilha começa exatamente do {nivelTeste} — crie a conta pra destravar.</div>
+          </div>
+        )}
         {modo === 'cadastro' && (
           <p style={{ fontSize: 13, color: '#166534', background: '#E3F3EA', padding: '10px 12px', borderRadius: 10, marginBottom: 18, fontWeight: 600, textAlign: 'center' }}>
             {indicado ? '🎁 Um amigo te indicou: 2 + 2 dias de Premium grátis!' : '✨ 2 dias de acesso Premium grátis — sem cartão'}

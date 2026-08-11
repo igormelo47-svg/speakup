@@ -12,6 +12,7 @@ describe('escada de valor das conversões', () => {
     ['inicioTeste', VALOR.inicioTeste],
     ['ativacao', VALOR.ativacao],
     ['retencaoD2', VALOR.retencaoD2],
+    ['retencaoD7', VALOR.retencaoD7],
     ['assinaturaMensal', VALOR.assinaturaMensal],
   ] as const
 
@@ -25,7 +26,7 @@ describe('escada de valor das conversões', () => {
 
   it('nenhum degrau intermediário chega ao preço de uma assinatura', () => {
     // Era exatamente esse o bug de origem: inicio_teste ia com 29,90, igual a uma venda.
-    for (const [nome, valor] of escada.slice(0, 4)) {
+    for (const [nome, valor] of escada.slice(0, 5)) {
       expect(valor, `${nome} não pode valer uma mensalidade`).toBeLessThan(VALOR.assinaturaMensal)
     }
   })

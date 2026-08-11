@@ -34,6 +34,9 @@ export const VALOR = {
   // Voltou em um segundo dia. É o degrau mais preditivo que temos: ninguém que
   // largou no primeiro dia chegou perto de assinar.
   retencaoD2: 15,
+  // Chegou ao sétimo dia de uso (7 dias ativos, não corridos). Quem cruza uma
+  // semana criou hábito — é o último degrau antes do dinheiro de verdade.
+  retencaoD7: 22,
   // Dinheiro de verdade. Os únicos valores que batem com o extrato.
   assinaturaMensal: 29.9,
   assinaturaAnual: 289.8,

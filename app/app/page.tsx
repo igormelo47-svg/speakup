@@ -3142,6 +3142,15 @@ export default function AppPage() {
                   ;(window as any).dataLayer?.push({ event: 'retencao_d2', value: VALOR.retencaoD2, currency: MOEDA, user_id: user.id })
                 }
               }
+              // Sétimo dia ATIVO (não corrido): uma semana de uso é hábito formado — o
+              // último sinal antes da venda. Mesma mecânica idempotente do d2.
+              if (dias.length === 6) {
+                const chaveD7 = 'speakup_ret_d7_' + user.id
+                if (!localStorage.getItem(chaveD7)) {
+                  localStorage.setItem(chaveD7, '1')
+                  ;(window as any).dataLayer?.push({ event: 'retencao_d7', value: VALOR.retencaoD7, currency: MOEDA, user_id: user.id })
+                }
+              }
             }
           } catch (e) {}
           // Domínio no servidor (o "cérebro" do professor sobrevive à troca de aparelho):

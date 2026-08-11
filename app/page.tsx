@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import NativeEntry from './NativeEntry'
-import { Footer, PlayBadge, AppStoreBadge, StickyCta } from './_marketing/ui'
+import { Footer, PlayBadge, AppStoreBadge, StickyCta, PRECO } from './_marketing/ui'
 import BaixarApp from './_marketing/BaixarApp'
 
 export const metadata = {
@@ -79,8 +79,12 @@ export default function Home() {
               </div>
             </div>
             <div style={{ fontSize: 14, color: '#B5D4F4', marginBottom: 22 }}>Baixar é grátis — e os 2 primeiros dias são Premium, sem cartão. <span className="vn-qr-dica">Aponte a câmera do celular pro código ✨</span></div>
+            {/* O caminho do navegador entrega valor ANTES de pedir e-mail: o teste mostra o
+                nível em 2 min e o cadastro chega com "seu plano B2 está pronto". Cadastro
+                seco era onde a continuidade morria (retorno D1 ~4 pessoas na base toda). */}
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <Link href="/cadastro" style={cta}>Ou comece pelo navegador →</Link>
+              <Link href="/teste-de-nivel-de-ingles" style={cta}>Descobrir meu nível grátis — 2 min →</Link>
+              <Link href="/cadastro" style={{ color: '#B5D4F4', fontSize: 14, fontWeight: 600 }}>ou criar conta direto →</Link>
             </div>
           </div>
           {/* Mockup */}
@@ -192,7 +196,9 @@ export default function Home() {
               <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Grátis</div>
               <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 2 }}>R$0</div>
               <div style={{ fontSize: 13, color: '#7C8AA0', marginBottom: 18 }}>para sempre</div>
-              {['Lições da trilha (com limite diário)', 'Revisão inteligente de vocabulário', 'Caça-Erros do Brasileiro', 'Sequência, XP e missões'].map((t, i) => (
+              {/* Mesmos números de /planos, saindo da MESMA constante (PRECO) — página
+                  descrevendo o plano de um jeito diferente da outra é promessa quebrada. */}
+              {['Lições da trilha (com limite diário)', `${PRECO.freeMensagens} mensagens por dia com o Professor de IA`, `${PRECO.freeConversas} simulações de conversa por dia`, 'Revisão inteligente + Caça-Erros do Brasileiro', 'Sequência, XP e missões'].map((t, i) => (
                 <div key={i} style={{ fontSize: 14, color: '#5B6B82', marginBottom: 10, display: 'flex', gap: 8 }}><span style={{ color: '#16A34A' }}>✓</span>{t}</div>
               ))}
             </div>
@@ -237,7 +243,7 @@ export default function Home() {
             <PlayBadge grande />
             <AppStoreBadge grande />
           </div>
-          <Link href="/cadastro" style={{ color: '#D6E6FA', fontSize: 15, fontWeight: 600 }}>Ou comece pelo navegador →</Link>
+          <Link href="/teste-de-nivel-de-ingles" style={{ color: '#D6E6FA', fontSize: 15, fontWeight: 600 }}>Ou descubra seu nível no navegador — 2 min →</Link>
         </div>
       </div>
 
