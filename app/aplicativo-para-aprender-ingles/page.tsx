@@ -39,14 +39,17 @@ export default function AplicativoParaAprenderIngles() {
             </div>
             <h1 style={{ fontSize: 38, lineHeight: 1.15, fontWeight: 800, margin: '0 0 16px' }}>O aplicativo para aprender inglês <span style={{ color: '#FFD98A' }}>falando</span> — não decorando.</h1>
             <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 auto 26px', maxWidth: 640 }}>Um professor de IA disponível 24h conversa com você, corrige sua pronúncia na hora e monta seu plano de estudo todo dia. Do zero ao avançado, no seu ritmo.</p>
-            {/* Lojas primeiro e grandes (decisão do dono 10/08): o download é a chamada
-                principal; o cadastro segue como alternativa pra quem prefere o navegador. */}
+            {/* ESTA página é o destino do tráfego PAGO do Google, e a conversão que o lance
+                otimiza (inicio_teste) só dispara no site. Botão de conversão PRIMEIRO aqui:
+                lojas em cima estavam mandando o clique pago pra fora da medição — com risco
+                de espiral no lance automático (alerta do gestor, 10/08). A home, que recebe
+                orgânico/direto, continua download-first por decisão do dono. */}
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <PlayBadge grande />
-              <AppStoreBadge grande />
+              <Link href="/cadastro" style={cta}>Testar grátis agora →</Link>
             </div>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-              <Link href="/cadastro" style={cta}>Testar grátis agora →</Link>
+              <PlayBadge grande />
+              <AppStoreBadge grande />
             </div>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', marginTop: 20, fontSize: 13.5, color: '#B5D4F4' }}>
               <span>✓ 2 dias de Premium grátis</span>
