@@ -163,11 +163,18 @@ export default function Planos() {
 
         <Faq itens={FAQ} titulo="Dúvidas sobre cobrança" />
 
-        {/* Product + Offer: é o que faz o preço aparecer no resultado do Google. */}
+        {/* SoftwareApplication + Offer: faz o preço aparecer no Google SEM ativar as
+            exigências de loja física. Era '@type: Product', e o Search Console passou a
+            cobrar foto de produto, frete e política de devolução (avisos de 11/08 —
+            "Listagens do comerciante") — nada disso existe para assinatura de app.
+            SoftwareApplication é a categoria certa e aceita preço normalmente. */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           '@context': 'https://schema.org',
-          '@type': 'Product',
-          name: 'Vonai Premium',
+          '@type': 'SoftwareApplication',
+          name: 'Vonai — Inglês com IA',
+          applicationCategory: 'EducationalApplication',
+          operatingSystem: 'Android, iOS, Web',
+          image: 'https://vonai.com.br/og.png',
           description: 'Assinatura do Vonai: professor de inglês com IA sem limite de conversas, correção de pronúncia e simulador de situações reais.',
           brand: { '@type': 'Brand', name: 'Vonai' },
           offers: [
