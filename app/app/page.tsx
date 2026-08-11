@@ -2338,8 +2338,9 @@ export default function AppPage() {
   const [profDiaData, setProfDiaData] = useState('')
   const [moedas, setMoedas] = useState(0)
   const [streakFreezes, setStreakFreezes] = useState(0)
-  const [bauDia, setBauDia] = useState('')
-  const [bauReward, setBauReward] = useState<number | null>(null)
+  // Baú do dia removido em 11/08 a pedido do dono: moedas de graça por um toque não
+  // criavam hábito nenhum — recompensa sem esforço não ensina a voltar. As recompensas
+  // que exigem estudo (meta, plano completo, desafio dos 3 dias, missões) ficaram.
   const [lojaModal, setLojaModal] = useState(false)
   // Home guiada (nova): experiência com UMA ação diária ("treino de hoje").
   // Preview por URL (?home=nova / ?home=antiga) que fica salvo no aparelho.
@@ -2545,7 +2546,6 @@ export default function AppPage() {
     try { const pd = localStorage.getItem('speakup_prof_dia'); if (pd) setProfDiaData(pd) } catch (e) {}
     try { const sd = localStorage.getItem('speakup_sim_dia'); if (sd) setSimDiaData(sd) } catch (e) {}
     try { const fd = localStorage.getItem('speakup_fala_dia'); if (fd) setFalaDiaData(fd) } catch (e) {}
-    try { const b = localStorage.getItem('speakup_bau_dia'); if (b) setBauDia(b) } catch (e) {}
     try { const t = localStorage.getItem('speakup_tempo'); if (t) setTempoMin(parseInt(t) || 0) } catch (e) {}
     try { const m = localStorage.getItem('speakup_missoes'); if (m) setMissoes(JSON.parse(m)) } catch (e) {}
   }, [])
@@ -2849,15 +2849,6 @@ export default function AppPage() {
     ganharMoedas(reward)
     setConqNova({ e: '🎉', nome: `Missão concluída! +${reward} 🪙` })
   }
-  function abrirBau() {
-    if (bauDia === hojeStr) return
-    const premio = 15 + Math.floor(Math.random() * 26) // 15 a 40 moedas
-    ganharMoedas(premio)
-    setBauReward(premio)
-    try { localStorage.setItem('speakup_bau_dia', hojeStr) } catch (e) {}
-    setBauDia(hojeStr)
-    tocarSom('acerto')
-  }
   function comprarStreakFreeze() {
     const custo = 50, maxFreezes = 2
     if (moedas < custo || streakFreezes >= maxFreezes) return
@@ -3077,7 +3068,7 @@ export default function AppPage() {
           // Flags de evento de ativação são por-aparelho: limpa na troca de conta pra não bloquear
           // os eventos do próximo aluno (mediria ativação errada). Os de compra/trial já são por-uid.
           try { Object.keys(localStorage).forEach(k => { if (k.startsWith('speakup_ev_')) localStorage.removeItem(k) }) } catch (e) {}
-          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setBauDia(''); setTempoMin(0); setMissoes({ week: 0, claimed: [] })
+          setOnboarded(false); setLicaoDiaData(''); setVocabDiaData(''); setVocabSrs({}); setDesafioFeito(false); setSrsData({}); setRecorde(0); setHist({}); setProfDiaData(''); setSimDiaData(''); setXpInicioDia(0); setLevel('A1'); setLicoesConcluidas([]); setPerfilIa({}); setMoedas(0); setStreakFreezes(0); setTempoMin(0); setMissoes({ week: 0, claimed: [] })
         }
         localStorage.setItem('speakup_uid', user.id)
       } catch (e) {}
@@ -4716,15 +4707,6 @@ export default function AppPage() {
             </div>
           )}
 
-          {/* Baú do dia — recompensa leve; fica no fim, por ser menos essencial. */}
-          {bauDia !== hojeStr && (
-            <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 14, padding: 13, marginTop: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.32)' }}>
-              <IcBadge e="🎁" color="#B9861F" onDark box={42} size={22} style={{ animation: 'su_bob 1.6s ease-in-out infinite' }} />
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque e ganhe moedas</div></div>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
-            </div>
-          )}
-
           <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
             <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Vonai · enviar feedback <Ic e="💬" /></span>
             <div style={{ marginTop: 8 }}>
@@ -4771,18 +4753,6 @@ export default function AppPage() {
 
       {xpFloat > 0 && (
         <div style={{ position: 'fixed', top: '38%', left: '50%', zIndex: 250, pointerEvents: 'none', background: '#16A34A', color: '#fff', fontWeight: 800, fontSize: 22, padding: '8px 20px', borderRadius: 24, boxShadow: '0 6px 18px rgba(22,163,74,0.4)', animation: 'su_float 0.85s ease-out forwards' }}>+{xpFloat} XP</div>
-      )}
-
-      {bauReward !== null && (
-        <div onClick={() => setBauReward(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320, textAlign: 'center', boxSizing: 'border-box', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', animation: 'su_pop 0.4s ease' }}>
-            <div style={{ fontSize: 60, animation: 'su_bounce 0.6s ease' }}>🎁</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#16212c', marginTop: 8 }}>Baú aberto!</div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: '#E0A62E', marginTop: 10 }}>+{bauReward} 🪙</div>
-            <div style={{ fontSize: 13, color: '#5c6b7a', marginTop: 8 }}>Volte amanhã para o próximo baú!</div>
-            <button onClick={() => setBauReward(null)} style={{ width: '100%', padding: 13, marginTop: 20, background: blue, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Show! 🎉</button>
-          </div>
-        </div>
       )}
 
       {lojaModal && (
@@ -5114,13 +5084,6 @@ export default function AppPage() {
               <div style={{ background: '#E3F3EA', borderRadius: 12, padding: '12px 14px', marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Ic e="🔔" s={20} c="#16A34A" />
                 <div style={{ flex: 1, fontSize: 13, color: '#15803D', fontWeight: 600 }}>Lembretes diários ativados <Ic e="✓" /></div>
-              </div>
-            )}
-            {bauDia !== hojeStr && (
-              <div onClick={abrirBau} style={{ background: 'linear-gradient(135deg, #E0A62E, #B9861F)', borderRadius: 16, padding: 14, marginTop: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(224,166,46,0.35)' }}>
-                <div style={{ fontSize: 34, animation: 'su_bob 1.6s ease-in-out infinite' }}>🎁</div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Baú do dia</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>Toque para abrir e ganhar moedas 🪙</div></div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a10', background: '#FFD98A', padding: '5px 12px', borderRadius: 20 }}>Abrir</span>
               </div>
             )}
             <div onClick={compartilharIndicacao} style={{ background: 'linear-gradient(135deg, #F97362, #D8432A)', borderRadius: 16, padding: 14, marginTop: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 14px rgba(216,67,42,0.3)' }}>
