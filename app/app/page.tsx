@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { mesclarPendente, sobrasAposEnvio } from '../../lib/progresso-pendente'
 import { dadosUsuarioParaAds } from '../../lib/hash-email'
 import { VALOR, MOEDA } from '../../lib/valor-eventos'
+import { missaoDoDia, diaSeguinte, DESAFIO_3_DIAS_MOEDAS } from '../../lib/missao'
 import { fatiarIngles, trechosIngles, semMarcacao } from '../../lib/fatiar-ingles'
 import { alvoDeRolagem } from '../../lib/rolagem-chat'
 import { lerResposta, type Correcao } from '../../lib/resposta-professor'
@@ -2605,6 +2606,20 @@ export default function AppPage() {
     setConqNova({ e: '🎯', nome: 'Meta de hoje batida! +10 🪙' })
   }, [xpHydrated, xp])
 
+  // Desafio dos 3 primeiros dias: o funil mostrou que quase ninguém volta no dia
+  // seguinte (~4 de 51). O card de "missão de amanhã" promete a recompensa; este efeito
+  // paga quando a sequência chega a 3 — uma única vez por aluno (trava por usuário, não
+  // por dia: o desafio não se repete).
+  useEffect(() => {
+    if (!xpHydrated || streak < 3 || !userId) return
+    try {
+      if (localStorage.getItem('speakup_desafio3_' + userId)) return
+      localStorage.setItem('speakup_desafio3_' + userId, '1')
+    } catch (e) { return }
+    ganharMoedas(DESAFIO_3_DIAS_MOEDAS)
+    setConqNova({ e: '🏆', nome: `Desafio dos 3 dias completo! +${DESAFIO_3_DIAS_MOEDAS} 🪙` })
+  }, [xpHydrated, streak, userId])
+
   // Medição: quantos alunos batem no paywall e não pagam (1x por dia) — permite ao gestor
   // de tráfego montar remarketing de "viu paywall" e medir a conversão do fim do trial.
   useEffect(() => {
@@ -4529,6 +4544,42 @@ export default function AppPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )
+          })()}
+
+          {/* MISSÃO DE AMANHÃ — só aparece depois que o aluno fez algo hoje. O fim da
+              sessão terminava em nada e ninguém voltava (~4 de 51); este card é o gancho:
+              uma atividade concreta trancada até amanhã + o desafio dos 3 dias. O e-mail
+              de lembrete do dia seguinte cobra a MESMA missão (lib/missao.ts). */}
+          {(licoesHoje > 0 || simulacoesHoje > 0 || vocabFeitoHoje || desafioFeito) && (() => {
+            const m = missaoDoDia(diaSeguinte(hojeStr))
+            let desafioPago = false
+            try { desafioPago = !!localStorage.getItem('speakup_desafio3_' + userId) } catch (e) {}
+            const dias3 = Math.min(streak, 3)
+            return (
+              <div style={{ background: 'linear-gradient(135deg, #1D4ED8, #103D77)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}><Ic e="🌙" /> Sua missão de amanhã</div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD98A', background: 'rgba(255,217,138,0.15)', padding: '3px 10px', borderRadius: 12 }}>🔒 destrava amanhã</span>
+                </div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
+                  <div style={{ fontSize: 28 }}>{m.emoji}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{m.titulo}</div>
+                    <div style={{ fontSize: 11.5, color: '#B5D4F4', lineHeight: 1.4, marginTop: 2 }}>{m.chamada}</div>
+                  </div>
+                </div>
+                {!desafioPago && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                    {[1, 2, 3].map(d => (
+                      <div key={d} style={{ flex: 1, textAlign: 'center', background: d <= dias3 ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)', border: d <= dias3 ? '1px solid rgba(74,222,128,0.5)' : '1px solid transparent', borderRadius: 10, padding: '6px 4px', fontSize: 11, fontWeight: 700, color: d <= dias3 ? '#4ADE80' : '#9DBBDD' }}>
+                        {d <= dias3 ? '✓' : ''} Dia {d}
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#FFD98A', whiteSpace: 'nowrap' }}>3 dias = +{DESAFIO_3_DIAS_MOEDAS} 🪙</div>
+                  </div>
+                )}
               </div>
             )
           })()}

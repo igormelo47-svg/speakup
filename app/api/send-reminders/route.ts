@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 import { enviarEmailLembrete } from '../../../lib/email'
+import { missaoDoDia } from '../../../lib/missao'
 
 const VAPID_PUBLIC = 'BGvDV8RzI74VwBSU6MSVcAgDJS3WF_zTGrpDW9cY26dyf85JAbJP0aRhJpU8BECmc3Z6yvHRHctbxxE0Bk-5cLo'
 
@@ -78,16 +79,18 @@ export async function GET(req: NextRequest) {
       return { title: `${nome || 'Ei'}, o Vô guardou sua lição 📖`, body: fraco ? `Volte de onde parou — tem um treino de "${fraco}" te esperando.` : 'Volte de onde parou — sua trilha continua do mesmo ponto.' }
     }
 
-    // 3) Sumiu só hoje: a sequência ainda está viva. De manhã o apelo é abrir o dia;
-    //    de noite é a sequência morrendo à meia-noite, que só faz sentido de noite.
+    // 3) Sumiu só hoje: a sequência ainda está viva. A mensagem cobra a MISSÃO DO DIA —
+    //    a mesma que o card do app prometeu ontem ("destrava amanhã"). E-mail prometendo
+    //    uma coisa e app mostrando outra quebra a confiança na segunda vez.
+    const missao = missaoDoDia(hoje)
     if (turno === 'manha') {
-      if (st >= 7) return { title: `Bom dia! 🔥 ${st} dias de sequência`, body: `${oi}5 minutos agora e o dia já começa com o inglês feito.` }
-      return { title: 'Bom dia! 5 minutos de inglês? ☀️', body: fraco ? `${oi}o Vô separou um treino de "${fraco}" pra hoje.` : `${oi}um treino rápido agora e sua meta do dia já sai do caminho.` }
+      if (st >= 7) return { title: `Bom dia! 🔥 ${st} dias de sequência`, body: `${oi}sua missão de hoje já destravou: ${missao.titulo.toLowerCase()}. 5 minutos e o dia começa ganho.` }
+      return { title: `Sua missão de hoje destravou ${missao.emoji}`, body: `${oi}${missao.titulo}. ${missao.chamada}` }
     }
     if (st >= 30) return { title: `🔥 ${st} dias! Não perca hoje`, body: `${oi}sua sequência de ${st} dias acaba à meia-noite. Bastam 5 minutos para mantê-la.` }
     if (st >= 7) return { title: `🔥 Sua sequência de ${st} dias está em risco`, body: `${oi}faça uma lição rápida agora e mantenha o ritmo!` }
-    if (st >= 1) return { title: 'Vonai 🔥', body: `${oi}você está com ${st} ${st === 1 ? 'dia' : 'dias'} de sequência. Continue hoje!` }
-    return { title: 'Vonai 🎯', body: fraco ? `${oi}que tal 5 minutos de "${fraco}" agora? Sua meta de hoje espera por você.` : `${oi}que tal 5 minutos de inglês agora? Sua meta de hoje espera por você.` }
+    if (st >= 1) return { title: `🔥 Sua sequência e sua missão esperam por você`, body: `${oi}sua missão de hoje ainda está aberta: ${missao.titulo.toLowerCase()}. 5 minutos e a sequência de ${st} ${st === 1 ? 'dia' : 'dias'} continua viva.` }
+    return { title: `Sua missão de hoje te espera ${missao.emoji}`, body: fraco ? `${oi}${missao.titulo} — e o Vô guardou um treino de "${fraco}" pra depois.` : `${oi}${missao.titulo}. ${missao.chamada}` }
   }
 
   let enviados = 0, removidos = 0
