@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import { enviarPurchaseGA4 } from '../../../lib/ga4'
 import { enviarPurchaseMeta } from '../../../lib/meta-capi'
 import { avisarVenda } from '../../../lib/avisar-venda'
+import { premiarIndicador } from '../../../lib/indicacao-premio'
 
 // Webhook da Kiwify: libera/revoga o Premium conforme os eventos de pagamento.
 // Configure na Kiwify a URL: https://vonai.com.br/api/kiwify-webhook?token=SEU_TOKEN
@@ -151,6 +152,9 @@ export async function POST(req: NextRequest) {
     if (!meta?.sent) console.error('[Kiwify] Meta CAPI não enviado', meta)
     // Aviso por e-mail: enquanto o volume é pequeno, saber da venda na hora vale mais que relatório.
     try { await avisarVenda({ email: String(email), origem: 'Kiwify', tipo: tipo, valor: ehAnual(body) ? 289.8 : 29.9 }) } catch (e) {}
+    // Prêmio de indicação: se este assinante foi indicado, o indicador ganha +30 dias de
+    // Premium (1x por indicado — trava atômica no banco; renovações não premiam de novo).
+    await premiarIndicador(admin, alvoId)
   }
 
   return NextResponse.json({ ok: true, email, tipo, reembolso, cancelamento, pago, contas_atualizadas: casou, ga4 })

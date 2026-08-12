@@ -63,8 +63,12 @@ export default function Home() {
               <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>🇧🇷 Feito para brasileiros</span>
               <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>⭐ Nota 5,0 na App Store</span>
             </div>
-            <h1 style={{ fontSize: 40, lineHeight: 1.1, fontWeight: 800, margin: '0 0 16px' }}>O aplicativo de inglês que <span style={{ color: '#FFD98A' }}>conversa com você</span> — e lembra de tudo.</h1>
-            <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Um professor particular de IA, 24h no seu bolso: monta seu plano de estudo todo dia, corrige sua pronúncia na hora e te leva do zero ao avançado.</p>
+            {/* Ângulo reposicionado 12/08 (diagnóstico de marketing): a lagoa da Vonai é quem
+                entende inglês mas TRAVA na fala — pior nota do brasileiro no EF EPI. A palavra
+                "aplicativo de inglês" PERMANECE no H1 de propósito: é a keyword do grupo
+                "Generico" do Google Ads que aponta pra cá (índice de qualidade). */}
+            <h1 style={{ fontSize: 40, lineHeight: 1.1, fontWeight: 800, margin: '0 0 16px' }}>O aplicativo de inglês pra quem entende… <span style={{ color: '#FFD98A' }}>mas trava na hora de falar.</span></h1>
+            <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Você acompanha série, lê e-mail — e a frase não sai. Converse com um professor de IA 24h que corrige na hora, não julga e monta seu plano todo dia. Destrave a fala, do A1 ao C2.</p>
             {/* Download primeiro (decisão do dono 10/08): as lojas são a chamada principal.
                 O QR só aparece em tela grande — quem está no computador aponta a câmera e
                 cai direto na loja certa via /baixar. No celular ele seria inútil. */}

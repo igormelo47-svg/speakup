@@ -37,8 +37,11 @@ export default function AplicativoParaAprenderIngles() {
               <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>🇧🇷 Feito para brasileiros</span>
               <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>⭐ Nota 5,0 na App Store</span>
             </div>
-            <h1 style={{ fontSize: 38, lineHeight: 1.15, fontWeight: 800, margin: '0 0 16px' }}>O aplicativo para aprender inglês <span style={{ color: '#FFD98A' }}>falando</span> — não decorando.</h1>
-            <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 auto 26px', maxWidth: 640 }}>Um professor de IA disponível 24h conversa com você, corrige sua pronúncia na hora e monta seu plano de estudo todo dia. Do zero ao avançado, no seu ritmo.</p>
+            {/* Ângulo reposicionado 12/08: "trava na hora de falar" (ver diagnóstico de marketing).
+                A expressão "aplicativo para aprender inglês" PERMANECE no H1 — é a keyword do
+                grupo "Aprender Ingles" que aponta pra cá (índice de qualidade do Ads). */}
+            <h1 style={{ fontSize: 38, lineHeight: 1.15, fontWeight: 800, margin: '0 0 16px' }}>O aplicativo para aprender inglês de quem <span style={{ color: '#FFD98A' }}>trava na hora de falar</span>.</h1>
+            <p style={{ fontSize: 18, color: '#D6E6FA', lineHeight: 1.6, margin: '0 auto 26px', maxWidth: 640 }}>Você entende série e lê e-mail, mas a frase não sai? Converse com um professor de IA 24h que corrige na hora e não julga — e destrave a fala no seu ritmo, do zero ao avançado.</p>
             {/* ESTA página é o destino do tráfego PAGO do Google, e a conversão que o lance
                 otimiza (inicio_teste) só dispara no site. Botão de conversão PRIMEIRO aqui:
                 lojas em cima estavam mandando o clique pago pra fora da medição — com risco

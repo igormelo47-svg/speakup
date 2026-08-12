@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { enviarPurchaseGA4 } from '../../../lib/ga4'
 import { enviarPurchaseMeta } from '../../../lib/meta-capi'
 import { avisarVenda } from '../../../lib/avisar-venda'
+import { premiarIndicador } from '../../../lib/indicacao-premio'
 
 // Webhook do RevenueCat (assinaturas via App Store / Google Play).
 // Quando a Apple confirma o pagamento, o RevenueCat chama esta rota e a gente libera o Premium.
@@ -110,6 +111,9 @@ export async function POST(req: NextRequest) {
       try {
         await avisarVenda({ email: emailAluno || alvoId, origem: 'Apple', tipo: tipo, valor: anual ? 289.9 : 29.9 })
       } catch (e) {}
+      // Prêmio de indicação: se este assinante foi indicado, o indicador ganha +30 dias de
+      // Premium (1x por indicado — trava atômica no banco; renovações não premiam de novo).
+      await premiarIndicador(admin, alvoId)
     }
   }
 
