@@ -61,6 +61,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={nunito.variable}>
       <head>
+        {/* Conexão antecipada com os servidores de medição: o GTM carrega em seguida
+            e puxa gtag + pixel do Meta (~1,7 MB no total). Abrir DNS+TLS antes poupa
+            algumas centenas de ms no 4G — e o PageView do Meta (que conta a
+            "visualização de página" nos anúncios) dispara mais cedo. */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://connect.facebook.net" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://connect.facebook.net" />
         {/* Google Tag Manager — o gestor de tráfego opera tags/GA4 por aqui.
             Só carrega no domínio real: teste em localhost/preview já sujou a medição
             uma vez (o "Purchase fantasma" de 01/08 que o gestor achou no pixel) e

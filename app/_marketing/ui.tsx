@@ -51,10 +51,13 @@ export function Nav() {
   return (
     <div style={{ borderBottom: '1px solid #EEF1F6' }}>
       <div style={{ ...container, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>
-        <Link href="/" style={{ fontSize: 20, fontWeight: 800, color: '#102A4C', textDecoration: 'none' }}>Von<span style={{ color: AZUL }}>ai</span></Link>
+        {/* prefetch={false} nos links secundários: no 4G o pré-carregamento dessas rotas
+            disputa banda com GTM/pixel (~1,7 MB) e atrasa a contagem de PageView do Meta.
+            Os CTAs de /cadastro continuam com prefetch — é o caminho da conversão. */}
+        <Link href="/" prefetch={false} style={{ fontSize: 20, fontWeight: 800, color: '#102A4C', textDecoration: 'none' }}>Von<span style={{ color: AZUL }}>ai</span></Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <BaixarApp />
-          <Link href="/login" style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
+          <Link href="/login" prefetch={false} style={{ color: AZUL, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Entrar</Link>
         </div>
       </div>
     </div>
@@ -70,11 +73,11 @@ export function Footer() {
     <div style={{ borderTop: '1px solid #EEF1F6', background: '#F6F8FB' }}>
       <div style={{ ...container, padding: '28px 20px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px', marginBottom: 18 }}>
-          <Link href="/teste-de-nivel-de-ingles" style={item}>Teste de nível</Link>
-          <Link href="/planos" style={item}>Planos e preços</Link>
-          <Link href="/professor-de-ingles-com-ia" style={item}>Professor de IA</Link>
-          <Link href="/erros-de-ingles-do-brasileiro" style={item}>Erros do brasileiro</Link>
-          <Link href="/aplicativo-para-aprender-ingles" style={item}>Aplicativo de inglês</Link>
+          <Link href="/teste-de-nivel-de-ingles" prefetch={false} style={item}>Teste de nível</Link>
+          <Link href="/planos" prefetch={false} style={item}>Planos e preços</Link>
+          <Link href="/professor-de-ingles-com-ia" prefetch={false} style={item}>Professor de IA</Link>
+          <Link href="/erros-de-ingles-do-brasileiro" prefetch={false} style={item}>Erros do brasileiro</Link>
+          <Link href="/aplicativo-para-aprender-ingles" prefetch={false} style={item}>Aplicativo de inglês</Link>
         </div>
         {/* As lojas ficam no rodapé, e não perto do botão principal, de propósito: mandar
             o clique pago para a loja fura a medição de inicio_teste (a conversão que o
@@ -88,10 +91,10 @@ export function Footer() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#7C8AA0' }}>
           <div>© {new Date().getFullYear()} Vonai</div>
           <div style={{ display: 'flex', gap: 18 }}>
-            <Link href="/termos" style={item}>Termos</Link>
-            <Link href="/privacidade" style={item}>Privacidade</Link>
-            <Link href="/suporte" style={item}>Suporte</Link>
-            <Link href="/login" style={{ ...item, color: AZUL, fontWeight: 600 }}>Entrar</Link>
+            <Link href="/termos" prefetch={false} style={item}>Termos</Link>
+            <Link href="/privacidade" prefetch={false} style={item}>Privacidade</Link>
+            <Link href="/suporte" prefetch={false} style={item}>Suporte</Link>
+            <Link href="/login" prefetch={false} style={{ ...item, color: AZUL, fontWeight: 600 }}>Entrar</Link>
           </div>
         </div>
       </div>
