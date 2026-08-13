@@ -62,7 +62,10 @@ export async function GET(req: NextRequest) {
     const interno = ehInterno(em)
     const prog = porUser.get(u.id) as any
     const attrib = prog?.attrib as any
-    const anuncio = !!attrib?.gclid
+    // "Anúncio" = qualquer clique pago: gclid/gbraid/wbraid (Google) OU fbclid (Meta).
+    // Só gclid subcontava: desde a campanha do Meta (08/08), quem vinha de lá caía
+    // como "orgânico" e o painel dizia que o anúncio não trazia ninguém.
+    const anuncio = !!(attrib?.gclid || attrib?.gbraid || attrib?.wbraid || attrib?.fbclid)
     // Ativado = usou o app de fato. Contas antigas (anteriores à coluna) caem no XP como
     // aproximação, senão a taxa histórica apareceria zerada e assustaria à toa.
     const ativado = !!prog?.ativado_em || (prog?.xp || 0) > 0
