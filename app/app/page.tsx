@@ -3046,7 +3046,18 @@ export default function AppPage() {
     // e sem internet expulsaria o aluno para o login).
     supabase.auth.getSession().then(async ({ data: sess }) => {
       const user = sess.session?.user
-      if (!user) { router.push('/login'); return }
+      if (!user) {
+        // Quem abre pelo app instalado (TWA da Play/PWA rodam standalone, sem aba de
+        // navegador) e não tem sessão acabou de BAIXAR: vai para o cadastro, não para
+        // "Entre na sua conta" — quem acabou de instalar não tem conta para entrar.
+        // (O iOS nativo já faz isso via NativeEntry; este cobre o Android/TWA.)
+        let recemInstalado = false
+        try {
+          recemInstalado = window.matchMedia('(display-mode: standalone)').matches ||
+            document.referrer.startsWith('android-app://')
+        } catch { /* sem matchMedia, segue para o login normal */ }
+        router.push(recemInstalado ? '/login?novo=1' : '/login'); return
+      }
       const nome = user.user_metadata?.nome || user.email?.split('@')[0] || 'Aluno'
       setUserName(nome.split(' ')[0])
       setUserId(user.id)

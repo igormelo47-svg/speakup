@@ -54,6 +54,25 @@ function PlaySvg() {
   )
 }
 
+// Link da barra fixa do celular para /baixar, COM medição. A barra era o botão de
+// download mais visível do site e o único sem `clique_loja` — download acontecendo e
+// invisível no GA4/Meta. Vive aqui (e não em ui.tsx) porque ui.tsx é componente de
+// servidor e onClick exige cliente. `origem:'sticky'` separa este ponto dos selos.
+// <a> + target="_blank" no lugar de <Link>: /baixar é um redirect 302 para a loja, e o
+// roteador do Next tentava buscá-lo como página — no navegador do Instagram o toque
+// ficava "morto".
+export function LinkDownloadMedido({ texto, style }: { texto: string; style?: React.CSSProperties }) {
+  const medir = () => {
+    try {
+      const w = window as unknown as { dataLayer?: unknown[] }
+      w.dataLayer = w.dataLayer || []
+      const loja = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'appstore' : 'play'
+      w.dataLayer.push({ event: 'clique_loja', loja, pagina: window.location.pathname, origem: 'sticky' })
+    } catch { /* medição nunca pode impedir o clique */ }
+  }
+  return <a href="/baixar" target="_blank" rel="noopener noreferrer" onClick={medir} style={style}>{texto}</a>
+}
+
 export function PlayBadge({ grande = false }: { grande?: boolean } = {}) {
   return <LojaBadge href={PLAY_URL} icone={<PlaySvg />} acima="Disponível no" nome="Google Play" loja="play" grande={grande} />
 }

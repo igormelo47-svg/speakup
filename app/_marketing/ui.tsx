@@ -18,7 +18,7 @@ export const LARANJA = '#F5A623'
 // Os selos e as URLs das lojas moram em lojas.tsx (componente de cliente, porque medem o
 // clique no dataLayer — evento `clique_loja`). Import + reexport: o Footer/CtaFinal daqui
 // usam os selos, e as páginas continuam importando tudo deste arquivo.
-import { PlayBadge, AppStoreBadge } from './lojas'
+import { PlayBadge, AppStoreBadge, LinkDownloadMedido } from './lojas'
 export { PlayBadge, AppStoreBadge, PLAY_URL, APP_STORE_URL } from './lojas'
 
 // Fonte única de verdade do preço nas páginas públicas. Os valores da App Store são
@@ -122,7 +122,9 @@ export function StickyCta({ texto = 'Testar grátis →', href = '/cadastro' }: 
           <div style={{ fontWeight: 700, color: '#102A4C' }}>⭐ 5,0 na App Store</div>
           {PRECO.diasGratis} dias grátis · sem cartão
         </div>
-        <Link href={href} style={{ ...cta, fontSize: 14.5, padding: '11px 20px', whiteSpace: 'nowrap' }}>{texto}</Link>
+        {href === '/baixar'
+          ? <LinkDownloadMedido texto={texto} style={{ ...cta, fontSize: 14.5, padding: '11px 20px', whiteSpace: 'nowrap' }} />
+          : <Link href={href} style={{ ...cta, fontSize: 14.5, padding: '11px 20px', whiteSpace: 'nowrap' }}>{texto}</Link>}
       </div>
     </>
   )

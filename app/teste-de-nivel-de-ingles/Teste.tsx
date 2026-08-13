@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PERGUNTAS, classificar } from '../../lib/teste-nivel'
+import { PlayBadge, AppStoreBadge } from '../_marketing/lojas'
 
 // Teste de nivelamento público, sem cadastro. A decisão de deixar responder ANTES de
 // pedir e-mail é deliberada: o anúncio promete "teste de nível grátis em 2 minutos" e
@@ -21,6 +22,10 @@ export default function Teste() {
   const [respostas, setRespostas] = useState<number[]>([])
   const [escolha, setEscolha] = useState<number | null>(null)
   const [comecou, setComecou] = useState(false)
+  // O Lead (concluir o teste) só pode ser medido UMA vez por visita: o gabarito convida a
+  // refazer, e cada refeita gerava outro Lead com id novo — o Meta aprendia a comprar
+  // gente que refaz teste, não gente nova.
+  const [mediuConclusao, setMediuConclusao] = useState(false)
   const [email, setEmail] = useState('')
   const [envioEmail, setEnvioEmail] = useState<'parado' | 'enviando' | 'pronto' | 'erro'>('parado')
 
@@ -32,6 +37,10 @@ export default function Teste() {
     try {
       const w = window as unknown as { dataLayer?: unknown[] }
       w.dataLayer = w.dataLayer || []
+      // Limpa as chaves voláteis antes: sem isso o event_id do Lead "gruda" no modelo de
+      // dados do GTM e vaza para o evento seguinte (ex.: lead_email herdava o id e uma
+      // tag que lesse o campo deduplicaria contra o Lead).
+      w.dataLayer.push({ event_id: undefined, nivel: undefined, acertos: undefined })
       w.dataLayer.push({ event: nome, ...extra })
     } catch { /* dataLayer é opcional: bloqueador de anúncio derruba o GTM e o teste tem que funcionar assim mesmo */ }
   }
@@ -57,15 +66,18 @@ export default function Teste() {
     if (novas.length === total) {
       const acertos = novas.filter((r, k) => r === PERGUNTAS[k].certa).length
       const n = classificar(acertos).nivel
-      const eventId = idEvento()
-      evento('teste_nivel_concluido', { nivel: n, acertos, event_id: eventId })
-      // Best-effort e sem await: medição nunca pode segurar a tela do resultado.
-      try {
-        fetch('/api/lead-meta', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_id: eventId, nivel: n }), keepalive: true,
-        }).catch(() => {})
-      } catch { /* medição é opcional; o teste tem que funcionar de qualquer jeito */ }
+      if (!mediuConclusao) {
+        setMediuConclusao(true)
+        const eventId = idEvento()
+        evento('teste_nivel_concluido', { nivel: n, acertos, event_id: eventId })
+        // Best-effort e sem await: medição nunca pode segurar a tela do resultado.
+        try {
+          fetch('/api/lead-meta', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId, nivel: n }), keepalive: true,
+          }).catch(() => {})
+        } catch { /* medição é opcional; o teste tem que funcionar de qualquer jeito */ }
+      }
     } else {
       setI(novas.length)
     }
@@ -143,6 +155,13 @@ export default function Teste() {
           {/* O nível vai na URL para o cadastro guardar e o app começar a trilha dali.
               Sem isso a promessa "comece do seu nível" morre no formulário. */}
           <Link href={`/cadastro?nivel=${r.nivel}`} style={{ ...botao, display: 'inline-block' }} onClick={() => evento('teste_nivel_cta', { nivel: r.nivel })}>Começar do {r.nivel} grátis →</Link>
+          {/* O tráfego pago daqui é 100% celular e este era o ÚNICO destino do site sem
+              convite para baixar o app — quem preferia a loja não tinha caminho. */}
+          <div style={{ fontSize: 13, color: '#BCD6F2', margin: '16px 0 10px' }}>ou baixe o app e comece por lá:</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <PlayBadge />
+            <AppStoreBadge />
+          </div>
         </div>
 
         {/* Fica DEPOIS do botão de criar conta de propósito: quem vai criar conta agora já

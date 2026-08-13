@@ -43,6 +43,20 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     } catch (e) {}
   }, [])
 
+  // O Supabase devolve erro em INGLÊS ("Password should be at least 6 characters") e
+  // essa era a mensagem que o aluno via na hora exata da conversão. Traduz os casos
+  // conhecidos; o resto vira uma frase genérica em português — nunca o texto cru.
+  function traduzErro(msg: string): string {
+    const m = (msg || '').toLowerCase()
+    if (m.includes('password') && (m.includes('at least') || m.includes('short'))) return 'A senha é curta demais — use pelo menos 8 caracteres.'
+    if (m.includes('already registered') || m.includes('already exists')) return 'Já existe uma conta com esse e-mail. Toque em "Entrar" aqui embaixo.'
+    if (m.includes('invalid') && m.includes('email')) return 'Esse e-mail não parece válido. Confira se digitou certo.'
+    if (m.includes('validate email')) return 'Esse e-mail não parece válido. Confira se digitou certo.'
+    if (m.includes('rate limit') || m.includes('too many')) return 'Muitas tentativas seguidas. Espere um minuto e tente de novo.'
+    if (m.includes('network') || m.includes('fetch')) return 'Sem conexão. Confira sua internet e tente de novo.'
+    return 'Não deu para concluir agora. Confira os campos e tente de novo.'
+  }
+
   async function handleSubmit() {
     setLoading(true); setErro(''); setAviso('')
 
@@ -58,7 +72,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         options: { emailRedirectTo: redirectApp, shouldCreateUser: false },
       })
       if (error) {
-        setErro(/not found|signups/i.test(error.message) ? 'Não achamos conta com esse e-mail. Confira ou crie uma conta grátis.' : error.message)
+        setErro(/not found|signups/i.test(error.message) ? 'Não achamos conta com esse e-mail. Confira ou crie uma conta grátis.' : traduzErro(error.message))
         setLoading(false); return
       }
       try { track('login_magic_pedido') } catch (e) {}
@@ -72,7 +86,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       if (!email) { setErro('Digite seu e-mail.'); setLoading(false); return }
       const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/reset` : undefined
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-      if (error) { setErro(error.message); setLoading(false); return }
+      if (error) { setErro(traduzErro(error.message)); setLoading(false); return }
       setAviso('Enviamos um link para o seu e-mail. Abra-o para criar uma nova senha.')
       setLoading(false)
       return
@@ -85,7 +99,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         password: senha,
         options: { data: { nome }, emailRedirectTo: redirectApp }
       })
-      if (error) { setErro(error.message); setLoading(false); return }
+      if (error) { setErro(traduzErro(error.message)); setLoading(false); return }
       if (data.user) {
         // O banco pode já ter criado o profile via trigger — upsert evita o erro 409 de chave duplicada.
         await supabase.from('profiles').upsert({
@@ -121,7 +135,10 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
 
   const inputStyle = {
     width: '100%', padding: '12px 14px', border: '1px solid #D8E1EC', borderRadius: 12,
-    fontSize: 15, boxSizing: 'border-box' as const, background: '#F7FAFD', color: '#16212C',
+    // 16px é o mínimo que impede o zoom forçado do Safari/iPhone ao focar o campo —
+    // com 15px a tela de cadastro "pulava" bem na hora de digitar (mesma correção
+    // já aplicada aos inputs do chat, ver layout.tsx).
+    fontSize: 16, boxSizing: 'border-box' as const, background: '#F7FAFD', color: '#16212C',
     outline: 'none', fontFamily: 'inherit',
   }
   const labelStyle = { fontSize: 12.5, color: '#5B6B82', fontWeight: 600 as const, display: 'block', marginBottom: 6 }
@@ -149,21 +166,32 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
           </p>
         )}
 
+        {/* <form> de verdade: o teclado do celular mostra "Ir", Enter envia de qualquer
+            campo, e required/minLength barram envio vazio ANTES de ir ao Supabase
+            (que responderia em inglês). O botão lá embaixo é type="submit". */}
+        <form onSubmit={e => { e.preventDefault(); handleSubmit() }}>
         {modo === 'cadastro' && (
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Nome</label>
-            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo" style={inputStyle} />
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo"
+              autoComplete="name" required style={inputStyle} />
           </div>
         )}
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>E-mail</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" style={inputStyle} />
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com"
+            autoComplete="email" required style={inputStyle} />
         </div>
         {modo !== 'recuperar' && modo !== 'magic' && (
           <div style={{ marginBottom: 8 }}>
             <label style={labelStyle}>Senha</label>
+            {/* new-password no cadastro faz iPhone/Android OFERECEREM uma senha forte e
+                salvarem no gerenciador; current-password no login faz o autofill
+                preencher. Sem o atributo, nenhum dos dois acontecia. minLength só no
+                cadastro: conta antiga pode ter senha mais curta e precisa logar. */}
             <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres"
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()} style={inputStyle} />
+              autoComplete={modo === 'cadastro' ? 'new-password' : 'current-password'}
+              required minLength={modo === 'cadastro' ? 8 : undefined} style={inputStyle} />
           </div>
         )}
         {modo === 'magic' && (
@@ -183,10 +211,11 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         {erro && <p style={{ color: '#A32D2D', fontSize: 13, marginBottom: 12, background: '#FBEBEB', padding: '10px 12px', borderRadius: 10 }}>{erro}</p>}
         {aviso && <p style={{ color: '#166534', fontSize: 13, marginBottom: 12, background: '#E3F3EA', padding: '10px 12px', borderRadius: 10 }}>{aviso}</p>}
 
-        <button onClick={handleSubmit} disabled={loading}
+        <button type="submit" disabled={loading}
           style={{ width: '100%', padding: 14, background: loading ? '#7FA6CB' : 'linear-gradient(135deg, #2E72D6, #185FA5)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'default' : 'pointer', boxShadow: '0 4px 12px rgba(24,95,165,0.35)', fontFamily: 'inherit' }}>
           {botao}
         </button>
+        </form>
 
         {(modo === 'recuperar' || modo === 'magic') ? (
           <p style={{ textAlign: 'center', fontSize: 13, color: '#5B6B82', marginTop: 16, marginBottom: 0 }}>
