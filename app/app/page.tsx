@@ -4122,6 +4122,42 @@ export default function AppPage() {
       salvarDominio({ erros_qs: lista })
     } catch (e) {}
   }
+  // ----- Compartilhar progresso (padrão dos líderes: Duolingo/Busuu) -----
+  // Gera um cartão 1080x1080 com a sequência do aluno e abre o compartilhar nativo
+  // (WhatsApp/Instagram). Cada aluno orgulhoso vira divulgação gratuita.
+  async function compartilharProgresso() {
+    try {
+      const c = document.createElement('canvas'); c.width = 1080; c.height = 1080
+      const g = c.getContext('2d'); if (!g) return
+      const grad = g.createLinearGradient(0, 0, 1080, 1080)
+      grad.addColorStop(0, '#103d77'); grad.addColorStop(1, '#2e72d6')
+      g.fillStyle = grad; g.fillRect(0, 0, 1080, 1080)
+      const img = new Image(); img.src = '/icon-512.png'
+      await new Promise(r => { img.onload = r; img.onerror = r; setTimeout(r, 1500) })
+      try { g.save(); g.beginPath(); g.arc(540, 220, 115, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.clip(); g.drawImage(img, 435, 115, 210, 210); g.restore() } catch (e) {}
+      g.textAlign = 'center'
+      g.fillStyle = '#fff'; g.font = '800 140px system-ui, -apple-system, sans-serif'
+      g.fillText(`🔥 ${streak}`, 540, 560)
+      g.font = '700 52px system-ui, -apple-system, sans-serif'
+      g.fillText(streak === 1 ? 'dia seguido aprendendo inglês' : 'dias seguidos aprendendo inglês', 540, 640)
+      g.fillStyle = '#ffd98a'; g.font = '700 46px system-ui, -apple-system, sans-serif'
+      g.fillText(`${xp} XP  ·  ${licoesConcluidas.length} ${licoesConcluidas.length === 1 ? 'lição' : 'lições'}  ·  nível ${level}`, 540, 750)
+      g.fillStyle = 'rgba(255,255,255,0.9)'; g.font = '600 40px system-ui, -apple-system, sans-serif'
+      g.fillText('vonai.com.br · professor de IA 24h', 540, 950)
+      const blob: Blob | null = await new Promise(res => c.toBlob(b => res(b), 'image/png'))
+      if (!blob) return
+      const file = new File([blob], 'vonai-progresso.png', { type: 'image/png' })
+      const nav: any = navigator
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], text: `${streak} ${streak === 1 ? 'dia' : 'dias'} seguidos aprendendo inglês no Vonai 🇺🇸` })
+      } else {
+        const url = URL.createObjectURL(blob); const a = document.createElement('a')
+        a.href = url; a.download = 'vonai-progresso.png'; a.click()
+        setTimeout(() => URL.revokeObjectURL(url), 4000)
+      }
+      try { track('progresso_compartilhado', { streak }) } catch (e) {}
+    } catch (e) {}
+  }
   const errosQs: any[] = (() => { try { const raw = localStorage.getItem('speakup_erros_qs'); return raw ? JSON.parse(raw) : [] } catch (e) { return [] } })()
   // Lições concluídas cuja revisão já venceu (due <= hoje) e que ainda existem.
   const todasLicoes = Object.values(lessons).flat()
@@ -6494,6 +6530,9 @@ export default function AppPage() {
                       </div>
                       <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
                     </div>
+                  )}
+                  {streak > 0 && (
+                    <button onClick={compartilharProgresso} style={{ width: '100%', padding: 13, background: 'none', color: blue, border: `1.5px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10, animation: 'su_risefade 0.5s ease 0.45s both' }}>Compartilhar meu progresso <Ic e="📤" /></button>
                   )}
                   <button onClick={() => { try { track('treino_concluido', { fala: falaMedia, aquecimento: aquec ? aquec.acertos : null }) } catch (e) {} ; encerrarTreino(); setTab('home'); setView('levels') }} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', animation: 'su_risefade 0.5s ease 0.5s both' }}>Concluir treino <Ic e="✓" /></button>
                 </div>
