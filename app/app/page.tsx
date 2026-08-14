@@ -4408,7 +4408,7 @@ export default function AppPage() {
     return (
       <div>
         {/* HEADER compacto */}
-        <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 20px' }}>
+        <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 38px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
@@ -4416,13 +4416,13 @@ export default function AppPage() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
               <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(245,201,122,0.18)', border: '1px solid rgba(245,201,122,0.5)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}><span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
-              <button onClick={alternarTema} aria-label="Alternar modo escuro" title="Modo claro/escuro" style={{ background: blueDark, border: 'none', borderRadius: 10, padding: '6px 9px', color: '#9dbbdd', fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>{temaEscuro ? '☀️' : '🌙'}</button>
-              <button onClick={logout} style={{ background: blueDark, border: 'none', borderRadius: 10, padding: '6px 11px', color: '#9dbbdd', fontSize: 12, cursor: 'pointer' }}>Sair</button>
+              <button onClick={alternarTema} aria-label="Alternar modo escuro" title="Modo claro/escuro" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 10, padding: '6px 9px', color: '#e7f0fa', fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>{temaEscuro ? '☀️' : '🌙'}</button>
+              <button onClick={logout} style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 10, padding: '6px 11px', color: '#e7f0fa', fontSize: 12, cursor: 'pointer' }}>Sair</button>
             </div>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, color: '#bcd6f2' }}>{saudacao},</div>
-            <div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
+            <div style={{ fontSize: 13, color: '#bcd6f2', letterSpacing: 0.2 }}>{saudacao},</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.2 }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
           </div>
           {/* Card grande de progresso (o que o Emmanuel achou mais bonito) */}
           {(() => {
@@ -4432,7 +4432,7 @@ export default function AppPage() {
             const C = 188.5
             const nv = nivelDeXp(xp)
             return (
-            <div style={{ background: blueDark, borderRadius: 20, padding: 18 }}>
+            <div style={{ background: 'rgba(9,28,58,0.45)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: 20, padding: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                 <div style={{ position: 'relative', width: 76, height: 76, flexShrink: 0 }}>
                   <svg width="76" height="76" viewBox="0 0 76 76">
@@ -4475,9 +4475,10 @@ export default function AppPage() {
           })()}
         </div>
 
-        <div style={{ padding: 16 }}>
+        {/* "Folha" com cantos arredondados sobrepondo o herói azul: transição suave, sem corte seco */}
+        <div style={{ padding: '22px 16px 16px', marginTop: -20, background: 'var(--color-background-tertiary)', borderTopLeftRadius: 26, borderTopRightRadius: 26, position: 'relative' }}>
           {/* HERO — o coração da home: UMA mensagem, UMA ação */}
-          <div style={{ background: 'linear-gradient(135deg, #2e72d6, #103d77)', borderRadius: 20, padding: 18, marginBottom: 16, boxShadow: '0 8px 22px rgba(75,63,191,0.32)', animation: 'su_risefade 0.5s ease both' }}>
+          <div style={{ background: 'linear-gradient(135deg, #2e72d6, #103d77)', borderRadius: 20, padding: 18, marginBottom: 16, boxShadow: '0 10px 26px rgba(16,61,119,0.28)', animation: 'su_risefade 0.5s ease both' }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
               <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={42} prof humor="feliz" /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
