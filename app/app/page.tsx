@@ -7004,7 +7004,7 @@ export default function AppPage() {
       {/* Barra clássica de app (padrão Instagram/WhatsApp): branca, largura total,
           fio superior. Ao regerar os pacotes nativos, pintar a barra do sistema de
           branco (navigationBarColor/backgroundColor) pra emendar de vez. */}
-      <div style={{ background: 'var(--color-background-primary)', borderTop: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', padding: '7px 6px calc(7px + max(0px, env(safe-area-inset-bottom) - 10px))', flexShrink: 0 }}>
+      <div style={{ background: 'var(--color-background-primary)', borderTop: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', padding: '8px 6px calc(8px + max(0px, env(safe-area-inset-bottom) - 24px))', flexShrink: 0 }}>
         {/* Rótulos curtos: com 6 abas numa tela de 360px, "Listening"/"Dicionário"/
             "Professor" não cabem e a última saía cortada ("Pr..."). minWidth:0 deixa o
             flex encolher de verdade — sem isso o conteúdo trava a largura e estoura a
@@ -7013,9 +7013,12 @@ export default function AppPage() {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
           <button key={t} onClick={() => { encerrarTreino(); setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: '1 1 0', minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '4px 2px', maxWidth: '100%', minWidth: 0 }}>
-              <span style={{ fontSize: 23, lineHeight: 1, transition: 'transform 0.15s', transform: ativo ? 'translateY(-1px)' : 'none' }}><Ic e={icon} c={ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} /></span>
-              <span style={{ fontSize: 10, color: ativo ? '#2e72d6' : 'var(--color-text-tertiary)', fontWeight: ativo ? 800 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, maxWidth: '100%', minWidth: 0 }}>
+              {/* Material 3: pílula suave atrás do ÍCONE do item ativo (não do bloco todo) */}
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 14px', borderRadius: 999, background: ativo ? 'rgba(46,114,214,0.13)' : 'transparent', transition: 'background 0.2s' }}>
+                <span style={{ fontSize: 21, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#1c55a3' : 'var(--color-text-tertiary)'} /></span>
+              </span>
+              <span style={{ fontSize: 10, color: ativo ? '#1c55a3' : 'var(--color-text-tertiary)', fontWeight: ativo ? 800 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
             </div>
           </button>
           )
