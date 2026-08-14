@@ -7001,11 +7001,10 @@ export default function AppPage() {
           entre cima e baixo, então os ícones ficam no centro exato do retângulo azul. */}
       {/* Dock flutuante: ilha arredondada sobre o conteúdo (padrão dos apps modernos).
           O fundo da área acompanha o tema; a ilha usa as variáveis pra funcionar no escuro. */}
-      {/* Faixa navy #103d77 = backgroundColor nativo do wrapper iOS: a área de safe-area
-          que o sistema pinta embaixo emenda com esta faixa e vira rodapé intencional.
-          (No Android TWA, alinhar navigationBarColor pra #103d77 ao regerar o AAB.) */}
-      <div style={{ background: '#103d77', padding: '10px 12px max(10px, calc(env(safe-area-inset-bottom) - 16px))', flexShrink: 0 }}>
-      <div style={{ background: 'var(--color-background-primary)', borderRadius: 24, boxShadow: '0 8px 28px rgba(4,14,32,0.35)', display: 'flex', alignItems: 'center', padding: '9px 8px' }}>
+      {/* Barra clássica de app (padrão Instagram/WhatsApp): branca, largura total,
+          fio superior. Ao regerar os pacotes nativos, pintar a barra do sistema de
+          branco (navigationBarColor/backgroundColor) pra emendar de vez. */}
+      <div style={{ background: 'var(--color-background-primary)', borderTop: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', padding: '7px 6px calc(7px + max(0px, env(safe-area-inset-bottom) - 10px))', flexShrink: 0 }}>
         {/* Rótulos curtos: com 6 abas numa tela de 360px, "Listening"/"Dicionário"/
             "Professor" não cabem e a última saía cortada ("Pr..."). minWidth:0 deixa o
             flex encolher de verdade — sem isso o conteúdo trava a largura e estoura a
@@ -7014,14 +7013,13 @@ export default function AppPage() {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
           <button key={t} onClick={() => { encerrarTreino(); setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: '1 1 0', minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '7px 5px', borderRadius: 15, background: ativo ? 'rgba(46,114,214,0.14)' : 'transparent', transition: 'background 0.2s', maxWidth: '100%', minWidth: 0 }}>
-              <span style={{ fontSize: 21, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} /></span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '4px 2px', maxWidth: '100%', minWidth: 0 }}>
+              <span style={{ fontSize: 23, lineHeight: 1, transition: 'transform 0.15s', transform: ativo ? 'translateY(-1px)' : 'none' }}><Ic e={icon} c={ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} /></span>
               <span style={{ fontSize: 10, color: ativo ? '#2e72d6' : 'var(--color-text-tertiary)', fontWeight: ativo ? 800 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
             </div>
           </button>
           )
         })}
-      </div>
       </div>
     </div>
     </div>
