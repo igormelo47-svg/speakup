@@ -4223,7 +4223,7 @@ export default function AppPage() {
     return (
       <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
         <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ background: `linear-gradient(135deg, ${gold}, #e08a1e)`, padding: '44px 20px 30px', textAlign: 'center' }}>
+          <div style={{ background: 'linear-gradient(150deg, #103d77, #2e72d6)', padding: '44px 20px 30px', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
             <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste grátis terminou</div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Assine o <b>Vonai Premium</b> para continuar aprendendo inglês, do zero à fluência.</div>
@@ -4260,7 +4260,7 @@ export default function AppPage() {
                 de alunos inventado. Quando houver dados reais (avaliação da loja, nº de
                 alunos, depoimentos), trocar/adicionar aqui. */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              {[['🇧🇷', 'Feito para brasileiros'], ['🔒', 'Pagamento seguro'], ['🚫', 'Cancele quando quiser']].map(([e, t], i) => (
+              {[['🇧🇷', 'Feito para brasileiros'], ['🔒', 'Pagamento seguro'], ['✅', 'Cancele quando quiser']].map(([e, t], i) => (
                 <div key={i} style={{ flex: 1, background: '#ffffff', border: '0.5px solid #e5eaef', borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
                   <div style={{ fontSize: 18 }}><Ic e={e} /></div>
                   <div style={{ fontSize: 10.5, color: '#5c6b7a', marginTop: 4, lineHeight: 1.2, fontWeight: 600 }}>{t}</div>
@@ -4276,7 +4276,7 @@ export default function AppPage() {
               </div>
               <div style={{ width: '100%', padding: 12, background: blue, color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Assinar plano mensal <Ic e="→" /></div>
             </div>
-            <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: `linear-gradient(135deg, ${gold}, #e08a1e)`, borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(218,165,32,0.35)' }}>
+            <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(224,138,30,0.35)' }}>
               <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: '#16A34A', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em' }}>MELHOR OFERTA · -19%</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
