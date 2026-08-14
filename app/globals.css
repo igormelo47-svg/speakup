@@ -14,6 +14,30 @@
   --color-text-secondary: #5c6b7a;
   --color-text-tertiary: #93a1b0;
   --color-border-tertiary: #e4e9ef;
+
+  /* ===== PALETA OFICIAL VONAI (28/07/2026) =====
+     Identidade: AZUL (marca) + DOURADO (recompensa/CTA). Verde = sucesso,
+     vermelho = erro. NÃO inventar cores novas: page.tsx foi consolidado de
+     171 cores para esta paleta; toda cor nova deve vir daqui.
+     Raios de borda: 6 / 10 / 14 / 20 (e 999 para pílulas). */
+  --vonai-blue-900: #103d77;
+  --vonai-blue-700: #1c55a3;
+  --vonai-blue-500: #2e72d6; /* azul principal de ação */
+  --vonai-blue-300: #9dbbdd;
+  --vonai-blue-200: #bcd6f2;
+  --vonai-blue-50: #e7f0fa;
+  --vonai-gold-800: #8a5a10; /* texto sobre fundos dourados claros */
+  --vonai-gold-600: #e08a1e;
+  --vonai-gold-500: #f5a623; /* dourado principal (moedas, PRO, CTA) */
+  --vonai-gold-300: #ffd98a;
+  --vonai-gold-50: #fef3e2;
+  --vonai-green-800: #14532d;
+  --vonai-green-600: #16a34a; /* sucesso */
+  --vonai-green-300: #4ade80;
+  --vonai-green-50: #e3f3ea;
+  --vonai-red-700: #b91c1c;
+  --vonai-red-600: #dc2626; /* erro */
+  --vonai-red-50: #fcecec;
 }
 
 /* O app foi desenhado com tema claro; o modo escuro do SISTEMA continua forcado
