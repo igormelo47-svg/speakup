@@ -2338,6 +2338,7 @@ export default function AppPage() {
   const [profDiaData, setProfDiaData] = useState('')
   const [moedas, setMoedas] = useState(0)
   const [streakFreezes, setStreakFreezes] = useState(0)
+  const [bauPremio, setBauPremio] = useState<string | null>(null) // prêmio do Baú do Dia desta sessão
   // Baú do dia removido em 11/08 a pedido do dono: moedas de graça por um toque não
   // criavam hábito nenhum — recompensa sem esforço não ensina a voltar. As recompensas
   // que exigem estudo (meta, plano completo, desafio dos 3 dias, missões) ficaram.
@@ -4243,7 +4244,18 @@ export default function AppPage() {
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', marginTop: 10 }}>Assine para não perder seu progresso.</div>
+                {/* Stored value (Hooked): o que o Vô já APRENDEU sobre este aluno é o ativo
+                    que nenhum outro app tem — tornar essa perda concreta na decisão. */}
+                {(() => {
+                  const pontosMapeados = ((perfilIa.topicos_fracos || []).length) + ((perfilIa.sons_dificeis || []).length)
+                  if (pontosMapeados === 0) return <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', marginTop: 10 }}>Assine para não perder seu progresso.</div>
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#e7f0fa', borderRadius: 10, padding: '10px 12px', marginTop: 12 }}>
+                      <span style={{ fontSize: 20 }}><Ic e="🧠" /></span>
+                      <div style={{ fontSize: 12, color: '#103d77', lineHeight: 1.5 }}>O Vô já mapeou <b>{pontosMapeados} {pontosMapeados === 1 ? 'ponto fraco seu' : 'pontos fracos seus'}</b> e monta seus treinos sob medida. Assinando, esse conhecimento continua com você.</div>
+                    </div>
+                  )
+                })()}
               </div>
             )}
             <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
@@ -4274,7 +4286,7 @@ export default function AppPage() {
                 <div><div style={{ fontSize: 15, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Menos de R$1 por dia · Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><span style={{ fontSize: 24, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
               </div>
-              <div style={{ width: '100%', padding: 12, background: blue, color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Assinar plano mensal <Ic e="→" /></div>
+              <div style={{ width: '100%', padding: 12, background: blue, color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Assinar por R$29,90/mês <Ic e="→" /></div>
             </div>
             <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(224,138,30,0.35)' }}>
               <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: '#16A34A', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em' }}>MELHOR OFERTA · -19%</div>
@@ -4288,7 +4300,7 @@ export default function AppPage() {
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>cobrado {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano</div>
                 </div>
               </div>
-              <div style={{ width: '100%', marginTop: 12, padding: 12, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Assinar plano anual <Ic e="🔥" /></div>
+              <div style={{ width: '100%', marginTop: 12, padding: 12, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Assinar por {isIOSNative ? 'R$24,16' : 'R$24,15'}/mês <Ic e="🔥" /></div>
             </div>
             <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto'}</div>
             {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
@@ -5859,7 +5871,7 @@ export default function AppPage() {
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Menos de R$1 por dia · Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$29,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
               </div>
-              <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar mensalmente <Ic e="→" /></button>
+              <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar por R$29,90/mês <Ic e="→" /></button>
             </div>
             <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> MELHOR OFERTA</div>
@@ -5867,7 +5879,7 @@ export default function AppPage() {
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>Economize R$69/ano</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>{isIOSNative ? 'R$289,90' : 'R$289,80'}</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · {isIOSNative ? 'R$24,16' : 'R$24,15'}/mês</div></div>
               </div>
-              <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar anualmente <Ic e="→" /></button>
+              <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar por {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano <Ic e="→" /></button>
             </div>
             {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginBottom: 16, background: goldLight, borderRadius: 10, padding: '10px 12px' }}><Ic e="⚠️" /> Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
             </>)}
@@ -6441,8 +6453,40 @@ export default function AppPage() {
                       ))}
                     </div>
                   </div>
+                  {/* Baú do Dia — recompensa VARIÁVEL (Hooked): não saber o prêmio é o que gera
+                      a expectativa que traz o aluno de volta amanhã. 1x por dia, após o treino. */}
+                  {(() => {
+                    const hojeBau = new Date().toISOString().slice(0, 10)
+                    let jaAbriu = false
+                    try { jaAbriu = localStorage.getItem('speakup_bau_dia') === hojeBau } catch (e) {}
+                    if (jaAbriu && !bauPremio) return null
+                    const abrirBau = () => {
+                      try { if (localStorage.getItem('speakup_bau_dia') === hojeBau) return } catch (e) {}
+                      const r = Math.random()
+                      let premio: string
+                      if (r < 0.08) { premio = '1 Protetor de Sequência 🧊'; const novoF = streakFreezes + 1; setStreakFreezes(novoF); salvarProgresso({ streak_freezes: novoF }) }
+                      else if (r < 0.30) { premio = '50 moedas 🪙'; ganharMoedas(50) }
+                      else if (r < 0.65) { premio = '20 moedas 🪙'; ganharMoedas(20) }
+                      else { premio = '10 moedas 🪙'; ganharMoedas(10) }
+                      try { localStorage.setItem('speakup_bau_dia', hojeBau) } catch (e) {}
+                      setBauPremio(premio)
+                      setConqNova({ e: '🎁', nome: `Baú do Dia: ${premio}` })
+                      try { track('bau_aberto', { premio }) } catch (e) {}
+                    }
+                    return (
+                      <div style={{ background: '#fef3e2', border: '1.5px solid #ffd98a', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'center', animation: 'su_risefade 0.5s ease 0.4s both' }}>
+                        {bauPremio ? (
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#8a5a10' }}>🎉 Você ganhou: {bauPremio}</div>
+                        ) : (<>
+                          <div style={{ fontSize: 30, marginBottom: 6, animation: 'su_bob 1.6s ease-in-out infinite' }}>🎁</div>
+                          <div style={{ fontSize: 13, color: '#8a5a10', fontWeight: 600, marginBottom: 10 }}>Treino completo destrava o Baú do Dia. O que veio hoje?</div>
+                          <button onClick={abrirBau} style={{ padding: '10px 22px', background: 'linear-gradient(135deg, #f5a623, #e08a1e)', color: '#fff', border: 'none', borderRadius: 999, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(224,138,30,0.35)' }}>Abrir baú</button>
+                        </>)}
+                      </div>
+                    )
+                  })()}
                   {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
-                    <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.45s both' }}>
+                    <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.45s both' }}>
                       <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Olha sua evolução aí em cima. 🔥</div>
