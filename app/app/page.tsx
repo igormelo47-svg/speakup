@@ -7001,8 +7001,11 @@ export default function AppPage() {
           entre cima e baixo, então os ícones ficam no centro exato do retângulo azul. */}
       {/* Dock flutuante: ilha arredondada sobre o conteúdo (padrão dos apps modernos).
           O fundo da área acompanha o tema; a ilha usa as variáveis pra funcionar no escuro. */}
-      <div style={{ background: 'var(--color-background-tertiary)', padding: '10px 12px max(10px, calc(env(safe-area-inset-bottom) - 16px))', flexShrink: 0 }}>
-      <div style={{ background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 24, boxShadow: '0 8px 28px rgba(16,33,68,0.16)', display: 'flex', alignItems: 'center', padding: '9px 8px' }}>
+      {/* Faixa navy #103d77 = backgroundColor nativo do wrapper iOS: a área de safe-area
+          que o sistema pinta embaixo emenda com esta faixa e vira rodapé intencional.
+          (No Android TWA, alinhar navigationBarColor pra #103d77 ao regerar o AAB.) */}
+      <div style={{ background: '#103d77', padding: '10px 12px max(10px, calc(env(safe-area-inset-bottom) - 16px))', flexShrink: 0 }}>
+      <div style={{ background: 'var(--color-background-primary)', borderRadius: 24, boxShadow: '0 8px 28px rgba(4,14,32,0.35)', display: 'flex', alignItems: 'center', padding: '9px 8px' }}>
         {/* Rótulos curtos: com 6 abas numa tela de 360px, "Listening"/"Dicionário"/
             "Professor" não cabem e a última saía cortada ("Pr..."). minWidth:0 deixa o
             flex encolher de verdade — sem isso o conteúdo trava a largura e estoura a

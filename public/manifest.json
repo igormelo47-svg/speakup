@@ -7,11 +7,13 @@
   "scope": "/",
   "display": "standalone",
   "background_color": "#185FA5",
-  "theme_color": "#185FA5",
+  "theme_color": "#103d77",
   "orientation": "portrait",
   "lang": "pt-BR",
   "dir": "ltr",
-  "categories": ["education"],
+  "categories": [
+    "education"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
