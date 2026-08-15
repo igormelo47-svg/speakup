@@ -7069,14 +7069,19 @@ export default function AppPage() {
           NÃO condicionar a `onboarded`: essa flag é por aparelho, e aluno antigo em
           navegador novo ficava sem o botão — foi assim que ele "sumiu" pro Emmanuel. */}
       {!mostrarOnboarding && tab !== 'ai' && (
-        <div style={{ position: 'absolute', right: 12, bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+        /* O container é só posicionamento: pointerEvents none nele (e auto nos filhos
+           clicáveis) evita que a área vazia/balão engula o toque do conteúdo embaixo. */
+        <div style={{ position: 'absolute', right: 12, bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, pointerEvents: 'none' }}>
           {!voFabDicaVista && (
-            <div style={{ position: 'relative', background: '#fff', borderRadius: '14px 14px 4px 14px', padding: '9px 30px 9px 12px', boxShadow: '0 4px 16px rgba(16,42,76,0.22)', maxWidth: 190, animation: 'su_risefade 0.5s ease both' }}>
+            /* pointerEvents none: o balão é AVISO, não alvo. Sem isso ele engolia o clique
+               do botão que estivesse embaixo — inclusive o "Começar exercícios" da 1ª lição
+               (bug achado no QA de 15/08). Só o ✕ recebe toque. */
+            <div style={{ position: 'relative', background: '#fff', borderRadius: '14px 14px 4px 14px', padding: '9px 30px 9px 12px', boxShadow: '0 4px 16px rgba(16,42,76,0.22)', maxWidth: 190, animation: 'su_risefade 0.5s ease both', pointerEvents: 'none' }}>
               <span style={{ fontSize: 12.5, color: '#16212c', lineHeight: 1.45 }}>Precisa de ajuda? É só me tocar que eu te ajudo! 😊</span>
-              <button onClick={() => marcarVoFabDica()} aria-label="Fechar dica" style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', fontSize: 13, color: '#93a1b0', cursor: 'pointer', padding: 2 }}>✕</button>
+              <button onClick={() => marcarVoFabDica()} aria-label="Fechar dica" style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', fontSize: 13, color: '#93a1b0', cursor: 'pointer', padding: 2, pointerEvents: 'auto' }}>✕</button>
             </div>
           )}
-          <button onClick={() => { marcarVoFabDica(); encerrarTreino(); setTab('ai'); try { track('vo_fab') } catch (e) {} }} aria-label="Falar com o Vô, seu professor" style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff', border: '2.5px solid #F5A623', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px rgba(16,42,76,0.3)', padding: 0, animation: 'su_bob 2.6s ease-in-out infinite' }}>
+          <button onClick={() => { marcarVoFabDica(); encerrarTreino(); setTab('ai'); try { track('vo_fab') } catch (e) {} }} aria-label="Falar com o Vô, seu professor" style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff', border: '2.5px solid #F5A623', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px rgba(16,42,76,0.3)', padding: 0, animation: 'su_bob 2.6s ease-in-out infinite', pointerEvents: 'auto' }}>
             <Mascote size={42} prof humor="feliz" />
           </button>
         </div>
