@@ -6287,6 +6287,26 @@ export default function AppPage() {
                     </div>
                   </div>
                 </div>
+                {/* PRIMEIRA lição do aluno: apresenta como a lição funciona e o que o app
+                    faz de melhor (áudio nativo, correção na hora, prática de fala e o Vô).
+                    Some sozinho depois da 1ª lição concluída — não vira ruído pra quem já usa. */}
+                {doneLessons === 0 && (
+                  <div style={{ background: 'linear-gradient(135deg, #fef3e2, #ffffff)', border: '1.5px solid #ffd98a', borderRadius: 16, padding: 16, marginBottom: 12, animation: 'su_risefade 0.5s ease both' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <span style={{ flexShrink: 0 }}><Mascote size={34} prof humor="feliz" /></span>
+                      <div style={{ fontSize: 13.5, color: '#8a5a10', lineHeight: 1.5, fontWeight: 600 }}>Sua primeira lição! Leia a explicação, ouça os exemplos e responda no seu ritmo. Eu corrijo na hora. 😊</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[['🔊', 'Áudio nativo', 'toque e ouça'], ['⚡', 'Correção na hora', 'com explicação'], ['🎤', 'Fale e treine', 'no fim do treino']].map(([e, t, s], i) => (
+                        <div key={i} style={{ flex: 1, background: '#fff', border: '0.5px solid #ffd98a', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 17 }}><Ic e={e} /></div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#8a5a10', marginTop: 3, lineHeight: 1.2 }}>{t}</div>
+                          <div style={{ fontSize: 10, color: '#b8860b', lineHeight: 1.2, marginTop: 1 }}>{s}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {/* Explicação */}
                 <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: '16px 16px 14px', marginBottom: 12, boxShadow: '0 1px 4px rgba(16,61,119,0.05)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -6322,11 +6342,11 @@ export default function AppPage() {
                       <span style={{ width: 26, height: 26, background: blueLight, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}><Ic e="🔊" s={14} c={blue} /></span>
                       <span style={{ fontSize: 12, fontWeight: 700, color: blue, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Exemplos</span>
                     </div>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>toque para ouvir</span>
+                    <span style={{ fontSize: 11, color: doneLessons === 0 ? blue : 'var(--color-text-tertiary)', fontWeight: doneLessons === 0 ? 700 : 400 }}>{doneLessons === 0 ? '👇 experimente: toque para ouvir' : 'toque para ouvir'}</span>
                   </div>
                   {currentLesson.examples.map((ex, i) => (
                     <div key={i} onClick={() => speakEN(ex.en, 8500 + i)} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10, padding: '10px 10px', marginBottom: i < currentLesson.examples.length - 1 ? 6 : 0, background: speakingId === 8500 + i ? blueLight : 'var(--color-background-secondary)' }}>
-                      <button onClick={(ev) => { ev.stopPropagation(); speakEN(ex.en, 8500 + i) }} aria-label="Ouvir exemplo" style={{ width: 34, height: 34, borderRadius: '50%', background: speakingId === 8500 + i ? blue : 'var(--color-background-primary)', color: speakingId === 8500 + i ? '#fff' : blue, border: '0.5px solid var(--color-border-tertiary)', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: speakingId === 8500 + i ? 'su_pulse 1.2s infinite' : 'none' }}><Ic e="🔊" s={15} c={speakingId === 8500 + i ? '#fff' : blue} /></button>
+                      <button onClick={(ev) => { ev.stopPropagation(); speakEN(ex.en, 8500 + i) }} aria-label="Ouvir exemplo" style={{ width: 34, height: 34, borderRadius: '50%', background: speakingId === 8500 + i ? blue : 'var(--color-background-primary)', color: speakingId === 8500 + i ? '#fff' : blue, border: (doneLessons === 0 && i === 0 && speakingId !== 8500) ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: speakingId === 8500 + i ? 'su_pulse 1.2s infinite' : (doneLessons === 0 && i === 0 ? 'su_pulse 2s infinite' : 'none') }}><Ic e="🔊" s={15} c={speakingId === 8500 + i ? '#fff' : blue} /></button>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14.5, fontWeight: 600, color: blue, marginBottom: 2, lineHeight: 1.4 }}>{ex.en}</div>
                         <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>{ex.pt}</div>
@@ -6334,7 +6354,11 @@ export default function AppPage() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('quiz') }} style={{ width: '100%', padding: 15, background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, color: '#fff', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 6px 16px rgba(46,114,214,0.32)' }}>Começar exercícios <Ic e="→" c="#fff" /></button>
+                <button onClick={() => { setQIdx(0); setAnswered(false); setSelected(-1); setAjudaTxt(null); licaoErrosRef.current = 0; licaoComboRef.current = 0; setView('quiz') }} style={{ width: '100%', padding: 15, background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, color: '#fff', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 6px 16px rgba(46,114,214,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+                  {doneLessons === 0 ? 'Fazer meu primeiro exercício' : 'Começar exercícios'}
+                  <span style={{ background: 'rgba(255,255,255,0.22)', fontSize: 11.5, fontWeight: 800, padding: '3px 9px', borderRadius: 20 }}>{currentLesson.q.length} questões</span>
+                  <Ic e="→" c="#fff" />
+                </button>
               </div>
             ) })()}
             {view === 'quiz' && (
