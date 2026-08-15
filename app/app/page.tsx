@@ -5281,15 +5281,15 @@ export default function AppPage() {
               <VoFala escuro fala="Última pergunta, e é a mais importante: como VOCÊ prefere aprender? Aqui quem manda é você." />
               <div style={{ height: 16 }} />
               <button onClick={() => concluirOnboarding({ estilo: 'conversa', destino: 'ai' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>💬</span><span style={{ flex: 1, textAlign: 'left' }}>Conversando com o professor<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Fale comigo e eu corrijo na hora, em português</span></span></button>
-              <button onClick={() => { try { if (localStorage.getItem('speakup_nivel')) { concluirOnboarding({ estilo: 'licoes', destino: 'trilha' }); return } } catch (e) {}; setOnbStep(4) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📖</span><span style={{ flex: 1, textAlign: 'left' }}>Com lições passo a passo<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Trilha do básico ao avançado, no seu ritmo</span></span></button>
+              <button onClick={() => { try { if (localStorage.getItem('speakup_nivel')) { concluirOnboarding({ estilo: 'licoes', destino: 'treino' }); return } } catch (e) {}; setOnbStep(4) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📖</span><span style={{ flex: 1, textAlign: 'left' }}>Com lições passo a passo<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Trilha do básico ao avançado, no seu ritmo</span></span></button>
               <button onClick={() => concluirOnboarding({ estilo: 'tarefas', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>✅</span><span style={{ flex: 1, textAlign: 'left' }}>Com tarefas diárias<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Um treino curtinho por dia, montado pra você</span></span></button>
               <button onClick={() => setOnbStep(2)} style={onbBack}>← Voltar</button>
             </>)}
             {onbStep === 4 && (<>
               <VoFala escuro fala="Boa escolha! Pra trilha começar no ponto certo: qual é o seu nível hoje? Se não souber, eu descubro pra você em 2 minutinhos." />
               <div style={{ height: 16 }} />
-              <button onClick={() => concluirOnboarding({ nivel: 'A1', estilo: 'licoes', destino: 'trilha' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
-              <button onClick={() => concluirOnboarding({ nivel: 'A2', estilo: 'licoes', destino: 'trilha' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
+              <button onClick={() => concluirOnboarding({ nivel: 'A1', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
+              <button onClick={() => concluirOnboarding({ nivel: 'A2', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
               <button onClick={() => concluirOnboarding({ estilo: 'licoes', irNivelamento: true })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span> Descobrir meu nível (2 min)</button>
               <button onClick={() => setOnbStep(3)} style={onbBack}>← Voltar</button>
             </>)}
@@ -5866,7 +5866,9 @@ export default function AppPage() {
                   )})}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 18, lineHeight: 1.5, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>Vamos te colocar no ponto certo para evoluir mais rápido. Você pode mudar de nível quando quiser na aba Lições.</div>
-                <button onClick={() => setTab('lessons')} style={{ width: '100%', padding: 15, marginTop: 24, background: lc, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: `0 6px 18px ${lc}44` }}>Começar no nível {nivResult} <Ic e="→" /></button>
+                {/* Ativação D0: o teste de nível termina DENTRO da primeira lição, não na
+                    tela de navegação — 42% dos alunos sumiam entre o onboarding e a 1ª questão. */}
+                <button onClick={() => { const arr = lessons[nivResult] || []; const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l))); if (idx >= 0) { setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null; abrirLicaoTreino(idx) } else setTab('lessons') }} style={{ width: '100%', padding: 15, marginTop: 24, background: lc, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: `0 6px 18px ${lc}44` }}>Começar minha primeira lição <Ic e="→" /></button>
                 <button onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null) }} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
               </div>
               ) })()}
