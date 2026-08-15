@@ -1,0 +1,21 @@
+﻿Teste de nivelamento profissional: adaptativo, 20 questoes, com audio
+
+O teste tinha 30 questoes fixas em sequencia mas prometia "2 min" - longo,
+previsivel e sem audio. Agora:
+
+- ADAPTATIVO: comeca no A2 e sobe/desce de nivel a cada resposta, como fazem
+  os testes profissionais; converge no nivel real em poucas questoes
+- 20 questoes sorteadas de um banco que dobrou (30 -> 60): cada tentativa e
+  diferente, sem repetir questao
+- Novo tipo ESCUTA: o aluno ouve a voz nativa e responde (mostra o app
+  trabalhando ja no teste); 4 tipos no total (gramatica, vocabulario,
+  compreensao, escuta)
+- Resultado com estatisticas reais (acertos, questoes, quantas de escuta)
+- ESCOLHER NIVEL SEM TESTE: nova tela com os 6 niveis descritos pelo que a
+  pessoa consegue fazer; acessivel do onboarding, de dentro do teste e do
+  resultado. Leva direto para a 1a licao do nivel escolhido
+
+Validado ponta a ponta: 20/20 questoes, 4 tipos, audio tocando, e a escolha
+manual de B1 caindo na licao certa.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>

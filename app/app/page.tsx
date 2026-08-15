@@ -1368,6 +1368,48 @@ const cefrByTitle: Record<string, string> = {
 
 const placementQuestions = [{"lvl": "A1", "tipo": "G", "q": "\"___ name is John.\"", "opts": ["My", "Me", "I", "Mine"], "ans": 0, "ctx": ""}, {"lvl": "A1", "tipo": "G", "q": "\"She ___ a doctor.\"", "opts": ["am", "is", "are", "be"], "ans": 1, "ctx": ""}, {"lvl": "A1", "tipo": "G", "q": "\"There ___ two books on the table.\"", "opts": ["is", "am", "are", "be"], "ans": 2, "ctx": ""}, {"lvl": "A1", "tipo": "V", "q": "O oposto de \"big\" é:", "opts": ["small", "tall", "long", "old"], "ans": 0, "ctx": ""}, {"lvl": "A1", "tipo": "L", "q": "Pergunta: Where is Tom going?", "opts": ["To the gym", "A blue car", "Three apples", "Yesterday"], "ans": 0, "ctx": "Tom says: \"I am going to the gym now.\""}, {"lvl": "A2", "tipo": "G", "q": "\"Last weekend we ___ a movie.\"", "opts": ["watch", "watched", "watching", "watches"], "ans": 1, "ctx": ""}, {"lvl": "A2", "tipo": "G", "q": "\"He is ___ than his brother.\"", "opts": ["tall", "taller", "tallest", "more tall"], "ans": 1, "ctx": ""}, {"lvl": "A2", "tipo": "G", "q": "\"I ___ going to call you tomorrow.\"", "opts": ["am", "is", "are", "be"], "ans": 0, "ctx": ""}, {"lvl": "A2", "tipo": "V", "q": "\"I am very tired. I need to ___.\"", "opts": ["rest", "run", "cook", "drive"], "ans": 0, "ctx": ""}, {"lvl": "A2", "tipo": "L", "q": "Pergunta: When does the store close?", "opts": ["At 8 p.m.", "On Mondays", "For two hours", "Very cheap"], "ans": 0, "ctx": "Sign: \"Our store is open from 9 a.m. to 8 p.m., Monday to Friday.\""}, {"lvl": "B1", "tipo": "G", "q": "\"I have known her ___ five years.\"", "opts": ["since", "for", "ago", "during"], "ans": 1, "ctx": ""}, {"lvl": "B1", "tipo": "G", "q": "\"If you heat ice, it ___.\"", "opts": ["melt", "melts", "melted", "will melt"], "ans": 1, "ctx": ""}, {"lvl": "B1", "tipo": "G", "q": "\"She asked me where I ___ from.\"", "opts": ["come", "came", "coming", "comes"], "ans": 1, "ctx": ""}, {"lvl": "B1", "tipo": "V", "q": "\"The meeting was ___; everyone fell asleep.\"", "opts": ["boring", "bored", "boredom", "bore"], "ans": 0, "ctx": ""}, {"lvl": "B1", "tipo": "L", "q": "Pergunta: Why was the trip cancelled?", "opts": ["Because of the weather", "Because it was cheap", "Because of the food", "Because Tom was happy"], "ans": 0, "ctx": "Email: \"Unfortunately, due to the heavy storm, we had to cancel the trip this weekend.\""}, {"lvl": "B2", "tipo": "G", "q": "\"By the time the police arrived, the thief ___.\"", "opts": ["escaped", "has escaped", "had escaped", "escapes"], "ans": 2, "ctx": ""}, {"lvl": "B2", "tipo": "G", "q": "\"I wish I ___ more time to study yesterday.\"", "opts": ["have had", "had had", "have", "had"], "ans": 1, "ctx": ""}, {"lvl": "B2", "tipo": "G", "q": "\"The report ___ by the team last week.\"", "opts": ["was written", "wrote", "has wrote", "is writing"], "ans": 0, "ctx": ""}, {"lvl": "B2", "tipo": "V", "q": "\"Her argument was ___; nobody could disagree.\"", "opts": ["compelling", "comfortable", "compulsory", "competitive"], "ans": 0, "ctx": ""}, {"lvl": "B2", "tipo": "L", "q": "A frase implica que o projeto:", "opts": ["será adiado", "já terminou", "nunca começou", "foi um sucesso"], "ans": 0, "ctx": "Note: \"Given the current budget constraints, the launch will have to be postponed until further notice.\""}, {"lvl": "C1", "tipo": "G", "q": "\"Not only ___ the deadline, but he also impressed the client.\"", "opts": ["he met", "met he", "did he meet", "he did meet"], "ans": 2, "ctx": ""}, {"lvl": "C1", "tipo": "G", "q": "\"___ harder, she would have passed the exam.\"", "opts": ["Had she studied", "If she studies", "She had studied", "Did she study"], "ans": 0, "ctx": ""}, {"lvl": "C1", "tipo": "G", "q": "\"It was his persistence ___ ultimately led to success.\"", "opts": ["which", "that", "who", "what"], "ans": 1, "ctx": ""}, {"lvl": "C1", "tipo": "V", "q": "\"The new policy was met with widespread ___.\"", "opts": ["scepticism", "scenery", "schedule", "sculpture"], "ans": 0, "ctx": ""}, {"lvl": "C1", "tipo": "L", "q": "O tom do autor é:", "opts": ["crítico", "entusiasmado", "neutro e informativo", "humorístico"], "ans": 0, "ctx": "Review: \"While the device boasts impressive specs, its exorbitant price and fragile build leave much to be desired.\""}, {"lvl": "C2", "tipo": "G", "q": "\"Seldom ___ such a remarkable performance.\"", "opts": ["we have seen", "have we seen", "we saw", "saw we"], "ans": 1, "ctx": ""}, {"lvl": "C2", "tipo": "G", "q": "\"He spoke as though he ___ the whole story himself.\"", "opts": ["witnessed", "has witnessed", "had witnessed", "witnesses"], "ans": 2, "ctx": ""}, {"lvl": "C2", "tipo": "V", "q": "\"Ephemeral\" most nearly means:", "opts": ["lasting briefly", "extremely loud", "very heavy", "clearly visible"], "ans": 0, "ctx": ""}, {"lvl": "C2", "tipo": "V", "q": "\"To take something with a grain of salt\" means to:", "opts": ["be skeptical of it", "add flavour to it", "accept it fully", "forget it quickly"], "ans": 0, "ctx": ""}, {"lvl": "C2", "tipo": "L", "q": "A passagem sugere que a teoria é:", "opts": ["elegante mas pouco prática", "totalmente comprovada", "simples de aplicar", "amplamente rejeitada"], "ans": 0, "ctx": "Critique: \"The theory, for all its conceptual elegance, founders when confronted with the messy realities of implementation.\""}]
 
+// Banco EXTRA do nivelamento (15/08): dobra o pool para o teste adaptativo de 20
+// questões não repetir e sortear diferente a cada tentativa. Tipos: G gramática,
+// V vocabulário, L compreensão de texto, A áudio (o aluno OUVE e responde).
+const placementExtra: { lvl: string; tipo: string; q: string; opts: string[]; ans: number; ctx: string; audio?: string }[] = [
+  // A1
+  { lvl: 'A1', tipo: 'A', q: 'O que você ouviu?', opts: ['I have two sisters.', 'I have two sandwiches.', 'I had two seats.', 'I have to see her.'], ans: 0, ctx: '', audio: 'I have two sisters.' },
+  { lvl: 'A1', tipo: 'G', q: '"They ___ my friends."', opts: ['is', 'am', 'are', 'be'], ans: 2, ctx: '' },
+  { lvl: 'A1', tipo: 'V', q: 'Como se diz "obrigado" em inglês?', opts: ['Please', 'Sorry', 'Thank you', 'Excuse me'], ans: 2, ctx: '' },
+  { lvl: 'A1', tipo: 'G', q: '"I ___ like coffee." (negativo)', opts: ["don't", "doesn't", 'not', 'am not'], ans: 0, ctx: '' },
+  { lvl: 'A1', tipo: 'V', q: 'Qual destes é um dia da semana?', opts: ['August', 'Monday', 'Winter', 'Morning'], ans: 1, ctx: '' },
+  // A2
+  { lvl: 'A2', tipo: 'A', q: 'O que a pessoa quer?', opts: ['Pagar a conta', 'Pedir o cardápio', 'Reservar uma mesa', 'Cancelar o pedido'], ans: 2, ctx: '', audio: "I'd like to book a table for two, please." },
+  { lvl: 'A2', tipo: 'G', q: '"There isn\'t ___ milk in the fridge."', opts: ['some', 'any', 'many', 'a'], ans: 1, ctx: '' },
+  { lvl: 'A2', tipo: 'V', q: '"I have to ___ a bus to work every day."', opts: ['take', 'make', 'do', 'get up'], ans: 0, ctx: '' },
+  { lvl: 'A2', tipo: 'G', q: '"She ___ never been to Brazil."', opts: ['have', 'has', 'is', 'was'], ans: 1, ctx: '' },
+  { lvl: 'A2', tipo: 'L', q: 'O que o aviso informa?', opts: ['A loja mudou de endereço', 'Haverá desconto amanhã', 'A loja fecha mais cedo hoje', 'A loja está contratando'], ans: 2, ctx: 'Notice: "Today we will close at 4 p.m. instead of 8 p.m."' },
+  // B1
+  { lvl: 'B1', tipo: 'A', q: 'Qual é o problema dele?', opts: ['Perdeu o voo', 'O voo atrasou', 'Esqueceu a mala', 'Errou o portão'], ans: 1, ctx: '', audio: 'My flight was delayed by three hours, so I missed the meeting.' },
+  { lvl: 'B1', tipo: 'G', q: '"You ___ smoke here. It\'s forbidden."', opts: ["don't have to", "mustn't", 'could', 'might'], ans: 1, ctx: '' },
+  { lvl: 'B1', tipo: 'V', q: '"I need to ___ an appointment with the dentist."', opts: ['do', 'make', 'take', 'give'], ans: 1, ctx: '' },
+  { lvl: 'B1', tipo: 'G', q: '"The book ___ I bought is excellent."', opts: ['who', 'whose', 'that', 'where'], ans: 2, ctx: '' },
+  { lvl: 'B1', tipo: 'V', q: '"To give up" significa:', opts: ['desistir', 'levantar', 'entregar cedo', 'devolver'], ans: 0, ctx: '' },
+  // B2
+  { lvl: 'B2', tipo: 'A', q: 'Qual é a sugestão dela?', opts: ['Contratar mais gente', 'Adiar o lançamento', 'Reduzir o preço', 'Refazer a pesquisa'], ans: 1, ctx: '', audio: 'Rather than rushing, I suggest we postpone the launch until the tests are complete.' },
+  { lvl: 'B2', tipo: 'G', q: '"He denied ___ the money."', opts: ['to take', 'taking', 'take', 'took'], ans: 1, ctx: '' },
+  { lvl: 'B2', tipo: 'V', q: '"The deadline is ___; we cannot change it."', opts: ['flexible', 'tentative', 'strict', 'loose'], ans: 2, ctx: '' },
+  { lvl: 'B2', tipo: 'G', q: '"If I ___ you, I would accept the offer."', opts: ['am', 'was', 'were', 'be'], ans: 2, ctx: '' },
+  { lvl: 'B2', tipo: 'L', q: 'A empresa está:', opts: ['comemorando lucro', 'cortando custos', 'abrindo filiais', 'contratando'], ans: 1, ctx: 'Memo: "In light of the downturn, we will be scaling back operations and freezing new hires."' },
+  // C1
+  { lvl: 'C1', tipo: 'A', q: 'O palestrante está:', opts: ['discordando com educação', 'concordando plenamente', 'fazendo uma pergunta', 'encerrando o assunto'], ans: 0, ctx: '', audio: 'With all due respect, I am not entirely convinced that the data supports that conclusion.' },
+  { lvl: 'C1', tipo: 'G', q: '"Little ___ that he would become famous."', opts: ['he knew', 'did he know', 'he did know', 'knew he'], ans: 1, ctx: '' },
+  { lvl: 'C1', tipo: 'V', q: '"To bite the bullet" significa:', opts: ['encarar algo difícil', 'falar demais', 'economizar dinheiro', 'perder a paciência'], ans: 0, ctx: '' },
+  { lvl: 'C1', tipo: 'G', q: '"She is used to ___ under pressure."', opts: ['work', 'working', 'works', 'worked'], ans: 1, ctx: '' },
+  { lvl: 'C1', tipo: 'V', q: '"A meticulous person" is someone who is:', opts: ['very careful with details', 'always late', 'easily angered', 'extremely generous'], ans: 0, ctx: '' },
+  // C2
+  { lvl: 'C2', tipo: 'A', q: 'O tom do comentário é:', opts: ['irônico', 'literal e elogioso', 'neutro', 'confuso'], ans: 0, ctx: '', audio: 'Well, that meeting was a masterclass in saying absolutely nothing for two hours.' },
+  { lvl: 'C2', tipo: 'G', q: '"Were it not for your help, I ___ failed."', opts: ['would have', 'will have', 'had', 'have'], ans: 0, ctx: '' },
+  { lvl: 'C2', tipo: 'V', q: '"Ubiquitous" means:', opts: ['found everywhere', 'rarely seen', 'highly technical', 'poorly made'], ans: 0, ctx: '' },
+  { lvl: 'C2', tipo: 'V', q: '"To hedge one\'s bets" means to:', opts: ['reduce risk by not committing fully', 'gamble everything', 'refuse to decide', 'copy a rival'], ans: 0, ctx: '' },
+  { lvl: 'C2', tipo: 'L', q: 'O autor considera a proposta:', opts: ['bem-intencionada, porém inviável', 'brilhante e pronta', 'desonesta', 'irrelevante'], ans: 0, ctx: 'Editorial: "However laudable its aims, the proposal rests on assumptions that scarcely withstand scrutiny."' },
+]
+
 const listeningExercises = [
   { nivel: 'A1', en: "Hi! My name is Anna and I'm from Canada.", pt: 'Oi! Meu nome é Anna e eu sou do Canadá.', q: 'De onde a Anna é?', opts: ['Do Canadá', 'Da Austrália', 'Da Irlanda', 'Dos Estados Unidos'], ans: 0 },
   { nivel: 'A1', en: "I wake up at seven o'clock every morning.", pt: 'Eu acordo às sete horas toda manhã.', q: 'A que horas ela acorda?', opts: ['Às sete', 'Às nove', 'Às seis', 'Às onze'], ans: 0 },
@@ -2373,6 +2415,12 @@ export default function AppPage() {
   const [nivSel, setNivSel] = useState(-1)
   const [nivAns, setNivAns] = useState(false)
   const [nivResult, setNivResult] = useState<string | null>(null)
+  // Teste ADAPTATIVO (15/08): a prova monta a si mesma — acertou, sobe de nível;
+  // errou, desce. 20 questões sorteadas de um banco de 60, sem repetir, com áudio.
+  // nivFila = as questões já sorteadas; nivHist = nível de cada uma + se acertou.
+  const [nivFila, setNivFila] = useState<any[]>([])
+  const [nivHist, setNivHist] = useState<{ lvl: number; ok: boolean }[]>([])
+  const [nivEscolher, setNivEscolher] = useState(false) // tela "escolher meu nível sem teste"
   const [desafioFeito, setDesafioFeito] = useState(false)
   const [desQ, setDesQ] = useState(0)
   const [desSel, setDesSel] = useState(-1)
@@ -4122,6 +4170,41 @@ export default function AppPage() {
       salvarDominio({ erros_qs: lista })
     } catch (e) {}
   }
+  // ----- Motor do teste de nivelamento ADAPTATIVO -----
+  const NIV_TOTAL = 20
+  const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+  const bancoNivelamento = [...placementQuestions, ...placementExtra]
+  // Sorteia uma questão do nível pedido que ainda não apareceu; se o nível esgotou,
+  // procura no nível vizinho (nunca trava o teste).
+  function sortearQuestaoNiv(nivelIdx: number, jaUsadas: any[]) {
+    const usadas = new Set(jaUsadas.map(q => q.q))
+    for (const delta of [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5]) {
+      const alvo = NIVEIS[Math.min(NIVEIS.length - 1, Math.max(0, nivelIdx + delta))]
+      const pool = bancoNivelamento.filter(q => q.lvl === alvo && !usadas.has(q.q))
+      if (pool.length) return pool[Math.floor(Math.random() * pool.length)]
+    }
+    return null
+  }
+  function iniciarNivelamento() {
+    const primeira = sortearQuestaoNiv(1, []) // começa no A2: nem fácil demais, nem assustador
+    setNivFila(primeira ? [primeira] : []); setNivHist([]); setNivIdx(0)
+    setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false)
+    setNivScore([0, 0, 0, 0, 0, 0]); setTab('nivelamento')
+    try { track('nivelamento_iniciado') } catch (e) {}
+  }
+  // Fecha o teste: o nível é a média dos níveis das questões RESPONDIDAS CERTO na
+  // segunda metade (onde o adaptativo já convergiu); sem acertos, cai no A1.
+  function calcularNivelFinal(hist: { lvl: number; ok: boolean }[]) {
+    const metade = hist.slice(Math.floor(hist.length / 2))
+    const certos = metade.filter(h => h.ok).map(h => h.lvl)
+    if (!certos.length) {
+      const todosCertos = hist.filter(h => h.ok).map(h => h.lvl)
+      if (!todosCertos.length) return 'A1'
+      return NIVEIS[Math.round(todosCertos.reduce((a, b) => a + b, 0) / todosCertos.length)]
+    }
+    const media = certos.reduce((a, b) => a + b, 0) / certos.length
+    return NIVEIS[Math.min(5, Math.max(0, Math.round(media)))]
+  }
   // ----- Compartilhar progresso (padrão dos líderes: Duolingo/Busuu) -----
   // Gera um cartão 1080x1080 com a sequência do aluno e abre o compartilhar nativo
   // (WhatsApp/Instagram). Cada aluno orgulhoso vira divulgação gratuita.
@@ -4198,15 +4281,18 @@ export default function AppPage() {
   //   conversa → chat com o professor;  licoes → trilha (com nivelamento SÓ aqui);
   //   tarefas → treino guiado do dia. O estilo fica no perfil_ia para o professor
   //   conhecer o aluno e para medirmos qual porta retém melhor.
-  function concluirOnboarding(o: { nivel?: string; irNivelamento?: boolean; estilo?: string; destino?: 'ai' | 'trilha' | 'treino' }) {
+  function concluirOnboarding(o: { nivel?: string; irNivelamento?: boolean; estilo?: string; destino?: 'ai' | 'trilha' | 'treino' | 'nivelManual' }) {
     salvarPerfil({ ...perfilIa, objetivo: onbObj || OBJETIVO_PADRAO, meta_diaria: onbMeta, ...(o.estilo ? { estilo_aprender: o.estilo } : {}) })
     if (o.nivel) { setLevel(o.nivel); try { localStorage.setItem('speakup_nivel', o.nivel) } catch (e) {} }
     try { localStorage.setItem('speakup_onboarded', '1') } catch (e) {}
     setOnboarded(true)
     try { track('onboarding_estilo', { estilo: o.estilo || 'nenhum' }) } catch (e) {}
-    if (o.irNivelamento) { setNivIdx(0); setNivScore([0, 0, 0, 0, 0, 0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') }
+    if (o.irNivelamento) { iniciarNivelamento() }
     else if (o.destino === 'ai') setTab('ai')
     else if (o.destino === 'trilha') setTab('trilha')
+    // "Já sei meu nível": abre a lista de níveis; NÃO pode cair no treino automático
+    // (o useEffect de ativação sobrescreveria a tela).
+    else if (o.destino === 'nivelManual') { setNivResult(null); setNivEscolher(true); setTab('nivelamento') }
     // Ativação D0: cair DENTRO do 1º treino, sem precisar achar o botão na home
     // (via useEffect, para o iniciarTreino enxergar o nível recém-escolhido).
     else setTreinoAposOnboarding(true)
@@ -5290,7 +5376,8 @@ export default function AppPage() {
               <div style={{ height: 16 }} />
               <button onClick={() => concluirOnboarding({ nivel: 'A1', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
               <button onClick={() => concluirOnboarding({ nivel: 'A2', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
-              <button onClick={() => concluirOnboarding({ estilo: 'licoes', irNivelamento: true })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span> Descobrir meu nível (2 min)</button>
+              <button onClick={() => concluirOnboarding({ estilo: 'licoes', irNivelamento: true })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span><span style={{ flex: 1, textAlign: 'left' }}>Fazer o teste de nivelamento<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>20 questões que se adaptam a você · ~5 min</span></span></button>
+              <button onClick={() => concluirOnboarding({ estilo: 'licoes', destino: 'nivelManual' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🎚️</span><span style={{ flex: 1, textAlign: 'left' }}>Já sei meu nível<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Escolher direto, sem fazer teste</span></span></button>
               <button onClick={() => setOnbStep(3)} style={onbBack}>← Voltar</button>
             </>)}
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 24 }}>
@@ -5794,19 +5881,58 @@ export default function AppPage() {
             <div style={{ position: 'absolute', right: -12, top: 4, opacity: 0.13, pointerEvents: 'none' }}><Ic e="📊" c="#fff" s={108} /></div>
             <button onClick={() => setTab('home')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 20, padding: 0, marginBottom: 12, position: 'relative' }}><Ic e="←" /></button>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', position: 'relative' }}>Teste de Nivelamento</div>
-            <div style={{ fontSize: 13, color: '#bcd6f2', marginTop: 4, position: 'relative' }}>Descubra onde começar — leva 2 minutos</div>
-            {nivResult === null && <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 7, overflow: 'hidden', marginTop: 14, position: 'relative' }}><div style={{ background: '#4ADE80', height: '100%', width: `${Math.round(nivIdx / placementQuestions.length * 100)}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>}
+            <div style={{ fontSize: 13, color: '#bcd6f2', marginTop: 4, position: 'relative' }}>{nivEscolher ? 'Escolha o nível que combina com você' : `${NIV_TOTAL} questões que se adaptam a você — cerca de 5 minutos`}</div>
+            {nivResult === null && !nivEscolher && <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 7, overflow: 'hidden', marginTop: 14, position: 'relative' }}><div style={{ background: '#4ADE80', height: '100%', width: `${Math.round(nivIdx / NIV_TOTAL * 100)}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>}
           </div>
           <div style={{ padding: 16 }}>
-            {nivResult === null ? (() => {
-              const q = placementQuestions[nivIdx]
-              const ti: [string, string] = ({ G: ['Gramática', '#2E72D6'], V: ['Vocabulário', '#2e72d6'], L: ['Compreensão', '#16a34a'] } as Record<string, [string, string]>)[q.tipo] || ['Questão', '#2E72D6']
+            {nivEscolher ? (
+              /* Caminho sem teste: o aluno que já sabe seu nível não deve ser obrigado
+                 a fazer prova — cada nível é descrito pelo que a pessoa CONSEGUE fazer. */
+              <div style={{ animation: 'su_fade 0.3s ease' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Qual frase combina mais com você hoje?</div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>Pode mudar de nível quando quiser, na aba Trilha.</div>
+                {[
+                  ['A1', 'Iniciante', 'Sei pouquíssimo ou nada. Quero começar do zero.', '#16A34A'],
+                  ['A2', 'Básico', 'Me apresento, falo do meu dia e frases simples.', '#16A34A'],
+                  ['B1', 'Intermediário', 'Me viro em viagem e converso sobre assuntos do dia a dia.', '#2E72D6'],
+                  ['B2', 'Intermediário+', 'Discuto assuntos variados e acompanho filmes com legenda em inglês.', '#2E72D6'],
+                  ['C1', 'Avançado', 'Trabalho ou estudo em inglês com naturalidade.', '#103d77'],
+                  ['C2', 'Domínio', 'Entendo nuances, ironia e textos complexos sem esforço.', '#103d77'],
+                ].map(([lv, nome, desc, cor]) => (
+                  <button key={lv} onClick={() => {
+                    setLevel(lv); try { localStorage.setItem('speakup_nivel', lv) } catch (e) {}
+                    try { track('nivel_escolhido_manual', { nivel: lv }) } catch (e) {}
+                    const arr = lessons[lv] || []
+                    const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
+                    setNivEscolher(false)
+                    if (idx >= 0) { setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null; abrirLicaoTreino(idx) } else setTab('lessons')
+                  }} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: 14, marginBottom: 10, borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <span style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 12, background: cor + '18', color: cor, fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{lv}</span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{nome}</span>
+                      <span style={{ display: 'block', fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 2, lineHeight: 1.4 }}>{desc}</span>
+                    </span>
+                    <Ic e="→" c="var(--color-text-tertiary)" />
+                  </button>
+                ))}
+                <button onClick={() => { setNivEscolher(false); iniciarNivelamento() }} style={{ width: '100%', padding: 13, marginTop: 6, background: 'none', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Prefiro fazer o teste <Ic e="📊" /></button>
+              </div>
+            ) : nivResult === null ? (() => {
+              const q = nivFila[nivIdx] || bancoNivelamento[0]
+              const ti: [string, string] = ({ G: ['Gramática', '#2E72D6'], V: ['Vocabulário', '#8a5a10'], L: ['Compreensão', '#16a34a'], A: ['Escuta', '#103d77'] } as Record<string, [string, string]>)[q.tipo] || ['Questão', '#2E72D6']
               return (
               <div style={{ animation: 'su_fade 0.3s ease' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <span style={{ fontSize: 12, color: blue, fontWeight: 700, background: blueLight, padding: '4px 12px', borderRadius: 20 }}>Pergunta {nivIdx + 1} de {placementQuestions.length}</span>
+                  <span style={{ fontSize: 12, color: blue, fontWeight: 700, background: blueLight, padding: '4px 12px', borderRadius: 20 }}>Pergunta {nivIdx + 1} de {NIV_TOTAL}</span>
                   <span style={{ fontSize: 11, color: ti[1], fontWeight: 700, background: ti[1] + '1A', padding: '4px 11px', borderRadius: 20 }}>{ti[0]}</span>
                 </div>
+                {/* Questão de ESCUTA: mostra o app trabalhando (voz nativa) já no teste. */}
+                {(q as any).audio && (
+                  <button onClick={() => { try { speakEN((q as any).audio, 91000 + nivIdx) } catch (e) {} }} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 14px', marginBottom: 14, borderRadius: 14, border: `1.5px solid ${blue}`, background: blueLight, color: blueDark, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: '50%', background: blue, flexShrink: 0 }}><Ic e="🔊" c="#fff" s={17} /></span>
+                    Tocar o áudio <span style={{ fontSize: 12, fontWeight: 600, color: blue }}>(pode ouvir de novo)</span>
+                  </button>
+                )}
                 {q.ctx && (
                   <div style={{ background: blueLight, borderLeft: `3px solid ${blue}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, fontSize: 14, color: blueDark, lineHeight: 1.5, fontStyle: 'italic' }}>{q.ctx}</div>
                 )}
@@ -5837,19 +5963,26 @@ export default function AppPage() {
                   )
                 })}
                 <button disabled={!nivAns} onClick={() => {
-                  const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+                  const lvlIdx = NIVEIS.indexOf(q.lvl)
+                  const acertou = nivSel === q.ans
                   const newScore = [...nivScore]
-                  if (nivSel === q.ans) newScore[levels.indexOf(q.lvl)] += 1
+                  if (acertou) newScore[lvlIdx] += 1
                   setNivScore(newScore)
-                  if (nivIdx < placementQuestions.length - 1) { setNivIdx(nivIdx + 1); setNivSel(-1); setNivAns(false) }
-                  else {
-                    let rec = 'C2'
-                    for (let i = 0; i < 6; i++) { if (newScore[i] < 3) { rec = levels[i]; break } }
-                    setNivResult(rec); setLevel(rec)
-                    try { localStorage.setItem('speakup_nivel', rec) } catch (e) {}
-                    eventoAtivacao('nivelamento_concluido', { nivel: rec })
+                  const hist = [...nivHist, { lvl: lvlIdx, ok: acertou }]
+                  setNivHist(hist)
+                  if (nivIdx < NIV_TOTAL - 1) {
+                    // Adaptativo: acertou sobe um degrau, errou desce — o teste
+                    // converge no nível real do aluno em poucas questões.
+                    const prox = Math.min(5, Math.max(0, lvlIdx + (acertou ? 1 : -1)))
+                    const nova = sortearQuestaoNiv(prox, nivFila)
+                    if (nova) { setNivFila([...nivFila, nova]); setNivIdx(nivIdx + 1); setNivSel(-1); setNivAns(false); return }
                   }
-                }} style={{ width: '100%', padding: 15, marginTop: 8, background: !nivAns ? 'var(--color-background-secondary)' : blue, color: !nivAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: !nivAns ? 'default' : 'pointer' }}>{nivIdx < placementQuestions.length - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
+                  const rec = calcularNivelFinal(hist)
+                  setNivResult(rec); setLevel(rec)
+                  try { localStorage.setItem('speakup_nivel', rec) } catch (e) {}
+                  eventoAtivacao('nivelamento_concluido', { nivel: rec, acertos: hist.filter(h => h.ok).length, total: hist.length })
+                }} style={{ width: '100%', padding: 15, marginTop: 8, background: !nivAns ? 'var(--color-background-secondary)' : blue, color: !nivAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: !nivAns ? 'default' : 'pointer' }}>{nivIdx < NIV_TOTAL - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
+                <button onClick={() => setNivEscolher(true)} style={{ width: '100%', padding: 12, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Já sei meu nível — escolher sem teste</button>
               </div>
               ) })() : (() => {
               const lc = ['A1', 'A2'].includes(nivResult) ? '#16A34A' : ['B1', 'B2'].includes(nivResult) ? '#2E72D6' : '#2e72d6'
@@ -5865,11 +5998,23 @@ export default function AppPage() {
                     <span key={lv} style={{ fontSize: 12.5, fontWeight: on ? 800 : 600, color: on ? '#fff' : 'var(--color-text-secondary)', background: on ? c : 'var(--color-background-secondary)', border: on ? 'none' : '0.5px solid var(--color-border-tertiary)', padding: '7px 11px', borderRadius: 10, transform: on ? 'scale(1.12)' : 'none' }}>{lv}</span>
                   )})}
                 </div>
+                {nivHist.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 18, maxWidth: 320, marginLeft: 'auto', marginRight: 'auto' }}>
+                    {[['✅', String(nivHist.filter(h => h.ok).length), 'acertos'], ['📝', String(nivHist.length), 'questões'], ['🎧', String(nivFila.filter((x: any) => x && x.audio).length), 'de escuta']].map(([e, n, l], i) => (
+                      <div key={i} style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 12, padding: '10px 6px' }}>
+                        <div style={{ fontSize: 15 }}><Ic e={e} /></div>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 2 }}>{n}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--color-text-secondary)' }}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 18, lineHeight: 1.5, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>Vamos te colocar no ponto certo para evoluir mais rápido. Você pode mudar de nível quando quiser na aba Lições.</div>
                 {/* Ativação D0: o teste de nível termina DENTRO da primeira lição, não na
                     tela de navegação — 42% dos alunos sumiam entre o onboarding e a 1ª questão. */}
                 <button onClick={() => { const arr = lessons[nivResult] || []; const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l))); if (idx >= 0) { setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null; abrirLicaoTreino(idx) } else setTab('lessons') }} style={{ width: '100%', padding: 15, marginTop: 24, background: lc, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: `0 6px 18px ${lc}44` }}>Começar minha primeira lição <Ic e="→" /></button>
-                <button onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null) }} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
+                <button onClick={() => iniciarNivelamento()} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
+                <button onClick={() => { setNivResult(null); setNivEscolher(true) }} style={{ width: '100%', padding: 12, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Prefiro escolher outro nível na mão</button>
               </div>
               ) })()}
           </div>
