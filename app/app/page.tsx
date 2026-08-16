@@ -3519,11 +3519,15 @@ export default function AppPage() {
     setAvaliarModal(false)
   }
 
-  // Gatilho: uma conquista de verdade — 7 dias de sequência ou 5 lições concluídas. Convidar
-  // antes disso é pedir opinião de quem ainda não tem opinião, e rende nota baixa.
+  // Gatilho: uma conquista de verdade, mas ALCANÇÁVEL. Era 7 dias de sequência ou 5 lições —
+  // patamar que, medindo o banco em 16/08/2026, cerca de UMA pessoa tinha atingido em 111 contas
+  // (só 4 alunos passaram de 3 lições). Resultado: o convite quase nunca apareceu e a ficha do
+  // Play seguiu com ZERO avaliações, o que trava o ranqueamento e, com ele, os downloads.
+  // 2 lições/3 dias ainda é gente com opinião formada (não é o recém-chegado), e é um patamar
+  // que a base real alcança. Revisar para cima quando a retenção melhorar.
   useEffect(() => {
     if (!xpHydrated || avaliarModal) return
-    if (streak < 7 && licoesConcluidas.length < 5) return
+    if (streak < 3 && licoesConcluidas.length < 2) return
     try {
       if (localStorage.getItem(CHAVE_AVALIACAO)) return // já convidamos uma vez
       localStorage.setItem(CHAVE_AVALIACAO, 'visto')
@@ -5409,7 +5413,10 @@ export default function AppPage() {
           <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderRadius: 20, padding: '26px 22px', width: '100%', maxWidth: 330, textAlign: 'center', boxSizing: 'border-box', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>⭐</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#16212c', marginBottom: 8 }}>
-              {streak >= 7 ? `${streak} dias seguidos!` : 'Você está indo bem!'}
+              {/* Elogio específico e verdadeiro (o genérico "indo bem" não prova nada ao aluno). */}
+              {streak >= 3
+                ? `${streak} dias seguidos!`
+                : `${licoesConcluidas.length} ${licoesConcluidas.length === 1 ? 'lição concluída' : 'lições concluídas'}!`}
             </div>
             <div style={{ fontSize: 13.5, color: '#5c6b7a', marginBottom: 20, lineHeight: 1.55 }}>
               O Vonai é feito por uma pessoa só, aqui no Brasil. Sua avaliação na loja ajuda outros
