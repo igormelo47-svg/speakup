@@ -4,11 +4,17 @@ import { PROMPTS, SCENARIO_PROMPTS, FORMATO_SIMULADOR, resumoPerfilServidor } fr
 
 // Mantenha igual ao app (page.tsx). false = cobrança ligada.
 const BETA_GRATIS = false
-// Tetos diários por usuário (rede de segurança contra abuso/custo).
-const LIMIT_FREE = 60
-const LIMIT_PREMIUM = 300
+// Tetos diários por usuário (rede de segurança contra abuso/custo, NÃO limite de produto:
+// ficam bem acima do que um humano usa num dia, para o Premium seguir sendo "ilimitado" de fato).
+// Dimensionados pela margem: a mensalidade de R$29,90 rende ~R$24 líquidos, e 80 chamadas
+// de chat/dia já custam ~US$0,28 — quem encostar no teto todo dia dá prejuízo sozinho.
+// O grátis tem 10 msgs do Professor na tela (PROF_LIMIT em page.tsx); as 30 aqui cobrem
+// também ajuda_licao/dica_pron e as retentativas.
+const LIMIT_FREE = 30
+const LIMIT_PREMIUM = 80
 // Teto diário por IP (todas as contas somadas — barra farm de contas num IP só).
-const LIMIT_IP = 2000
+// 10x o Premium: não atrapalha escola/escritório com vários alunos na mesma rede.
+const LIMIT_IP = 800
 // Preço do claude-haiku-4-5 (US$ por token) para o registro de custo.
 const PRECO_IN = 1 / 1_000_000
 const PRECO_OUT = 5 / 1_000_000

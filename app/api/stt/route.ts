@@ -8,9 +8,11 @@ import { createClient } from '@supabase/supabase-js'
 // Corpo da requisição: o áudio cru (webm/mp4), até ~1,5 MB (frases curtas).
 
 // Tetos diários por usuário e por IP + estimativa de custo do Whisper (clipes ≤15s).
-const STT_FREE = 80
-const STT_PREMIUM = 400
-const LIMIT_IP = 2000
+// Rede de segurança, não limite de produto: 150 tentativas de fala/dia são ~25 lições
+// falando cada frase, muito acima do uso real. Ver a mesma conta de margem em chat/route.ts.
+const STT_FREE = 40
+const STT_PREMIUM = 150
+const LIMIT_IP = 1500
 const CUSTO_STT = 0.0012
 
 export async function POST(req: NextRequest) {

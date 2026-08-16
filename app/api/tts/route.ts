@@ -7,9 +7,11 @@ import { createClient } from '@supabase/supabase-js'
 // Custo controlado: exige login, frases curtas (≤290 chars) e o cliente cacheia
 // cada frase localmente (Cache API), então cada texto só é gerado uma vez por aparelho.
 
-// Tetos diários por usuário (o cache do cliente faz cada frase custar uma vez só).
-const TTS_FREE = 200
-const TTS_PREMIUM = 800
+// Tetos diários por usuário (o cache do cliente faz cada frase custar uma vez só, então
+// o teto só conta FRASES NOVAS — reouvir o que já tocou hoje não gasta cota).
+// Rede de segurança, não limite de produto. Ver a conta de margem em chat/route.ts.
+const TTS_FREE = 100
+const TTS_PREMIUM = 350
 const LIMIT_IP = 2000
 // Estimativa de custo por chamada do gpt-4o-mini-tts (frase curta ≈ US$0,0015).
 const CUSTO_TTS = 0.0015
