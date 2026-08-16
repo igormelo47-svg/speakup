@@ -749,8 +749,14 @@ function TextoRico({ t }: { t: string }) {
   return <>{out}</>
 }
 
-const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/JUkXkbf'
-const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/zirnO0x'
+// Conta Kiwify "Sj Fidem" (login igorckl@) — a UNICA com o cadastro de vendedor concluido.
+// Os links antigos (JUkXkbf / zirnO0x) eram da conta moafidem@, cujo cadastro esta travado:
+// o CPF do representante ja pertence a conta Sj Fidem e a Kiwify nao permite repetir. Aquele
+// checkout exibia uma tarja amarela fixa "Voce precisa completar o seu cadastro antes de
+// comecar a vender" por cima da pagina, e nunca houve UMA venda por ele. Trocado em 16/08/2026.
+// Reconferir em: dashboard.kiwify.com (SEM o .com.br) -> Produtos -> Vonai Premium -> Links.
+const KIWIFY_MENSAL = 'https://pay.kiwify.com.br/bm5YfNd'
+const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/1c7zem8'
 // ⭐ INTERRUPTOR DA MONETIZAÇÃO:
 // true  = beta grátis (todos Premium, sem paywall)
 // false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify) — estado atual
