@@ -59,6 +59,20 @@ export function acharExpiracao(b: any): string {
   return new Date(Date.now() + (ehAnual(b) ? 366 : 34) * 86400000).toISOString()
 }
 
+// Diário de bordo do webhook. Sem isto, uma chamada RECUSADA (401) some sem deixar
+// rastro nenhum: foi assim que a 1ª venda no Android (17/08) ficou paga e sem Premium —
+// pagamentos_pendentes só registra o que já passou pela autenticação, então ficou vazia
+// e não deu para saber se a Kiwify tinha chamado. Grava ANTES do 401.
+// NUNCA guarda o segredo — só se ele existe e se a chamada trouxe token/assinatura.
+async function registraBatida(dados: Record<string, any>) {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const service = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !service) return
+    await createClient(url, service).from('webhook_recebidos').insert(dados)
+  } catch {}
+}
+
 export async function POST(req: NextRequest) {
   const segredo = process.env.KIWIFY_TOKEN || ''
   const raw = await req.text()
@@ -73,6 +87,17 @@ export async function POST(req: NextRequest) {
     const esperada = crypto.createHmac('sha1', segredo).update(raw).digest('hex')
     okSig = !!segredo && !!assinatura && crypto.timingSafeEqual(Buffer.from(esperada), Buffer.from(assinatura))
   } catch {}
+  let tipoBruto = ''
+  try { tipoBruto = acharTipo(JSON.parse(raw)) } catch {}
+  await registraBatida({
+    origem: 'kiwify',
+    autorizado: okToken || okSig,
+    tem_segredo: !!segredo,
+    tem_token: !!token,
+    tem_assinatura: !!assinatura,
+    tipo: tipoBruto || null,
+    bytes: raw.length,
+  })
   if (!okToken && !okSig) return new NextResponse('unauthorized', { status: 401 })
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
