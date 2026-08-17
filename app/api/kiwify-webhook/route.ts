@@ -5,6 +5,7 @@ import { enviarPurchaseGA4 } from '../../../lib/ga4'
 import { enviarPurchaseMeta } from '../../../lib/meta-capi'
 import { avisarVenda } from '../../../lib/avisar-venda'
 import { premiarIndicador } from '../../../lib/indicacao-premio'
+import { avisarWebhookRecusado } from '../../../lib/avisar-webhook-recusado'
 
 // Webhook da Kiwify: libera/revoga o Premium conforme os eventos de pagamento.
 // Configure na Kiwify a URL: https://vonai.com.br/api/kiwify-webhook?token=SEU_TOKEN
@@ -98,7 +99,18 @@ export async function POST(req: NextRequest) {
     tipo: tipoBruto || null,
     bytes: raw.length,
   })
-  if (!okToken && !okSig) return new NextResponse('unauthorized', { status: 401 })
+  if (!okToken && !okSig) {
+    // Avisa o dono NA HORA. Um pagamento recusado aqui significa aluno cobrado sem receber
+    // o acesso — descobrir isso dias depois já custou uma venda.
+    await avisarWebhookRecusado({
+      origem: 'kiwify',
+      tem_segredo: !!segredo,
+      tem_token: !!token,
+      tem_assinatura: !!assinatura,
+      tipo: tipoBruto || null,
+    })
+    return new NextResponse('unauthorized', { status: 401 })
+  }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY
