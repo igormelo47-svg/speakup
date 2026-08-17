@@ -3730,7 +3730,22 @@ export default function AppPage() {
                 ? (current?.annual || (current?.availablePackages || []).find((x: any) => x?.packageType === 'ANNUAL'))
                 : (current?.monthly || (current?.availablePackages || []).find((x: any) => x?.packageType === 'MONTHLY'))
               if (!pkg) { alert('Plano indisponível no momento. Tente de novo em instantes.'); return }
-              const res: any = await P.purchasePackage({ aPackage: pkg })
+              // A COMPRA fica sozinha no try: se ela falhar, mostramos o motivo REAL da Apple.
+              // Antes, um catch único cobria compra + medição + espera do webhook + reload, então
+              // qualquer tropeço DEPOIS da cobrança dizia "não foi possível concluir a compra"
+              // para alguém que já tinha sido cobrado — o pior erro possível nesta tela.
+              let res: any
+              try {
+                res = await P.purchasePackage({ aPackage: pkg })
+              } catch (e: any) {
+                if (e?.userCancelled) return // desistiu: não é erro, não incomodar
+                const codigo = e?.code ?? e?.errorCode ?? ''
+                const detalhe = e?.underlyingErrorMessage || e?.message || ''
+                console.error('[IAP] compra falhou', { codigo, detalhe, e })
+                try { (window as any).dataLayer?.push({ event: 'assinatura_falhou', codigo: String(codigo), detalhe: String(detalhe).slice(0, 140), user_id: userId }) } catch (e2) {}
+                alert(`Não foi possível concluir a compra.\n\n${detalhe || 'A App Store recusou a operação.'}${codigo !== '' ? `\n\n(código ${codigo})` : ''}\n\nSe o valor foi debitado, toque em "Restaurar compras".`)
+                return
+              }
               // Medição (GTM/GA4): assinatura paga confirmada pela Apple. O transaction_id permite
               // deduplicar com o evento server-side do webhook RevenueCat.
               try {
@@ -3748,7 +3763,14 @@ export default function AppPage() {
                 await new Promise(r => setTimeout(r, 2000))
               }
               window.location.reload()
-            } catch (e: any) { if (!e?.userCancelled) alert('Não foi possível concluir a compra. Tente novamente.') }
+            } catch (e: any) {
+              // Aqui só chega falha ANTES da cobrança (getOfferings, por exemplo). O erro da
+              // compra em si já foi tratado acima, com o motivo real — nunca dizer "não foi
+              // possível concluir a compra" para quem pode já ter pagado.
+              if (e?.userCancelled) return
+              console.error('[IAP] falhou antes da cobranca', e)
+              alert(`Não foi possível abrir o pagamento.\n\n${e?.message || 'Tente de novo em instantes.'}`)
+            }
           },
           restore: async () => { try { await P.restorePurchases(); window.location.reload() } catch (e) {} },
           setUser: (id: string) => { try { P.logIn({ appUserID: id }) } catch (e) {} },
