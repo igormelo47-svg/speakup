@@ -1703,17 +1703,61 @@ const pronCategorias = [
 
 // Voz do Vô em português, pelo sintetizador do próprio aparelho (grátis e offline —
 // a voz em inglês continua sendo a do /api/tts, esta é só para o mascote conversar
-// com o aluno). Pitch levemente grave para soar "vô". Respeita o mudo do aluno.
+// com o aluno). Respeita o mudo do aluno.
+//
+// Escolha da voz: NUNCA pegar a primeira pt- que aparecer. No Android a lista traz
+// vozes "compactas" (eSpeak/local) que soam robóticas e arrastadas — as boas são as
+// de rede (Google/Luciana/Francisca). E getVoices() volta VAZIO na primeira chamada
+// (carrega assíncrono), então sem esperar o voiceschanged o aluno recém-cadastrado
+// ouvia a voz padrão do sistema lendo português — a queixa de "voz estranha".
+function melhorVozPt(): SpeechSynthesisVoice | null {
+  try {
+    const todas = window.speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().startsWith('pt'))
+    if (!todas.length) return null
+    const brasil = todas.filter(v => /pt[-_]br/i.test(v.lang))
+    const pool = brasil.length ? brasil : todas
+    const nota = (v: SpeechSynthesisVoice) => {
+      const n = (v.name || '').toLowerCase()
+      if (/compact|espeak|pico/.test(n)) return -1        // vozes ruins, evitar sempre
+      if (/google/.test(n)) return 4                       // Android: a melhor disponível
+      if (/luciana|francisca|thalita|helo[ií]sa/.test(n)) return 3  // iOS / Windows
+      if (!v.localService) return 2                        // voz de rede costuma ser boa
+      return 1
+    }
+    return pool.slice().sort((a, b) => nota(b) - nota(a))[0] || null
+  } catch (e) { return null }
+}
+
 function falarPt(texto: string) {
   try {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
     if (localStorage.getItem('speakup_vo_mudo') === '1') return
-    const u = new SpeechSynthesisUtterance(texto.replace(/[👋💙😄🎉🔥⭐🌟]/g, ''))
-    u.lang = 'pt-BR'; u.rate = 1.04; u.pitch = 0.88
-    const voz = window.speechSynthesis.getVoices().find(v => (v.lang || '').toLowerCase().startsWith('pt'))
-    if (voz) u.voice = voz
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(u)
+    // Limpeza do texto: emoji vira nome falado ("rosto piscando") e travessão vira
+    // pausa longa — os dois deixam a fala picotada. Some com eles só no áudio.
+    const limpo = texto
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{FE0F}]/gu, '')
+      .replace(/[—–]/g, ',')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+    if (!limpo) return
+    const falar = () => {
+      const u = new SpeechSynthesisUtterance(limpo)
+      u.lang = 'pt-BR'; u.rate = 1.05; u.pitch = 0.95
+      const voz = melhorVozPt()
+      if (voz) u.voice = voz
+      window.speechSynthesis.cancel()
+      window.speechSynthesis.speak(u)
+    }
+    // Lista ainda não carregada: espera o voiceschanged (com teto de 1,2s para nunca
+    // deixar o aluno no silêncio se o evento não vier).
+    if (!window.speechSynthesis.getVoices().length) {
+      let falou = false
+      const uma = () => { if (falou) return; falou = true; falar() }
+      window.speechSynthesis.addEventListener?.('voiceschanged', uma, { once: true })
+      setTimeout(uma, 1200)
+      return
+    }
+    falar()
   } catch (e) {}
 }
 
