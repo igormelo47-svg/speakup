@@ -4531,6 +4531,42 @@ export default function AppPage() {
     </div>
   )
 
+  // Faixa de assinatura no TOPO da home, logo abaixo do nome do aluno. Fica visível
+  // em toda abertura do app para quem ainda não paga — antes o único convite eram o
+  // chip pequeno ao lado do nome e um card mais abaixo, que passavam despercebidos.
+  // Some para quem já é pagante (nada de vender o que a pessoa já comprou).
+  // No iOS o setTab('plans') leva ao fluxo da Apple (RevenueCat), nunca a checkout
+  // externo — a guideline 3.1.1 proíbe e o app seria removido.
+  function barraAssinar() {
+    if (pagante || BETA_GRATIS) return null
+    const restam = trialExpira && trialExpira > Date.now()
+      ? Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
+      : 0
+    const urgente = restam > 0 && restam <= 24
+    const linha2 = restam > 0
+      ? (urgente ? `Seu teste acaba em ${restam}h — não perca seu progresso` : `Teste grátis · ${Math.ceil(restam / 24)} dias restantes`)
+      : 'Todas as lições, professor de IA e conversas sem limite'
+    return (
+      <div
+        onClick={() => { try { track('assinar_topo_clicado') } catch (e) {} ; setTab('plans') }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer',
+          background: urgente ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : 'linear-gradient(135deg, #f5a623, #e08a1e)',
+          borderRadius: 14, padding: '12px 14px', marginBottom: 16,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+        }}
+      >
+        <span style={{ fontSize: 22, flexShrink: 0 }}><Ic e={urgente ? '⏰' : '⭐'} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: '#fff' }}>Assinar o Vonai Premium</div>
+          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 2, lineHeight: 1.35 }}>{linha2}</div>
+        </div>
+        {/* Preço dentro do botão: o padrão de UX writing que já usamos no paywall. */}
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: urgente ? '#b91c1c' : '#8a5a10', background: '#fff', padding: '7px 12px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0 }}>R$29,90/mês</span>
+      </div>
+    )
+  }
+
   function renderHomeGuiada() {
     const fraco = (perfilIa.topicos_fracos && perfilIa.topicos_fracos[perfilIa.topicos_fracos.length - 1]) || ''
     const temRevisao = errosQs.length > 0 || revisoesDevidas.length > 0
@@ -4568,6 +4604,7 @@ export default function AppPage() {
             <div style={{ fontSize: 13, color: '#bcd6f2', letterSpacing: 0.2 }}>{saudacao},</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.2 }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
           </div>
+          {barraAssinar()}
           {/* Card grande de progresso (o que o Emmanuel achou mais bonito) */}
           {(() => {
             const lvlArr = lessons[level] || []
@@ -4961,6 +4998,7 @@ export default function AppPage() {
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 13, color: '#bcd6f2' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
             </div>
+            {barraAssinar()}
             {(() => {
               const lvlArr = lessons[level] || []
               const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(chaveLicao(l))).length
