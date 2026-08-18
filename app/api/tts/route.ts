@@ -9,8 +9,10 @@ import { createClient } from '@supabase/supabase-js'
 
 // Tetos diários por usuário (o cache do cliente faz cada frase custar uma vez só, então
 // o teto só conta FRASES NOVAS — reouvir o que já tocou hoje não gasta cota).
-// Rede de segurança, não limite de produto. Ver a conta de margem em chat/route.ts.
-const TTS_FREE = 100
+// Premium: rede de segurança, não limite de produto. Grátis: cota pequena de verdade
+// (freemium — dá para ouvir as 3 lições do dia; passou disso o app cai na voz do navegador
+// e nada quebra). Ver a conta de margem em chat/route.ts.
+const TTS_FREE = 20
 const TTS_PREMIUM = 350
 const LIMIT_IP = 2000
 // Estimativa de custo por chamada do gpt-4o-mini-tts (frase curta ≈ US$0,0015).
@@ -53,9 +55,9 @@ export async function POST(req: NextRequest) {
     ])
     const emTrial = !!perfil?.trial_expira && new Date(perfil.trial_expira) > new Date()
     const pagoAtivo = !!prog?.is_premium && (!prog?.premium_expira || new Date(prog.premium_expira) > new Date())
-    // Paywall duro no servidor: free não tem TTS (o app cai na voz do navegador, nada quebra).
-    if (!pagoAtivo && !emTrial) return NextResponse.json({ error: 'premium_necessario' }, { status: 402 })
-    const limite = TTS_PREMIUM
+    // Freemium: o grátis não é barrado (nada de 402) — só tem cota diária menor.
+    // Estourou a cota → 429 e o app cai na voz do navegador, nada quebra.
+    const limite = pagoAtivo || emTrial ? TTS_PREMIUM : TTS_FREE
     const [{ data: okUser, error: e1 }, { data: okIp, error: e2 }] = await Promise.all([
       admin.rpc('incrementa_uso', { p_user: userId, p_tipo: 'tts', p_limite: limite }),
       admin.rpc('incrementa_ip', { p_ip: ip, p_limite: LIMIT_IP }),
