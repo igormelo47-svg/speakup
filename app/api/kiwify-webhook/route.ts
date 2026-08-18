@@ -43,6 +43,28 @@ export function acharTipo(b: any): string {
   ).toLowerCase()
 }
 
+// s1 = id do aluno, que o app manda no link do checkout (?s1=<user_id>) e a Kiwify devolve
+// no webhook junto com os parâmetros de tracking (s1..s5). O formato exato do campo varia
+// entre versões do payload, então varremos os caminhos conhecidos e só aceitamos UUID —
+// qualquer outra coisa (utm colada errada, vazio) é ignorada e cai no casamento por e-mail.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+export function extrairS1(b: any): string | null {
+  if (!b || typeof b !== 'object') return null
+  const candidatos = [
+    b?.TrackingParameters?.s1, b?.trackingParameters?.s1, b?.tracking_parameters?.s1,
+    b?.tracking?.s1, b?.Tracking?.s1,
+    b?.Subscription?.tracking?.s1, b?.Subscription?.TrackingParameters?.s1,
+    b?.subscription?.tracking?.s1,
+    b?.Order?.TrackingParameters?.s1, b?.order?.tracking?.s1,
+    b?.s1, b?.S1, b?.src, b?.sck,
+  ]
+  for (const c of candidatos) {
+    const v = String(c ?? '').trim()
+    if (v && UUID_RE.test(v)) return v.toLowerCase()
+  }
+  return null
+}
+
 // O plano é anual? (pela descrição do produto/frequência no payload)
 export function ehAnual(b: any): boolean {
   const pista = (JSON.stringify(b?.Product || b?.product || {}) + ' ' + String(b?.Subscription?.plan?.frequency || '')).toLowerCase()
@@ -70,7 +92,14 @@ async function registraBatida(dados: Record<string, any>) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const service = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !service) return
-    await createClient(url, service).from('webhook_recebidos').insert(dados)
+    const admin = createClient(url, service)
+    const { error } = await admin.from('webhook_recebidos').insert(dados)
+    // Tolerante a coluna ausente (s1 é nova): se falhou e tinha s1, regrava sem ele —
+    // o diário de bordo é mais importante que o campo extra.
+    if (error && 's1' in dados) {
+      const { s1: _s1, ...semS1 } = dados
+      await admin.from('webhook_recebidos').insert(semS1)
+    }
   } catch {}
 }
 
@@ -89,7 +118,8 @@ export async function POST(req: NextRequest) {
     okSig = !!segredo && !!assinatura && crypto.timingSafeEqual(Buffer.from(esperada), Buffer.from(assinatura))
   } catch {}
   let tipoBruto = ''
-  try { tipoBruto = acharTipo(JSON.parse(raw)) } catch {}
+  let s1Bruto: string | null = null
+  try { const b0 = JSON.parse(raw); tipoBruto = acharTipo(b0); s1Bruto = extrairS1(b0) } catch {}
   await registraBatida({
     origem: 'kiwify',
     autorizado: okToken || okSig,
@@ -98,6 +128,10 @@ export async function POST(req: NextRequest) {
     tem_assinatura: !!assinatura,
     tipo: tipoBruto || null,
     bytes: raw.length,
+    // s1 = user_id do checkout (coluna nova em migracao_2026-08-18_freemium.sql). Se a coluna
+    // ainda não existir o insert falha inteiro, então só manda quando tem valor e, em caso de
+    // erro, tenta de novo sem ele (ver registraBatida).
+    ...(s1Bruto ? { s1: s1Bruto } : {}),
   })
   if (!okToken && !okSig) {
     // Avisa o dono NA HORA. Um pagamento recusado aqui significa aluno cobrado sem receber
@@ -121,7 +155,8 @@ export async function POST(req: NextRequest) {
 
   const email = acharEmail(body)
   const tipo = acharTipo(body)
-  if (!email) return NextResponse.json({ ok: true, ignored: 'sem email' })
+  const s1 = extrairS1(body)
+  if (!email && !s1) return NextResponse.json({ ok: true, ignored: 'sem email' })
 
   const classe = classificarEvento(tipo)
   const reembolso = classe === 'reembolso'
@@ -136,17 +171,42 @@ export async function POST(req: NextRequest) {
 
   const admin = createClient(url, service)
   // ilike sem curingas do usuário: escapa %/_ para "joao_silva@" não casar "joaoxsilva@".
-  const emailEsc = String(email).replace(/[\\%_]/g, m => '\\' + m)
+  const emailEsc = String(email || '').replace(/[\\%_]/g, m => '\\' + m)
 
-  const { data: linhas, count, error } = await admin.from('progresso')
-    .update(novo, { count: 'exact' }).ilike('email', emailEsc).select('user_id, attrib')
-  let casou = count || 0
-  let alvoId: string | null = linhas?.[0]?.user_id || null
-  let alvoAttrib: any = linhas?.[0]?.attrib || null
+  let casou = 0
+  let alvoId: string | null = null
+  let alvoAttrib: any = null
+  let error: { message: string } | null = null
+
+  // 1º) Pelo id do aluno (s1 do link do checkout): é o casamento mais confiável — não depende
+  // de o aluno pagar com o mesmo e-mail do cadastro. Confere que o id existe em profiles
+  // (um UUID inventado na URL não pode criar linha órfã) e faz upsert em progresso.
+  if (s1) {
+    const { data: prof } = await admin.from('profiles').select('id, email').eq('id', s1).maybeSingle()
+    if (prof?.id) {
+      const { data: l1, count: c1, error: e1 } = await admin.from('progresso')
+        .upsert({ user_id: prof.id, ...(email || prof.email ? { email: email || prof.email } : {}), ...novo }, { onConflict: 'user_id', count: 'exact' })
+        .select('user_id, attrib')
+      if (e1) error = e1
+      casou = c1 || 0
+      alvoId = casou > 0 ? prof.id : null
+      alvoAttrib = l1?.[0]?.attrib || null
+    }
+  }
+
+  // 2º) Pelo e-mail do checkout (caminho antigo).
+  if (!error && casou === 0 && email) {
+    const { data: linhas, count, error: e0 } = await admin.from('progresso')
+      .update(novo, { count: 'exact' }).ilike('email', emailEsc).select('user_id, attrib')
+    error = e0
+    casou = count || 0
+    alvoId = linhas?.[0]?.user_id || null
+    alvoAttrib = linhas?.[0]?.attrib || null
+  }
 
   // progresso.email pode estar vazio (conta antiga): tenta pelo profiles, que sempre tem o e-mail
   // do cadastro, e cria/atualiza a linha de progresso pelo user_id.
-  if (!error && casou === 0) {
+  if (!error && casou === 0 && email) {
     const { data: prof } = await admin.from('profiles').select('id').ilike('email', emailEsc).limit(1)
     if (prof?.[0]?.id) {
       const { count: c2 } = await admin.from('progresso')
@@ -158,7 +218,7 @@ export async function POST(req: NextRequest) {
 
   // Nenhuma conta casou: registra para reconciliação em vez de sumir com o pagamento.
   if (error || casou === 0) {
-    console.error('[Kiwify] evento sem conta correspondente', { email, tipo, error: error?.message })
+    console.error('[Kiwify] evento sem conta correspondente', { email, s1, tipo, error: error?.message })
     const { error: pendErr } = await admin.from('pagamentos_pendentes').insert({ email, tipo, payload: body })
     if (pendErr) console.error('[Kiwify] falha ao registrar pendência', pendErr.message)
   }
@@ -179,7 +239,7 @@ export async function POST(req: NextRequest) {
     // Meta CAPI: mesmo evento, mesmo id de dedup do pixel (vonai-purchase-<transaction_id>).
     const meta = await enviarPurchaseMeta({
       userId: alvoId,
-      email: String(email),
+      email: String(email || ''),
       transactionId: 'kiwify_' + alvoId,
       value: ehAnual(body) ? 289.8 : 29.9,
       fbp: alvoAttrib?.fbp || null,
@@ -188,13 +248,13 @@ export async function POST(req: NextRequest) {
     })
     if (!meta?.sent) console.error('[Kiwify] Meta CAPI não enviado', meta)
     // Aviso por e-mail: enquanto o volume é pequeno, saber da venda na hora vale mais que relatório.
-    try { await avisarVenda({ email: String(email), origem: 'Kiwify', tipo: tipo, valor: ehAnual(body) ? 289.8 : 29.9 }) } catch (e) {}
+    try { await avisarVenda({ email: String(email || alvoId), origem: 'Kiwify', tipo: tipo, valor: ehAnual(body) ? 289.8 : 29.9 }) } catch (e) {}
     // Prêmio de indicação: se este assinante foi indicado, o indicador ganha +30 dias de
     // Premium (1x por indicado — trava atômica no banco; renovações não premiam de novo).
     await premiarIndicador(admin, alvoId)
   }
 
-  return NextResponse.json({ ok: true, email, tipo, reembolso, cancelamento, pago, contas_atualizadas: casou, ga4 })
+  return NextResponse.json({ ok: true, email, s1, tipo, reembolso, cancelamento, pago, contas_atualizadas: casou, ga4 })
 }
 
 export async function GET() {
