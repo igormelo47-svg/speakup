@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AZUL, ESCURO, container, cta, Card, PlayBadge, AppStoreBadge, Nav, Footer, StickyCta } from '../_marketing/ui'
+import { AZUL, ESCURO, container, cta, Card, PlayBadge, AppStoreBadge, Nav, Footer, StickyCta, PRECO } from '../_marketing/ui'
 
 // Landing de tráfego pago para a busca "aplicativo para aprender inglês" (e variações).
 // Existe para duas coisas: (1) índice de qualidade do Google Ads — o texto conversa com
@@ -9,7 +9,7 @@ import { AZUL, ESCURO, container, cta, Card, PlayBadge, AppStoreBadge, Nav, Foot
 // reais do app. NUNCA inventar depoimento/contador falso. Sincronia visual com a home.
 
 export const metadata = {
-  title: 'Aplicativo para Aprender Inglês Falando — Vonai | 2 dias grátis',
+  title: `Aplicativo para Aprender Inglês Falando — Vonai | ${PRECO.diasGratis} dias grátis`,
   description:
     'Procurando um aplicativo para aprender inglês de verdade? No Vonai você aprende falando: professor de IA 24h que corrige sua pronúncia, +300 lições do zero ao avançado e conversas de situações reais. Nota 5,0 na App Store. Teste grátis, sem cartão.',
   alternates: { canonical: '/aplicativo-para-aprender-ingles' },
@@ -17,7 +17,7 @@ export const metadata = {
 
 const FAQ = [
   { q: 'Qual o melhor aplicativo para aprender inglês sozinho?', a: 'O melhor aplicativo é o que faz você FALAR — é falando que a fluência aparece. O Vonai foi construído em volta disso: um professor de IA disponível 24h conversa com você, corrige sua pronúncia na hora e explica os erros em português. Apps de memorização ensinam palavras; o Vonai ensina você a usá-las numa conversa.' },
-  { q: 'O aplicativo é grátis?', a: 'Você começa com 2 dias de Premium grátis, sem cadastrar cartão de crédito. Depois pode continuar no plano gratuito (com limites diários) ou assinar o Premium por R$29,90/mês. Sem multa e sem fidelidade: cancela quando quiser.' },
+  { q: 'O aplicativo é grátis?', a: `Você começa com ${PRECO.diasGratis} dias de Premium grátis, sem cadastrar cartão de crédito. Depois você continua no plano gratuito, sem cobrança (com limites diários), ou assina o Premium por ${PRECO.mensal}/mês. Sem multa e sem fidelidade: cancela quando quiser.` },
   { q: 'Funciona para quem está começando do zero?', a: 'Sim. Um teste rápido descobre seu nível e a trilha começa exatamente do seu ponto — do A1 (primeiras palavras) ao C2 (quase nativo). Todas as explicações são em português.' },
   { q: 'Como o aplicativo corrige minha pronúncia?', a: 'Você fala com o app e ele analisa palavra por palavra, com dicas específicas para os sons que não existem em português — o "th" de three, o "-ed" de worked, o H aspirado. É treino de pronúncia feito para a boca do brasileiro.' },
   { q: 'Funciona no celular Android e no iPhone?', a: 'Sim. O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — e também funciona direto pelo navegador em vonai.com.br. Mesma conta, mesmo progresso em todos os aparelhos.' },
@@ -55,7 +55,7 @@ export default function AplicativoParaAprenderIngles() {
               <AppStoreBadge grande />
             </div>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', marginTop: 20, fontSize: 13.5, color: '#B5D4F4' }}>
-              <span>✓ 2 dias de Premium grátis</span>
+              <span>✓ {PRECO.diasGratis} dias de Premium grátis</span>
               <span>✓ Sem cartão de crédito</span>
               <span>✓ Começar leva 2 min — cancelar, 1 toque</span>
             </div>
@@ -135,7 +135,7 @@ export default function AplicativoParaAprenderIngles() {
           <div style={{ ...container, padding: '48px 20px' }}>
             <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 32px' }}>Comece em 3 passos (leva 2 minutos)</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-              {[['1', 'Crie sua conta grátis', 'Sem cartão de crédito. Você ganha 2 dias de Premium completo.'], ['2', 'Descubra seu nível', 'Um teste rápido posiciona você na trilha — do A1 ao C2.'], ['3', 'Faça sua primeira conversa', 'Fale com o professor de IA ainda hoje e sinta a diferença.']].map(([n, t, d]) => (
+              {[['1', 'Crie sua conta grátis', `Sem cartão de crédito. Você ganha ${PRECO.diasGratis} dias de Premium completo.`], ['2', 'Descubra seu nível', 'Um teste rápido posiciona você na trilha — do A1 ao C2.'], ['3', 'Faça sua primeira conversa', 'Fale com o professor de IA ainda hoje e sinta a diferença.']].map(([n, t, d]) => (
                 <div key={n} style={{ textAlign: 'center' }}>
                   <div style={{ width: 48, height: 48, borderRadius: '50%', background: AZUL, color: '#fff', fontSize: 20, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>{n}</div>
                   <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{t}</div>
@@ -156,7 +156,7 @@ export default function AplicativoParaAprenderIngles() {
         {/* Preço transparente — remove a objeção antes do cadastro */}
         <div style={{ ...container, padding: '48px 20px 8px', maxWidth: 640, textAlign: 'center' }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 10px' }}>Quanto custa?</h2>
-          <p style={{ color: '#5B6B82', fontSize: 16.5, lineHeight: 1.65, margin: '0 0 18px' }}>Depois dos 2 dias grátis, o Premium custa <strong style={{ color: '#102A4C' }}>R$29,90/mês</strong> (ou R$289,80/ano, que sai por R$24,15/mês) — menos de R$1 por dia por um professor disponível 24h. Pix, cartão ou boleto. <strong>Cancele quando quiser, sem multa.</strong></p>
+          <p style={{ color: '#5B6B82', fontSize: 16.5, lineHeight: 1.65, margin: '0 0 18px' }}>Depois dos {PRECO.diasGratis} dias grátis você continua no plano gratuito, sem cobrança. Se quiser tudo sem limite, o Premium custa <strong style={{ color: '#102A4C' }}>{PRECO.mensal}/mês</strong> (ou {PRECO.anual}/ano, que sai por {PRECO.anualPorMes}/mês) — menos de R$1 por dia por um professor disponível 24h. Pix, cartão ou boleto. <strong>Cancele quando quiser, sem multa.</strong></p>
           <p style={{ color: '#7C8AA0', fontSize: 14, margin: 0 }}>Prefere não assinar? Existe um plano gratuito com limites diários. Você decide depois de testar.</p>
         </div>
 
@@ -179,7 +179,7 @@ export default function AplicativoParaAprenderIngles() {
         <div style={{ background: `linear-gradient(160deg, #2E72D6, ${ESCURO})`, marginTop: 48 }}>
           <div style={{ ...container, padding: '56px 20px', textAlign: 'center', color: '#fff' }}>
             <h2 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 10px' }}>Sua primeira conversa em inglês pode ser hoje.</h2>
-            <p style={{ fontSize: 17, color: '#D6E6FA', margin: '0 0 26px' }}>2 dias de Premium grátis. Sem cartão. Se não for pra você, é só não continuar.</p>
+            <p style={{ fontSize: 17, color: '#D6E6FA', margin: '0 0 26px' }}>{PRECO.diasGratis} dias de Premium grátis. Sem cartão. Se não for pra você, é só não continuar.</p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
               <Link href="/cadastro" style={cta}>Começar grátis →</Link>
               <PlayBadge />
