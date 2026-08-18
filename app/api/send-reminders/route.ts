@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
-import { enviarEmailLembrete } from '../../../lib/email'
+import { enviarEmailLembrete, emailTrialAcabando, emailPosTrial } from '../../../lib/email'
 import { missaoPara } from '../../../lib/missao'
+
+// Teto do winback: depois de 30 dias sem uso a pessoa não é "aluno sumido", é alguém que
+// desistiu — continuar chamando a cada 3 dias para sempre é o caminho da marcação de spam.
+const WINBACK_MAX_DIAS = 30
+// Espaçamento mínimo entre e-mails de winback (o push é mais barato e descartável).
+const WINBACK_INTERVALO_DIAS = 3
 
 const VAPID_PUBLIC = 'BGvDV8RzI74VwBSU6MSVcAgDJS3WF_zTGrpDW9cY26dyf85JAbJP0aRhJpU8BECmc3Z6yvHRHctbxxE0Bk-5cLo'
 
@@ -27,14 +33,25 @@ export async function GET(req: NextRequest) {
   // Dia no fuso do Brasil, igual ao que o app grava em ultima_atividade.
   const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   const agora = Date.now()
-  const [{ data: subs }, { data: prog }, { data: perfis }] = await Promise.all([
+  // Colunas opcionais do canal de e-mail: email_lembretes (email_lembretes_column.sql) e
+  // emails_enviados (migracao_2026-08-18_freemium.sql — diário do que já foi mandado, para
+  // o cron de 2x/dia não repetir). O PostgREST recusa o SELECT inteiro quando uma coluna
+  // não existe, então tenta com tudo e, se falhar, repete sem as opcionais: ausente vira
+  // "pode receber" / "nunca mandou nada", e os e-mails com trava ficam só no turno da noite.
+  const BASE_COLS = 'user_id, ultima_atividade, streak, dias_ativos, nome, is_premium, premium_expira, perfil_ia, email'
+  let temColunaEmails = true
+  const [{ data: subs }, progRes, { data: perfis }] = await Promise.all([
     admin.from('push_subscriptions').select('user_id, subscription'),
-    // email e email_lembretes entram aqui para o canal de e-mail. A coluna
-    // email_lembretes pode ainda não existir no banco; o select tolera isso mais
-    // abaixo, tratando ausente como "pode receber".
-    admin.from('progresso').select('user_id, ultima_atividade, streak, dias_ativos, nome, is_premium, premium_expira, perfil_ia, email, email_lembretes'),
+    admin.from('progresso').select(`${BASE_COLS}, email_lembretes, emails_enviados`),
     admin.from('profiles').select('id, trial_expira'),
   ])
+  let prog: any[] | null = progRes.data
+  if (progRes.error) {
+    console.warn('[Lembretes] coluna opcional ausente, repetindo sem ela:', progRes.error.message)
+    temColunaEmails = false
+    const r2 = await admin.from('progresso').select(`${BASE_COLS}, email_lembretes`)
+    prog = r2.error ? (await admin.from('progresso').select(BASE_COLS)).data : r2.data
+  }
   // Usou hoje = marcador do dia em dias_ativos (gravado a cada abertura) OU a data de
   // ultima_atividade. Ela é timestamptz — comparar a string inteira com 'YYYY-MM-DD'
   // nunca casava, e o lembrete ia até para quem já tinha estudado.
@@ -70,7 +87,8 @@ export async function GET(req: NextRequest) {
     const diasFora = last ? Math.max(0, Math.round((new Date(hoje).getTime() - new Date(last).getTime()) / 86400000)) : -1
     const st = p.streak || 0
 
-    // 2) Winback: sumiu de verdade.
+    // 2) Winback: sumiu de verdade. Teto de 30 dias — depois disso, silêncio.
+    if (diasFora > WINBACK_MAX_DIAS) return null
     if (diasFora >= 5) {
       if (diasFora % 3 !== 0) return null // espaça pra não virar spam e perder a permissão
       return { title: `${nome || 'Ei'}, seu inglês sente sua falta 💙`, body: fraco ? `O Vô guardou um treino de "${fraco}" pra você. 5 minutos e você retoma o ritmo.` : 'O Vô guardou sua próxima lição. 5 minutos e você retoma o ritmo.' }
@@ -113,29 +131,99 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // E-MAIL, só para quem NÃO tem push. É o único canal que alcança quem baixou pela
-  // App Store (iPhone não tem web push) e quem recusou a permissão no Android/web.
+  // ---------------------------------------------------------------------------------
+  // E-MAILS DO CICLO DE VIDA (trial → grátis). Vão para TODO MUNDO com e-mail (mesmo quem
+  // tem push): é a decisão de assinar, e um push some em segundos. Cada e-mail é enviado
+  // UMA vez por pessoa, com a chave gravada em progresso.emails_enviados (JSON
+  // { chave: 'YYYY-MM-DD' }). O cron roda 2x/dia — sem essa trava, o T-24h iria duas
+  // vezes. Se a coluna ainda não existir, esses e-mails só saem no turno da noite (1x/dia)
+  // e o pós-trial fica restrito a janelas de 1 dia para não repetir.
+  //   trial_t24    → trial acaba em ≤24h e não pagou
+  //   pos_trial_1  → 1 a 3 dias depois do fim do trial, sem pagar
+  //   pos_trial_2  → 4 a 9 dias depois do fim do trial, sem pagar (último; máximo 2)
+  //   winback      → data do último e-mail "sua trilha continua" (espaça em 3 dias)
+  const DIA = 86400000
+  let emails = 0, emailsFalha = 0, emailsPulados = 0
+  const contagem: Record<string, number> = { trial_t24: 0, pos_trial_1: 0, pos_trial_2: 0, winback: 0 }
+  const podeReceber = (p: any) => {
+    const para = String(p.email || '')
+    if (!para.includes('@')) return false
+    // Coluna pode não existir ainda (email_lembretes_column.sql). undefined = pode
+    // receber; só FALSE explícito bloqueia -- quem clicou em "não quero mais".
+    if (p.email_lembretes === false) return false
+    return true
+  }
+  const jaMandou = (p: any, chave: string) => !!(p.emails_enviados && typeof p.emails_enviados === 'object' && p.emails_enviados[chave])
+  const marcar = async (p: any, chave: string) => {
+    if (!temColunaEmails) return
+    const novo = { ...(p.emails_enviados && typeof p.emails_enviados === 'object' ? p.emails_enviados : {}), [chave]: hoje }
+    p.emails_enviados = novo
+    await admin.from('progresso').update({ emails_enviados: novo }).eq('user_id', p.user_id)
+  }
+  const mandar = async (p: any, chave: string, t: { titulo: string; corpo: string; cta: string; href: string }) => {
+    const r = await enviarEmailLembrete({ para: String(p.email), userId: p.user_id, titulo: t.titulo, corpo: t.corpo, cta: t.cta, href: t.href })
+    if (r.ok) { emails++; contagem[chave]++; await marcar(p, chave) }
+    else { emailsFalha++; console.error(`[E-mail ${chave}] falhou`, r.motivo) }
+    return r.ok
+  }
+
+  for (const p of prog || []) {
+    if (!podeReceber(p)) continue
+    const pagoAtivo = !!p.is_premium && (!p.premium_expira || new Date(p.premium_expira).getTime() > agora)
+    if (pagoAtivo) continue
+    const texp = trialDe.get(p.user_id) ? new Date(trialDe.get(p.user_id)).getTime() : 0
+    if (!texp) continue
+    const nome = String(p.nome || '').split(' ')[0]
+
+    // (a) T-24h: trial ainda vale e acaba dentro de 24h.
+    if (texp > agora && texp - agora <= DIA) {
+      if (jaMandou(p, 'trial_t24')) continue
+      if (!temColunaEmails && turno !== 'noite') continue
+      await mandar(p, 'trial_t24', emailTrialAcabando(nome))
+      continue
+    }
+    // (b) Pós-trial: T+1 e T+4, no máximo 2. Janelas fechadas para conta antiga não receber
+    // e-mail atrasado — quem passou dos 10 dias sem assinar entra no winback normal.
+    if (texp <= agora) {
+      const diasDesde = (agora - texp) / DIA
+      if (diasDesde >= 1 && diasDesde < 4 && !jaMandou(p, 'pos_trial_1')) {
+        if (!temColunaEmails && (turno !== 'noite' || diasDesde >= 2)) continue
+        await mandar(p, 'pos_trial_1', emailPosTrial(nome, 1))
+        continue
+      }
+      if (diasDesde >= 4 && diasDesde < 10 && !jaMandou(p, 'pos_trial_2')) {
+        if (!temColunaEmails && (turno !== 'noite' || diasDesde >= 5)) continue
+        await mandar(p, 'pos_trial_2', emailPosTrial(nome, 2))
+        continue
+      }
+    }
+  }
+
+  // WINBACK POR E-MAIL, só para quem NÃO tem push. É o único canal que alcança quem baixou
+  // pela App Store (iPhone não tem web push) e quem recusou a permissão no Android/web.
   //
-  // Uma vez por dia, no turno da NOITE. O push vai 2x porque é barato e descartável;
+  // Uma vez por dia, no turno da NOITE, e no máximo a cada 3 dias por pessoa (chave
+  // 'winback' em emails_enviados). O push vai 2x porque é barato e descartável;
   // e-mail 2x/dia gera reclamação de spam, e reclamação queima o domínio inteiro --
   // inclusive os e-mails de recuperação de senha, que não podem parar de chegar.
-  let emails = 0, emailsFalha = 0, emailsPulados = 0
+  // Teto de 30 dias sem uso já está em mensagemPara (vale para push e e-mail).
   if (turno === 'noite') {
     for (const p of prog || []) {
       const uid = (p as any).user_id as string
       if (comPush.has(uid)) { emailsPulados++; continue }      // já recebeu push, não duplica
-      const para = String((p as any).email || '')
-      if (!para.includes('@')) { emailsPulados++; continue }
-      // Coluna pode não existir ainda (email_lembretes_column.sql). undefined = pode
-      // receber; só FALSE explícito bloqueia -- quem clicou em "não quero mais".
-      if ((p as any).email_lembretes === false) { emailsPulados++; continue }
+      if (!podeReceber(p)) { emailsPulados++; continue }
+      // Quem recebeu um e-mail do ciclo de vida hoje não recebe winback por cima.
+      const ev = (p as any).emails_enviados
+      if (ev && typeof ev === 'object' && Object.values(ev).includes(hoje)) { emailsPulados++; continue }
+      const ultimoWinback = ev && typeof ev === 'object' && ev.winback ? new Date(String(ev.winback)).getTime() : 0
+      if (ultimoWinback && agora - ultimoWinback < WINBACK_INTERVALO_DIAS * DIA) { emailsPulados++; continue }
       const msg = mensagemPara(uid)
       if (!msg) { emailsPulados++; continue }
-      const r = await enviarEmailLembrete({ para, userId: uid, titulo: msg.title, corpo: msg.body })
-      if (r.ok) emails++
+      const r = await enviarEmailLembrete({ para: String((p as any).email), userId: uid, titulo: msg.title, corpo: msg.body })
+      if (r.ok) { emails++; contagem.winback++; await marcar(p, 'winback') }
       else { emailsFalha++; console.error('[Lembrete e-mail] falhou', r.motivo) }
     }
   }
 
-  return NextResponse.json({ turno, enviados, removidos, total: (subs || []).length, emails, emailsFalha, emailsPulados })
+  return NextResponse.json({ turno, enviados, removidos, total: (subs || []).length, emails, emailsFalha, emailsPulados, porTipo: contagem, temColunaEmails })
 }
