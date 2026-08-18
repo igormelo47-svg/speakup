@@ -76,7 +76,10 @@ export async function GET(req: NextRequest) {
     const dias: string[] = Array.isArray(prog?.dias_ativos) ? prog.dias_ativos : []
     const licoes = Array.isArray(prog?.licoes_concluidas) ? prog.licoes_concluidas.length : 0
     const nasceu = new Date(u.created_at).getTime()
-    const fimDoTrial = nasceu + 2 * MS_DIA
+    // Trial de 2 dias até 18/08/2026, 7 dias a partir daí (migracao_2026-08-18_freemium.sql).
+    // Conta antiga continua medida pelos 2 dias que ela viveu de fato.
+    const diasTrial = nasceu >= Date.parse('2026-08-18T00:00:00-03:00') ? 7 : 2
+    const fimDoTrial = nasceu + diasTrial * MS_DIA
     // ultima_atividade grava 'YYYY-MM-DD' no app do aluno, mas nem toda linha antiga
     // esta assim -- concatenar 'T12:00:00Z' as cegas gerava Invalid Date, e NaN em
     // comparacao e sempre falso: os dois degraus finais davam zero mesmo com gente viva.
@@ -100,7 +103,7 @@ export async function GET(req: NextRequest) {
     // aparece como perda sem ter tido oportunidade de ficar. Só entra na conta de
     // retencao quem ja viveu tempo suficiente para o desfecho existir.
     const teveChanceDeVoltar = Date.now() - nasceu >= 2 * MS_DIA
-    const teveChanceDePassarDoTrial = Date.now() - nasceu >= 3 * MS_DIA
+    const teveChanceDePassarDoTrial = Date.now() - nasceu >= (diasTrial + 1) * MS_DIA
 
     // Quem nunca clicou no link do e-mail nao consegue entrar -- e some do funil sem
     // nunca ter visto o app. Se esse numero for grande, a maior perda do produto e uma
