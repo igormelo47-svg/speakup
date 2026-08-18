@@ -9,6 +9,8 @@ import { fatiarIngles, trechosIngles, semMarcacao } from '../../lib/fatiar-ingle
 import { alvoDeRolagem } from '../../lib/rolagem-chat'
 import { lerResposta, type Correcao } from '../../lib/resposta-professor'
 import { historicoParaIA } from '../../lib/historico-chat'
+// Fonte única do trial (dias grátis): o site promete o mesmo número — mudar lá muda aqui.
+import { PRECO } from '../_marketing/ui'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -761,6 +763,13 @@ const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/1c7zem8'
 // true  = beta grátis (todos Premium, sem paywall)
 // false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify) — estado atual
 const BETA_GRATIS = false
+// Trial Premium: TRIAL_DIAS dias como Premium; depois o app segue no plano grátis
+// (freemium de verdade — 10 msgs do professor, 3 simulações e 3 lições por dia).
+// Antes eram 2 dias e um paywall que trancava o app inteiro: ninguém assinava.
+const TRIAL_DIAS = PRECO.diasGratis
+const TRIAL_MS = TRIAL_DIAS * 24 * 60 * 60 * 1000
+// De onde o aluno chegou na aba de planos (medição paywall_visto no dataLayer).
+type OrigemPlans = 'topo' | 'chip' | 'card_home' | 'fim_licao' | 'limite_professor' | 'limite_simulador' | 'limite_licoes' | 'fim_trial' | 'outro'
 
 const dictCatList = [
   {id:'casa',label:'🏠 Casa'},{id:'comida',label:'🍎 Comida'},{id:'corpo',label:'🧍 Corpo'},
@@ -2342,6 +2351,13 @@ export default function AppPage() {
   // uma terceira vez. Agora fica pendente, tenta de novo sozinho e ele fica sabendo.
   const [progressoPendente, setProgressoPendente] = useState(false)
   const [aguardandoPagamento, setAguardandoPagamento] = useState(false)
+  // De onde o aluno abriu a aba de planos — vai no evento paywall_visto (1x por sessão).
+  const [origemPlans, setOrigemPlans] = useState<OrigemPlans>('outro')
+  // Paywall SOFT (fim do trial): tela cheia 1x por dia, fechável — o app continua no grátis.
+  const [paywallSoft, setPaywallSoft] = useState(false)
+  // Data de criação da conta (auth): quem tem trial_expira nulo só vê o paywall se a conta
+  // já passou do período de trial — conta nova sem trial gravado não é "teste terminou".
+  const [contaCriadaEm, setContaCriadaEm] = useState<number | null>(null)
   const [treinoAposOnboarding, setTreinoAposOnboarding] = useState(false)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
@@ -2411,6 +2427,7 @@ export default function AppPage() {
   const [feedbackEnviado, setFeedbackEnviado] = useState(false)
   const [onbStep, setOnbStep] = useState(0)
   const [onbObj, setOnbObj] = useState('')
+  // Meta diária padrão (a tela de "quanto tempo por dia" saiu do onboarding — 3 telas só). Dá pra mudar depois.
   const [onbMeta, setOnbMeta] = useState(50)
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?', local: true }])
   const [chatInput, setChatInput] = useState('')
@@ -2587,7 +2604,9 @@ export default function AppPage() {
   const hojeStr = dataLocal(0)
   const LIMITE_DIA_LICOES = 3
   const licoesHoje = (() => { const p = licaoDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
-  const metaFeitaHoje = licoesHoje >= LIMITE_DIA_LICOES
+  // Só o plano grátis tranca a trilha ao bater o limite do dia. Premium/trial segue
+  // sem limite de lições (a "meta do dia" vira só comemoração para eles).
+  const metaFeitaHoje = !isPremium && licoesHoje >= LIMITE_DIA_LICOES
   const simulacoesHoje = (() => { const p = simDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const PROF_LIMIT = 10
   const PROF_LIMIT_PREMIUM = 120 // uso justo (proteção de custo); invisível ao aluno
@@ -2719,16 +2738,51 @@ export default function AppPage() {
     setConqNova({ e: '🏆', nome: `Desafio dos 3 dias completo! +${DESAFIO_3_DIAS_MOEDAS} 🪙` })
   }, [xpHydrated, streak, userId])
 
-  // Medição: quantos alunos batem no paywall e não pagam (1x por dia) — permite ao gestor
-  // de tráfego montar remarketing de "viu paywall" e medir a conversão do fim do trial.
+  // Paywall SOFT do fim do trial: o app não tranca mais — mostra UMA tela cheia por dia
+  // ("seu teste terminou, isto é o que muda no grátis") e o aluno segue usando. Só para
+  // quem de fato teve o trial e ele acabou; trial_expira nulo só conta como "acabou" se a
+  // conta for mais velha que o próprio trial (senão seria paywall na primeira abertura).
   useEffect(() => {
-    if (!xpHydrated || isPremium) return
+    if (!xpHydrated || isPremium || pagante) return
+    const trialAcabou = trialExpira ? trialExpira <= Date.now() : (!!contaCriadaEm && Date.now() - contaCriadaEm > TRIAL_MS)
+    if (!trialAcabou) return
     try {
-      if (localStorage.getItem('speakup_paywall_visto') === hojeStr) return
-      localStorage.setItem('speakup_paywall_visto', hojeStr)
-      ;(window as any).dataLayer?.push({ event: 'paywall_visto', user_id: userId || undefined })
-    } catch (e) {}
-  }, [xpHydrated, isPremium])
+      if (localStorage.getItem('vonai_paywall_visto_em') === hojeStr) return
+      localStorage.setItem('vonai_paywall_visto_em', hojeStr)
+    } catch (e) { return }
+    setPaywallSoft(true)
+    // Medição: quantos alunos batem no paywall e não pagam (1x por dia) — permite ao gestor
+    // de tráfego montar remarketing de "viu paywall" e medir a conversão do fim do trial.
+    try { ;(window as any).dataLayer?.push({ event: 'paywall_visto', origem: 'fim_trial', user_id: userId || undefined }) } catch (e) {}
+  }, [xpHydrated, isPremium, pagante, trialExpira, contaCriadaEm])
+
+  // Medição da aba de planos: 1x por sessão, com a origem (de onde o aluno veio) — sem
+  // isso não dá pra saber qual gatilho (limite, chip, fim de lição…) leva mais gente ao preço.
+  const paywallSessaoRef = useRef(false)
+  useEffect(() => {
+    if (tab !== 'plans' || paywallSessaoRef.current) return
+    paywallSessaoRef.current = true
+    try { ;(window as any).dataLayer?.push({ event: 'paywall_visto', origem: origemPlans, user_id: userId || undefined }) } catch (e) {}
+  }, [tab])
+  // Único caminho para a aba de planos: registra a origem antes de trocar de aba.
+  const irParaPlans = (origem: OrigemPlans) => { setOrigemPlans(origem); setTab('plans') }
+
+  // "Vô fala primeiro": ao abrir o professor com o histórico vazio, o Vô já pede algo
+  // concreto do nível do aluno. A 1ª correção chega na 1ª resposta — é isso que faz a
+  // pessoa entender o que o app é. Mensagem local (não gasta API), 1x por conta.
+  useEffect(() => {
+    if (tab !== 'ai' || !xpHydrated || !userId) return
+    if (chatMsgs.length !== 1 || chatMsgs[0].role !== 'ai') return
+    try {
+      if (localStorage.getItem('vonai_vo_abriu') === userId) return
+      localStorage.setItem('vonai_vo_abriu', userId)
+    } catch (e) { return }
+    const basico = level === 'A1' || level === 'A2'
+    const abertura = basico
+      ? "Let's start easy! 😊 Me conta em inglês: what's your name and where are you from? Pode errar, eu corrijo com carinho."
+      : "Tell me in English: what did you do today? Two or three sentences — I'll correct you as we go. 😉"
+    setChatMsgs(prev => prev.length === 1 ? [prev[0], { role: 'ai', text: abertura, local: true }] : prev)
+  }, [tab, xpHydrated, userId])
 
   // Ativação D0: sair do onboarding já dentro do 1º treino (um clique a menos até a 1ª lição).
   useEffect(() => {
@@ -3161,6 +3215,7 @@ export default function AppPage() {
       setUserName(nome.split(' ')[0])
       setUserId(user.id)
       setUserEmail(user.email || '')
+      try { const c = user.created_at ? new Date(user.created_at).getTime() : NaN; if (!isNaN(c)) setContaCriadaEm(c) } catch (e) {}
       // Conversões otimizadas do Google Ads: o e-mail criptografado fica disponível no
       // dataLayer ANTES de qualquer evento de conversão, porque o GTM lê essa variável no
       // momento em que a tag dispara. Sem isso, toda conversão sem cookie se perde.
@@ -3174,7 +3229,7 @@ export default function AppPage() {
       try {
         const prevUid = localStorage.getItem('speakup_uid')
         if (prevUid && prevUid !== user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', 'speakup_ultima_atividade', 'speakup_erros_qs', 'speakup_hist_done', 'speakup_errbr', 'speakup_fala_dia', 'speakup_meta_dia', 'speakup_paywall_visto', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', 'speakup_ultima_atividade', 'speakup_erros_qs', 'speakup_hist_done', 'speakup_errbr', 'speakup_fala_dia', 'speakup_meta_dia', 'speakup_paywall_visto', 'vonai_paywall_visto_em', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
           // Flags de evento de ativação são por-aparelho: limpa na troca de conta pra não bloquear
           // os eventos do próximo aluno (mediria ativação errada). Os de compra/trial já são por-uid.
           try { Object.keys(localStorage).forEach(k => { if (k.startsWith('speakup_ev_')) localStorage.removeItem(k) }) } catch (e) {}
@@ -3195,7 +3250,7 @@ export default function AppPage() {
         try { const raw = localStorage.getItem('speakup_prog_cache'); if (raw) { prog = JSON.parse(raw); usandoCache = true } } catch (e) {}
         console.log('[XP][Read] Erro ao ler progresso (usando cache local: ' + usandoCache + ')', progReadError)
       }
-      // Trial de 2 dias: enquanto profiles.trial_expira estiver no futuro, o aluno usa o app como Premium.
+      // Trial de TRIAL_DIAS dias: enquanto profiles.trial_expira estiver no futuro, o aluno usa o app como Premium.
       let emTrial = false
       let trialExpiraMs = 0
       try {
@@ -3320,7 +3375,7 @@ export default function AppPage() {
           nome: nome,
           plano: 'free',
           ativo: true,
-          trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+          trial_expira: new Date(Date.now() + TRIAL_MS)
         }, { onConflict: 'id', ignoreDuplicates: true })
         // Atribuição de primeiro toque (gclid/fbclid/UTMs) guardada no 1º acesso — vai junto do
         // evento de conversão e é persistida pra o webhook reenviar quando o trial virar assinatura.
@@ -3332,7 +3387,7 @@ export default function AppPage() {
         // Cookie _fbp = browser id do pixel do Meta: o webhook manda junto no Purchase da
         // API de Conversões, o que melhora a correspondência (pedido do gestor de tráfego).
         try { const f = document.cookie.match(/_fbp=([^;]+)/); if (f) attrib = { ...(attrib || {}), fbp: decodeURIComponent(f[1]) } } catch (e) {}
-        // Medição (GTM/GA4): conta nova = início do trial de 2 dias.
+        // Medição (GTM/GA4): conta nova = início do trial de TRIAL_DIAS dias.
         // O valor NÃO é mais a mensalidade. Ia 29,90 aqui, igual a uma venda, e isso
         // ensinava o lance que cadastro e assinatura valem o mesmo -- ver lib/valor-eventos.ts.
         // Guarda idempotente: só 1x por usuário (senão cada reload do /app re-dispara o trial_start).
@@ -3346,7 +3401,8 @@ export default function AppPage() {
             ;(window as any).dataLayer?.push({ event: 'inicio_teste', value: VALOR.inicioTeste, currency: MOEDA, user_id: user.id, ...(ud ? { user_data: ud } : {}), ...(attrib?.gclid ? { gclid: attrib.gclid } : {}), ...(attrib?.fbclid ? { fbclid: attrib.fbclid } : {}) })
           }
         } catch (e) {}
-        setIsPremium(true) // conta recém-criada começa com o trial de 2 dias ativo
+        setIsPremium(true) // conta recém-criada começa com o trial ativo
+        if (!trialExpiraMs) setTrialExpira(Date.now() + TRIAL_MS) // p/ a faixa "Teste Premium · N dias" já na 1ª abertura
         const initialXp = pendingXp > 0 ? pendingXp : 0
         setXp(initialXp)
         const { error: insErr } = await supabase.from('progresso').upsert({ user_id: user.id, xp: initialXp, streak: 0, licoes_concluidas: [], is_premium: false, simulacoes_hoje: 0, email: user.email, ...(attrib ? { attrib } : {}) }, { onConflict: 'user_id', ignoreDuplicates: true })
@@ -3826,7 +3882,7 @@ export default function AppPage() {
   // na web/Android abre o checkout do Kiwify. Contrato: window.VonaiNative.subscribe('mensal'|'anual').
   function abrirAssinatura(plano: 'mensal' | 'anual') {
     // Medição: sem este evento, o funil entre criar conta e pagar é invisível na web
-    // (o Google Ads só enxergava inicio_teste, 2 dias antes da decisão).
+    // (o Google Ads só enxergava inicio_teste, dias antes da decisão).
     try { ;(window as any).dataLayer?.push({ event: 'inicio_checkout', plano, value: plano === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId || undefined }) } catch (e) {}
     const nat = (typeof window !== 'undefined') ? (window as any).VonaiNative : null
     if (nat && nat.platform === 'ios' && typeof nat.subscribe === 'function') { try { nat.subscribe(plano) } catch (e) {} ; return }
@@ -3839,8 +3895,14 @@ export default function AppPage() {
     }
     // Prefill do e-mail: o webhook libera o Premium casando pelo e-mail do checkout —
     // vir preenchido evita o aluno pagar com outro e-mail e ficar bloqueado pagando.
+    // s1 = id do aluno: o webhook passa a casar o pagamento pelo id também, não só pelo e-mail
+    // (quem paga com outro e-mail deixava de ser liberado).
     const base = plano === 'mensal' ? KIWIFY_MENSAL : KIWIFY_ANUAL
-    const url = userEmail ? `${base}?email=${encodeURIComponent(userEmail)}` : base
+    const params = new URLSearchParams()
+    if (userEmail) params.set('email', userEmail)
+    if (userId) params.set('s1', userId)
+    const qs = params.toString()
+    const url = qs ? `${base}?${qs}` : base
     try { localStorage.setItem('speakup_plano_checkout', plano) } catch (e) {} // p/ o value certo no purchase
     setAguardandoPagamento(true)
     const w = window.open(url, '_blank')
@@ -3849,9 +3911,13 @@ export default function AppPage() {
 
   // Volta do checkout Kiwify: confere sozinho se o pagamento liberou (o webhook marca
   // is_premium em segundos — antes o aluno precisava achar e tocar num botão de recarregar).
+  // Janela de 15 min: Pix pode demorar. A cada 5s nos 2 primeiros minutos, depois a cada 20s.
   useEffect(() => {
     if (!aguardandoPagamento || !userId || pagante) return
     let vivo = true, tentativas = 0
+    const inicio = Date.now()
+    let iv: ReturnType<typeof setInterval> | null = null
+    let ritmo = 5000
     const checa = async () => {
       if (!vivo || document.visibilityState !== 'visible') return
       tentativas++
@@ -3876,13 +3942,32 @@ export default function AppPage() {
           return
         }
       } catch (e) {}
-      if (tentativas >= 24 && vivo) setAguardandoPagamento(false) // ~2 min e desiste em silêncio
+      const passou = Date.now() - inicio
+      if (passou >= 15 * 60000 && vivo) { setAguardandoPagamento(false); return } // 15 min e desiste em silêncio
+      // Passados 2 min, afrouxa o ritmo (20s) — o "Já paguei" continua disponível na aba planos.
+      if (passou >= 2 * 60000 && iv && ritmo === 5000) { clearInterval(iv); ritmo = 20000; iv = setInterval(checa, ritmo) }
     }
     const onVis = () => { if (document.visibilityState === 'visible') checa() }
     document.addEventListener('visibilitychange', onVis)
-    const iv = setInterval(checa, 5000)
-    return () => { vivo = false; document.removeEventListener('visibilitychange', onVis); clearInterval(iv) }
+    iv = setInterval(checa, ritmo)
+    return () => { vivo = false; document.removeEventListener('visibilitychange', onVis); if (iv) clearInterval(iv) }
   }, [aguardandoPagamento, userId, pagante])
+
+  // "Já paguei — atualizar": confere o status no servidor sem recarregar a página inteira
+  // (o reload jogava o aluno de volta na home e perdia o contexto). Se liberou, celebra.
+  const [conferindoPagamento, setConferindoPagamento] = useState(false)
+  async function conferirPagamento() {
+    if (!userId || conferindoPagamento) return
+    setConferindoPagamento(true)
+    try {
+      const { data } = await supabase.from('progresso').select('is_premium, premium_expira').eq('user_id', userId).maybeSingle()
+      const ok = !!data?.is_premium && (!data?.premium_expira || new Date(data.premium_expira).getTime() > Date.now())
+      if (ok) { setPagante(true); setIsPremium(true); setAguardandoPagamento(false); setPaywallSoft(false); setConqNova({ e: '⭐', nome: 'Bem-vindo ao Premium! 🎉' }); return }
+      alert('Ainda não recebemos a confirmação do pagamento. Pix e boleto podem levar alguns minutos — tente de novo daqui a pouco. Se pagou com outro e-mail, fale com a gente.')
+    } catch (e) {
+      window.location.reload()
+    } finally { setConferindoPagamento(false) }
+  }
 
   // Medição (GTM/GA4): eventos de ativação do funil (nivelamento, 1ª lição, 1ª conversa).
   // Dispara uma única vez por aparelho — o gestor de tráfego cruza com inicio_teste no GA4.
@@ -3954,7 +4039,7 @@ export default function AppPage() {
     if (listening) pararMic() // ao enviar o áudio, para de gravar
     try { track('professor_mensagem') } catch (e) {}
     if (!isPremium && profHoje >= PROF_LIMIT) {
-      setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser!`, local: true }])
+      setChatMsgs(m => [...m, { role: 'ai', text: `Você usou suas ${PROF_LIMIT} mensagens de hoje com o Professor IA. 🌟 Vire Premium para conversar sem limites — quantas vezes quiser! (Amanhã as ${PROF_LIMIT} mensagens grátis voltam.)`, local: true }])
       return
     }
     // Teto de uso justo do Premium (proteção de custo) — silencioso, sem expor o número ao aluno.
@@ -4146,7 +4231,7 @@ export default function AppPage() {
   }
 
   function startScenario(scenario: Scenario) {
-    if (!isPremium && simulacoesHoje >= FREE_LIMIT) { setTab('plans'); return }
+    if (!isPremium && simulacoesHoje >= FREE_LIMIT) { irParaPlans('limite_simulador'); return }
     setSelectedScenario(scenario); setConvMsgs([{ role: 'ai', text: scenario.opener }]); setConvStarted(true); setConvInput('')
     if (autoVoz) setTimeout(() => falarIngles(scenario.opener, 0), 400)
     const novo = `${hojeStr}:${simulacoesHoje + 1}`
@@ -4417,118 +4502,77 @@ export default function AppPage() {
     )
   }
 
-  // 🔒 PAYWALL DURO: acabou o trial de 2 dias e não é Premium -> bloqueia o app até assinar.
-  if (xpHydrated && !isPremium) {
-    return (
-      <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
-        <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ background: 'linear-gradient(150deg, #103d77, #2e72d6)', padding: '44px 20px 30px', textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
-            <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste grátis terminou</div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Assine o <b>Vonai Premium</b> para continuar aprendendo inglês, do zero à fluência.</div>
-          </div>
-          <div style={{ padding: 18, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {/* Aversão à perda: a decisão de assinar é tomada olhando para o que JÁ é do aluno,
-                não para uma lista de features (padrão Duolingo/Speak). */}
-            {(xp > 0 || streak > 0 || licoesConcluidas.length > 0) && (
-              <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>No seu teste você construiu:</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {[['🔥', String(streak), streak === 1 ? 'dia seguido' : 'dias seguidos'], ['⚡', String(xp), 'XP ganhos'], ['📖', String(licoesConcluidas.length), licoesConcluidas.length === 1 ? 'lição feita' : 'lições feitas']].map(([e, n, l], i) => (
-                    <div key={i} style={{ flex: 1, background: '#f2f5f8', borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 16 }}><Ic e={e} /></div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#16212c', marginTop: 2 }}>{n}</div>
-                      <div style={{ fontSize: 10, color: '#5c6b7a', lineHeight: 1.2 }}>{l}</div>
-                    </div>
-                  ))}
-                </div>
-                {/* Stored value (Hooked): o que o Vô já APRENDEU sobre este aluno é o ativo
-                    que nenhum outro app tem — tornar essa perda concreta na decisão. */}
-                {(() => {
-                  const pontosMapeados = ((perfilIa.topicos_fracos || []).length) + ((perfilIa.sons_dificeis || []).length)
-                  if (pontosMapeados === 0) return <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', marginTop: 10 }}>Assine para não perder seu progresso.</div>
-                  return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#e7f0fa', borderRadius: 10, padding: '10px 12px', marginTop: 12 }}>
-                      <span style={{ fontSize: 20 }}><Ic e="🧠" /></span>
-                      <div style={{ fontSize: 12, color: '#103d77', lineHeight: 1.5 }}>O Vô já mapeou <b>{pontosMapeados} {pontosMapeados === 1 ? 'ponto fraco seu' : 'pontos fracos seus'}</b> e monta seus treinos sob medida. Assinando, esse conhecimento continua com você.</div>
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
+  // 🔔 PAYWALL SOFT: o trial acabou e o aluno não paga -> UMA tela cheia por dia (efeito
+  // acima decide quando), fechável, e o app continua aberto no plano grátis. O paywall
+  // duro que trancava tudo saiu: quem não podia usar não assinava, só sumia.
+  const fecharPaywallSoft = () => { setPaywallSoft(false); setTab('home') }
+  const paywallSoftTela = paywallSoft && !isPremium && !mostrarOnboarding ? (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 210, display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)', overflowY: 'auto' }}>
+      <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: 'linear-gradient(150deg, #103d77, #2e72d6)', padding: '40px 20px 26px', textAlign: 'center', position: 'relative' }}>
+          <button onClick={fecharPaywallSoft} aria-label="Fechar" style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.16)', border: 'none', color: '#fff', width: 34, height: 34, borderRadius: '50%', fontSize: 18, cursor: 'pointer', fontFamily: 'inherit' }}>×</button>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
+          <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste Premium terminou</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Você continua no <b>plano grátis</b> — com limites. Assine o <b>Vonai Premium</b> para seguir sem freio.</div>
+        </div>
+        <div style={{ padding: 18, flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Aversão à perda: a decisão de assinar é tomada olhando para o que JÁ é do aluno,
+              não para uma lista de features (padrão Duolingo/Speak). */}
+          {(xp > 0 || streak > 0 || licoesConcluidas.length > 0) && (
             <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>Com o Premium você tem:</div>
-              {[['📖', 'Todas as lições, do A1 ao C2'], ['🤖', 'Professor de IA ilimitado'], ['🎭', 'Conversas ilimitadas'], ['📊', 'Relatório de evolução'], ['🎯', 'Trilha personalizada']].map(([ic, t], i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < 4 ? 10 : 0 }}>
-                  <span style={{ fontSize: 17 }}><Ic e={ic} /></span>
-                  <span style={{ fontSize: 13.5, color: '#16212c' }}>{t}</span>
-                  <span style={{ marginLeft: 'auto', color: green }}><Ic e="✓" /></span>
-                </div>
-              ))}
-            </div>
-            {/* Prova social / sinais de confiança. HONESTO pré-lançamento: nada de número
-                de alunos inventado. Quando houver dados reais (avaliação da loja, nº de
-                alunos, depoimentos), trocar/adicionar aqui. */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              {[['🇧🇷', 'Feito para brasileiros'], ['🔒', 'Pagamento seguro'], ['✅', 'Cancele quando quiser']].map(([e, t], i) => (
-                <div key={i} style={{ flex: 1, background: '#ffffff', border: '0.5px solid #e5eaef', borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18 }}><Ic e={e} /></div>
-                  <div style={{ fontSize: 10.5, color: '#5c6b7a', marginTop: 4, lineHeight: 1.2, fontWeight: 600 }}>{t}</div>
-                </div>
-              ))}
-            </div>
-            {/* Os DOIS planos em destaque: mensal (entrada acessível) + anual (melhor valor). */}
-            <div onClick={() => abrirAssinatura('mensal')} style={{ position: 'relative', background: '#ffffff', border: `1.5px solid ${blue}`, borderRadius: 14, padding: 16, cursor: 'pointer', marginBottom: 10 }}>
-              <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: blue, color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em' }}>MAIS ESCOLHIDO</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div><div style={{ fontSize: 15, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Menos de R$1 por dia · Cancele quando quiser</div></div>
-                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 24, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
-              </div>
-              <div style={{ width: '100%', padding: 12, background: blue, color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Assinar por R$29,90/mês <Ic e="→" /></div>
-            </div>
-            <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(224,138,30,0.35)' }}>
-              <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: '#16A34A', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em' }}>MELHOR OFERTA · -19%</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Plano Anual <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>· economize R$69</span></div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: 6 }}>
-                    <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{isIOSNative ? 'R$24,16' : 'R$24,15'}</span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>/mês</span>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>No seu teste você construiu:</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[['🔥', String(streak), streak === 1 ? 'dia seguido' : 'dias seguidos'], ['⚡', String(xp), 'XP ganhos'], ['📖', String(licoesConcluidas.length), licoesConcluidas.length === 1 ? 'lição feita' : 'lições feitas']].map(([e, n, l], i) => (
+                  <div key={i} style={{ flex: 1, background: '#f2f5f8', borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 16 }}><Ic e={e} /></div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#16212c', marginTop: 2 }}>{n}</div>
+                    <div style={{ fontSize: 10, color: '#5c6b7a', lineHeight: 1.2 }}>{l}</div>
                   </div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>cobrado {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano</div>
-                </div>
+                ))}
               </div>
-              <div style={{ width: '100%', marginTop: 12, padding: 12, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Assinar por {isIOSNative ? 'R$24,16' : 'R$24,15'}/mês <Ic e="🔥" /></div>
             </div>
-            <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto'}</div>
-            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
-            {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
-            <div style={{ fontSize: 11.5, color: '#93a1b0', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
-              Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
-              <a href="/termos" style={{ color: blue }}>Termos de Uso</a> · <a href="/privacidade" style={{ color: blue }}>Política de Privacidade</a>
-            </div>
-            {isIOSNative
-              ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Restaurar compras</button>
-              : <button onClick={() => window.location.reload()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Já assinei — atualizar</button>}
-            <button onClick={logout} style={{ width: '100%', padding: 12, marginTop: 10, background: 'none', color: '#93a1b0', border: 'none', fontSize: 13, cursor: 'pointer' }}>Sair da conta</button>
-            {/* Exclusão precisa ser alcançável também daqui (5.1.1(v)): quem expirou fica bloqueado no paywall. */}
-            <button onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ width: '100%', padding: 8, background: 'none', color: '#b91c1c', border: 'none', fontSize: 12, cursor: 'pointer' }}>Excluir minha conta e dados</button>
-            {excluirModal && (
-              <div onClick={() => !excluindoConta && setExcluirModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c', marginBottom: 6 }}>🗑️ Excluir sua conta</div>
-                  <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.6, marginBottom: 14 }}>Isso apaga <b>permanentemente</b> sua conta e todos os seus dados. <b>Não dá para desfazer.</b></div>
-                  {excluirErro && <div style={{ fontSize: 12.5, color: '#DC2626', background: '#fcecec', borderRadius: 10, padding: '10px 12px', marginBottom: 12, lineHeight: 1.5 }}>{excluirErro}</div>}
-                  <button onClick={excluirConta} disabled={excluindoConta} style={{ width: '100%', padding: 14, background: '#DC2626', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: excluindoConta ? 0.6 : 1, fontFamily: 'inherit' }}>{excluindoConta ? 'Excluindo…' : 'Excluir permanentemente'}</button>
-                  <button onClick={() => setExcluirModal(false)} disabled={excluindoConta} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: '#93a1b0', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-                </div>
+          )}
+          {/* O que muda no grátis — dito com clareza. Ninguém perde o progresso; perde ritmo. */}
+          <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>O que muda no plano grátis:</div>
+            {[['🤖', `${PROF_LIMIT} mensagens por dia com o professor`, 'ilimitado no Premium'], ['🎭', `${FREE_LIMIT} simulações por dia`, 'ilimitado no Premium'], ['📖', `${LIMITE_DIA_LICOES} lições por dia na trilha`, 'sem limite no Premium']].map(([ic, t, d], i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
+                <span style={{ fontSize: 17 }}><Ic e={ic} /></span>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, color: '#16212c' }}>{t}</div><div style={{ fontSize: 11.5, color: '#5c6b7a' }}>{d}</div></div>
               </div>
-            )}
+            ))}
           </div>
+          {/* Anual em destaque (melhor valor); mensal simples embaixo. */}
+          <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(224,138,30,0.35)', marginBottom: 12 }}>
+            <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: '#16A34A', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>MELHOR VALOR — ECONOMIZE R$69</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Plano Anual</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: 6 }}>
+              <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{isIOSNative ? 'R$24,16' : 'R$24,15'}</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>/mês</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>cobrado {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano · R$0,79 por dia</div>
+            <div style={{ width: '100%', marginTop: 12, padding: 12, background: '#fff', color: '#8a5a10', borderRadius: 10, fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Assinar <Ic e="→" /></div>
+          </div>
+          <div onClick={() => abrirAssinatura('mensal')} style={{ background: '#ffffff', border: '1px solid #e5eaef', borderRadius: 14, padding: 14, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div><div style={{ fontSize: 14, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Cancele quando quiser</div></div>
+            <div style={{ textAlign: 'right' }}><span style={{ fontSize: 20, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
+          </div>
+          {/* Saída bem visível: continuar no grátis é uma escolha legítima, não uma derrota. */}
+          <button onClick={fecharPaywallSoft} style={{ width: '100%', padding: 14, marginTop: 14, background: '#fff', color: blue, border: `1.5px solid ${blue}`, borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Continuar no plano grátis</button>
+          <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser · sem fidelidade' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele quando quiser · sem fidelidade'}</div>
+          {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+          {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
+          <div style={{ fontSize: 11.5, color: '#93a1b0', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
+            Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
+            <a href="/termos" style={{ color: blue }}>Termos de Uso</a> · <a href="/privacidade" style={{ color: blue }}>Política de Privacidade</a>
+          </div>
+          {isIOSNative
+            ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: 'none', color: blue, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Restaurar compras</button>
+            : <button onClick={conferirPagamento} disabled={conferindoPagamento} style={{ width: '100%', padding: 12, marginTop: 16, background: 'none', color: blue, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: conferindoPagamento ? 0.6 : 1 }}>{conferindoPagamento ? 'Conferindo…' : 'Já assinei — atualizar'}</button>}
         </div>
       </div>
-    )
-  }
+    </div>
+  ) : null
 
   // ---- HOME GUIADA (nova experiência: UMA ação diária) ----
   // "Treino de hoje": retoma a trilha na lição ONDE O ALUNO PAROU (a próxima não
@@ -4564,6 +4608,8 @@ export default function AppPage() {
     if (errosQs.length > 0 || revisoesDevidas.length > 0) {
       setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao'); return
     }
+    // Plano grátis já fez as lições do dia: o treino não abre a próxima "por fora" da trilha.
+    if (idx >= 0 && metaFeitaHoje) { encerrarTreino(); irParaPlans('limite_licoes'); return }
     if (idx >= 0) { abrirLicaoTreino(idx); return }
     encerrarTreino(); setView('levels'); setTab('lessons')
   }
@@ -4572,7 +4618,7 @@ export default function AppPage() {
     treinoAquecRef.current = { acertos: revAcertos, total: revisaoQuestions.length }
     const arr = lessons[level] || []
     const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
-    if (idx >= 0) { abrirLicaoTreino(idx); return }
+    if (idx >= 0 && !metaFeitaHoje) { abrirLicaoTreino(idx); return }
     setView('sessaoFim'); setTab('lessons')
   }
 
@@ -4609,12 +4655,13 @@ export default function AppPage() {
       ? Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
       : 0
     const urgente = restam > 0 && restam <= 24
+    // Honesto sobre o que acontece no fim: ninguém é trancado, só volta aos limites do grátis.
     const linha2 = restam > 0
-      ? (urgente ? `Seu teste acaba em ${restam}h — não perca seu progresso` : `Teste grátis · ${Math.ceil(restam / 24)} dias restantes`)
+      ? (urgente ? 'Seu teste acaba hoje — depois você continua no grátis com limites' : `Teste Premium · ${Math.ceil(restam / 24)} dias`)
       : 'Todas as lições, professor de IA e conversas sem limite'
     return (
       <div
-        onClick={() => { try { track('assinar_topo_clicado') } catch (e) {} ; setTab('plans') }}
+        onClick={() => { try { track('assinar_topo_clicado') } catch (e) {} ; irParaPlans('topo') }}
         style={{
           display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer',
           background: urgente ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : 'linear-gradient(135deg, #f5a623, #e08a1e)',
@@ -4668,7 +4715,7 @@ export default function AppPage() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 13, color: '#bcd6f2', letterSpacing: 0.2 }}>{saudacao},</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.2 }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.2 }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => irParaPlans('chip')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste Premium · {h <= 24 ? 'acaba hoje' : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
           </div>
           {barraAssinar()}
           {/* Card grande de progresso (o que o Emmanuel achou mais bonito) */}
@@ -4924,15 +4971,15 @@ export default function AppPage() {
             const urgente = horas <= 24
             const quando = horas <= 24 ? `Acaba em ${horas}h` : `Acaba em ${Math.ceil(horas / 24)} dias`
             return (
-              <div onClick={() => setTab('plans')} style={{ background: urgente ? 'linear-gradient(135deg, #b91c1c, #dc2626)' : `linear-gradient(135deg, ${blueDark}, ${blue})`, borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div onClick={() => irParaPlans('card_home')} style={{ background: urgente ? 'linear-gradient(135deg, #b91c1c, #dc2626)' : `linear-gradient(135deg, ${blueDark}, ${blue})`, borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e={urgente ? '⏰' : '⭐'} color={urgente ? '#dc2626' : gold} onDark box={42} size={22} />
-                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Assine e não perca seu progresso</div></div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Depois você segue no grátis, com limites</div></div>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
               </div>
             )
           })()}
           {!isPremium && (
-            <div onClick={() => setTab('plans')} style={{ background: `linear-gradient(135deg, ${blueDark}, ${blue})`, borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div onClick={() => irParaPlans('card_home')} style={{ background: `linear-gradient(135deg, ${blueDark}, ${blue})`, borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
               <IcBadge e="⭐" color={gold} onDark box={42} size={22} />
               <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Seja Premium <Ic e="✨" /></div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$29,90 <Ic e="→" /></div>
@@ -5062,7 +5109,7 @@ export default function AppPage() {
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, color: '#bcd6f2' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => setTab('plans')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste · {h <= 24 ? `${h}h` : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
+              <div style={{ fontSize: 13, color: '#bcd6f2' }}>{saudacao},</div><div style={{ fontSize: 18, fontWeight: 500, color: '#fff' }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => irParaPlans('chip')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste Premium · {h <= 24 ? 'acaba hoje' : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
             </div>
             {barraAssinar()}
             {(() => {
@@ -5269,15 +5316,15 @@ export default function AppPage() {
               const urgente = horas <= 24
               const quando = horas <= 24 ? `Acaba em ${horas}h` : `Acaba em ${Math.ceil(horas / 24)} dias`
               return (
-                <div onClick={() => setTab('plans')} style={{ background: urgente ? 'linear-gradient(135deg, #b91c1c, #dc2626)' : 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div onClick={() => irParaPlans('card_home')} style={{ background: urgente ? 'linear-gradient(135deg, #b91c1c, #dc2626)' : 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <IcBadge e={urgente ? '⏰' : '⭐'} color={urgente ? '#dc2626' : gold} onDark box={44} size={24} />
-                  <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'} <Ic e={urgente ? '🔥' : '✨'} /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Assine e não perca seu progresso</div></div>
+                  <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'} <Ic e={urgente ? '🔥' : '✨'} /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Depois você segue no grátis, com limites</div></div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
                 </div>
               )
             })()}
             {!isPremium && (
-              <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div onClick={() => irParaPlans('card_home')} style={{ background: 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e="⭐" color={gold} onDark box={44} size={24} />
                 <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Seja Premium <Ic e="✨" /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$29,90/mês <Ic e="→" /></div>
@@ -5446,56 +5493,48 @@ export default function AppPage() {
         </div>
       )}
 
+      {paywallSoftTela}
+
       {mostrarOnboarding && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, display: 'flex', padding: 24, overflowY: 'auto' }}>
           <div key={onbStep} style={{ maxWidth: 420, margin: 'auto', width: '100%', color: '#fff', animation: 'su_screen 0.32s ease' }}>
             {onbStep === 0 && (<>
-              {/* Boas-vindas do Vô: a primeira coisa que o aluno vê é uma pessoa (bem,
-                  um vô-robô) falando com ele — não um formulário. Voz ligada aqui. */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
-                <div style={{ width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', animation: 'su_bob 2.4s ease-in-out infinite' }}>
-                  <Mascote size={92} prof humor="acena" />
+              {/* Boas-vindas + objetivo na MESMA tela: a primeira coisa que o aluno vê é uma
+                  pessoa (bem, um vô-robô) falando com ele — e a 1ª pergunta já vem junto.
+                  Eram 5 telas até a 1ª lição; agora são 3 (a de tempo saiu — meta padrão). */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+                <div style={{ width: 104, height: 104, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', animation: 'su_bob 2.4s ease-in-out infinite' }}>
+                  <Mascote size={74} prof humor="acena" />
                 </div>
               </div>
-              <VoFala escuro voz size={0} fala={`Oi${userName ? ', ' + userName.split(' ')[0] : ''}! Eu sou o Vô, seu professor de inglês aqui do Vonai. 👋 Que alegria receber você! Vou te acompanhar em cada passo — e pode errar à vontade, que errar comigo não tem plateia. 😄`} />
-              <button onClick={() => setOnbStep(1)} style={{ ...onbOpt, justifyContent: 'center', background: '#F5A623', border: 'none', fontWeight: 800, fontSize: 16, marginTop: 20 }}>Oi, Vô! Vamos começar →</button>
-            </>)}
-            {onbStep === 1 && (<>
-              <VoFala escuro fala="Primeiro me conta: qual é o seu grande objetivo com o inglês?" />
+              <VoFala escuro voz size={0} fala={`Oi${userName ? ', ' + userName.split(' ')[0] : ''}! Eu sou o Vô, seu professor de inglês aqui do Vonai. 👋 Pode errar à vontade, que errar comigo não tem plateia. Me conta: qual é o seu grande objetivo com o inglês?`} />
               <div style={{ height: 16 }} />
               {[{ e: '✈️', t: 'Me virar em viagens', o: 'Me virar em viagens no exterior' }, { e: '💼', t: 'Trabalho e carreira', o: 'Usar inglês no trabalho e na carreira' }, { e: '💬', t: 'Conversar com fluência', o: 'Conversar com fluência em inglês' }, { e: '🎓', t: 'Estudos e provas', o: 'Passar em provas e estudar em inglês' }].map(op => (
-                <button key={op.t} onClick={() => { setOnbObj(op.o); setOnbStep(2) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span> {op.t}</button>
+                <button key={op.t} onClick={() => { setOnbObj(op.o); setOnbStep(1) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span> {op.t}</button>
               ))}
             </>)}
-            {onbStep === 2 && (<>
-              <VoFala escuro fala="Combinado! E quanto tempo por dia você tem pra mim? Prometo aproveitar cada minuto — e dá pra mudar depois." />
-              <div style={{ height: 16 }} />
-              {[{ e: '☕', t: 'Casual', d: '~5 min por dia', m: 20 }, { e: '🎯', t: 'Regular', d: '~10 min por dia', m: 50 }, { e: '🔥', t: 'Sério', d: '~15 min por dia', m: 80 }, { e: '🚀', t: 'Intenso', d: '20+ min por dia', m: 120 }].map(op => (
-                <button key={op.t} onClick={() => { setOnbMeta(op.m); setOnbStep(3) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span><span style={{ flex: 1, textAlign: 'left' }}>{op.t}<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>{op.d}</span></span></button>
-              ))}
-              <button onClick={() => setOnbStep(1)} style={onbBack}>← Voltar</button>
-            </>)}
-            {onbStep === 3 && (<>
+            {onbStep === 1 && (<>
               {/* A pergunta da autonomia: cada aluno aprende de um jeito, e quem escolhe
                   a porta de entrada é ele. O nivelamento só existe no caminho das lições. */}
-              <VoFala escuro fala="Última pergunta, e é a mais importante: como VOCÊ prefere aprender? Aqui quem manda é você." />
+              <VoFala escuro fala="Combinado! Agora a pergunta mais importante: como VOCÊ prefere aprender? Aqui quem manda é você." />
               <div style={{ height: 16 }} />
               <button onClick={() => concluirOnboarding({ estilo: 'conversa', destino: 'ai' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>💬</span><span style={{ flex: 1, textAlign: 'left' }}>Conversando com o professor<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Fale comigo e eu corrijo na hora, em português</span></span></button>
-              <button onClick={() => { try { if (localStorage.getItem('speakup_nivel')) { concluirOnboarding({ estilo: 'licoes', destino: 'treino' }); return } } catch (e) {}; setOnbStep(4) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📖</span><span style={{ flex: 1, textAlign: 'left' }}>Com lições passo a passo<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Trilha do básico ao avançado, no seu ritmo</span></span></button>
+              {/* Já sabemos o nível (localStorage): pula a tela de nível e cai direto no treino. */}
+              <button onClick={() => { try { if (localStorage.getItem('speakup_nivel')) { concluirOnboarding({ estilo: 'licoes', destino: 'treino' }); return } } catch (e) {}; setOnbStep(2) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📖</span><span style={{ flex: 1, textAlign: 'left' }}>Com lições passo a passo<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Trilha do básico ao avançado, no seu ritmo</span></span></button>
               <button onClick={() => concluirOnboarding({ estilo: 'tarefas', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>✅</span><span style={{ flex: 1, textAlign: 'left' }}>Com tarefas diárias<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Um treino curtinho por dia, montado pra você</span></span></button>
-              <button onClick={() => setOnbStep(2)} style={onbBack}>← Voltar</button>
+              <button onClick={() => setOnbStep(0)} style={onbBack}>← Voltar</button>
             </>)}
-            {onbStep === 4 && (<>
+            {onbStep === 2 && (<>
               <VoFala escuro fala="Boa escolha! Pra trilha começar no ponto certo: qual é o seu nível hoje? Se não souber, eu descubro pra você em 2 minutinhos." />
               <div style={{ height: 16 }} />
               <button onClick={() => concluirOnboarding({ nivel: 'A1', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
               <button onClick={() => concluirOnboarding({ nivel: 'A2', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
               <button onClick={() => concluirOnboarding({ estilo: 'licoes', irNivelamento: true })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span><span style={{ flex: 1, textAlign: 'left' }}>Fazer o teste de nivelamento<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>20 questões que se adaptam a você · ~5 min</span></span></button>
               <button onClick={() => concluirOnboarding({ estilo: 'licoes', destino: 'nivelManual' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🎚️</span><span style={{ flex: 1, textAlign: 'left' }}>Já sei meu nível<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Escolher direto, sem fazer teste</span></span></button>
-              <button onClick={() => setOnbStep(3)} style={onbBack}>← Voltar</button>
+              <button onClick={() => setOnbStep(1)} style={onbBack}>← Voltar</button>
             </>)}
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 24 }}>
-              {[0, 1, 2, 3].map(s => <div key={s} style={{ width: 8, height: 8, borderRadius: '50%', background: s === Math.min(onbStep, 3) ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
+              {[0, 1, 2].map(s => <div key={s} style={{ width: 8, height: 8, borderRadius: '50%', background: s === Math.min(onbStep, 2) ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
             </div>
           </div>
         </div>
@@ -5550,21 +5589,8 @@ export default function AppPage() {
         </div>
       )}
 
-      {zapModal && (
-        <div onClick={() => setZapModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-background-primary)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 440, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 26 }}><Ic e="📲" /></span>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)' }}>Receba dicas no WhatsApp</div>
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Dicas de inglês e lembretes do seu desafio diário, direto no seu WhatsApp.</div>
-            <input value={whatsappInput} onChange={e => setWhatsappInput(e.target.value)} placeholder="(00) 00000-0000" inputMode="tel" style={{ width: '100%', padding: 13, borderRadius: 10, border: '1px solid var(--color-border-tertiary)', fontSize: 16, marginBottom: 10, boxSizing: 'border-box' }} />
-            <button onClick={async () => { if (await salvarWhatsapp()) setZapModal(false) }} style={{ width: '100%', padding: 14, background: '#4ade80', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 8 }}>{whatsapp ? 'Atualizar número' : 'Quero receber'}</button>
-            <button onClick={() => setZapModal(false)} style={{ width: '100%', padding: 12, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 14, cursor: 'pointer' }}>Agora não</button>
-            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>Ao informar, você concorda em receber mensagens. Cancele quando quiser.</div>
-          </div>
-        </div>
-      )}
+      {/* Modal de WhatsApp removido da tela: não existe envio de mensagens por trás, então
+          pedir o número era só atrito (a função salvarWhatsapp fica, morta, por enquanto). */}
 
       {tab === 'prova' && (
         <div>
@@ -6165,23 +6191,36 @@ export default function AppPage() {
                 <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.5 }}>Sua assinatura está ativa — aproveite tudo sem limites.</div>
               </div>
             ) : (<>
-            <div style={{ position: 'relative', background: 'var(--color-background-primary)', borderRadius: 14, border: `2px solid ${blue}`, padding: 16, marginBottom: 12 }}>
-              <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: blue, color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20 }}>MAIS ESCOLHIDO</div>
+            {/* Voltou do checkout: o webhook do Pix pode demorar — dizer isso evita o aluno
+                achar que "não funcionou" e pagar de novo (ou desistir). */}
+            {aguardandoPagamento && !isIOSNative && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: blueLight, border: `1px solid ${blue}33`, borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
+                <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${blue}`, borderTopColor: 'transparent', flexShrink: 0, animation: 'su_girar 1s linear infinite' }} />
+                <div style={{ fontSize: 12.5, color: blueDark, lineHeight: 1.45 }}>Aguardando confirmação do pagamento… Pix pode levar alguns minutos. Se já pagou, toque em <b>&ldquo;Já paguei&rdquo;</b> abaixo.</div>
+              </div>
+            )}
+            {/* Anual primeiro e em destaque: é o plano com melhor valor para o aluno e a
+                melhor retenção para o app. R$0,79/dia = 289,80 ÷ 365. Mensal fica sem selo. */}
+            <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 12, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> Melhor valor · R$0,79/dia</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 8 }}>
+                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 600 }}>economize R$69 por ano</div></div>
+                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>{isIOSNative ? 'R$289,90' : 'R$289,80'}</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · {isIOSNative ? 'R$24,16' : 'R$24,15'}/mês</div></div>
+              </div>
+              <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar por {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano <Ic e="→" /></button>
+            </div>
+            <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '1px solid var(--color-border-tertiary)', padding: 16, marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Menos de R$1 por dia · Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$29,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
               </div>
               <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar por R$29,90/mês <Ic e="→" /></button>
             </div>
-            <div style={{ background: goldLight, borderRadius: 14, border: `2px solid ${gold}`, padding: 16, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, right: 0, background: gold, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderBottomLeftRadius: 10 }}><Ic e="🔥" /> MELHOR OFERTA</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 500 }}>Economize R$69/ano</div></div>
-                <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>{isIOSNative ? 'R$289,90' : 'R$289,80'}</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · {isIOSNative ? 'R$24,16' : 'R$24,15'}/mês</div></div>
-              </div>
-              <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar por {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano <Ic e="→" /></button>
-            </div>
-            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginBottom: 16, background: goldLight, borderRadius: 10, padding: '10px 12px' }}><Ic e="⚠️" /> Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', textAlign: 'center', fontWeight: 600, marginBottom: 12 }}><Ic e="✅" /> Cancele quando quiser · sem fidelidade</div>
+            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginBottom: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}><Ic e="⚠️" /> Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            {/* Web: quem já pagou (Pix confirmado depois de fechar a aba, ou webhook atrasado)
+                atualiza o acesso sem recarregar — antes esse botão só existia no paywall duro. */}
+            {!isIOSNative && <button onClick={conferirPagamento} disabled={conferindoPagamento} style={{ width: '100%', padding: 12, marginBottom: 16, background: 'var(--color-background-primary)', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: conferindoPagamento ? 0.6 : 1 }}>{conferindoPagamento ? 'Conferindo…' : 'Já paguei — atualizar meu acesso'}</button>}
             </>)}
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele a qualquer momento' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento'}</div>
             {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
@@ -6205,7 +6244,7 @@ export default function AppPage() {
                 {!isPremium && <div style={{ fontSize: 12, color: '#9dbbdd', marginTop: 6 }}>{simulacoesHoje}/{FREE_LIMIT} simulações usadas hoje</div>}
               </div>
               {!isPremium && simulacoesHoje >= FREE_LIMIT && (
-                <div onClick={() => setTab('plans')} style={{ margin: 16, background: `linear-gradient(135deg, ${gold}, #e08a1e)`, borderRadius: 14, padding: 18, cursor: 'pointer', textAlign: 'center' }}>
+                <div onClick={() => irParaPlans('limite_simulador')} style={{ margin: 16, background: `linear-gradient(135deg, ${gold}, #e08a1e)`, borderRadius: 14, padding: 18, cursor: 'pointer', textAlign: 'center' }}>
                   <div style={{ fontSize: 30, marginBottom: 6 }}><Ic e="🔥" c="#fff" /></div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Você está pegando o jeito!</div>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.92)', marginTop: 6, lineHeight: 1.5 }}>Você já fez suas {FREE_LIMIT} conversas de hoje. Vire Premium e pratique sem limites — quantas vezes quiser, todos os dias.</div>
@@ -6220,7 +6259,7 @@ export default function AppPage() {
                     const grads = ['linear-gradient(135deg,#2e72d6,#103d77)', 'linear-gradient(135deg,#2E72D6,#1c55a3)', 'linear-gradient(135deg,#16A34A,#16a34a)', 'linear-gradient(135deg,#e08a1e,#e08a1e)', 'linear-gradient(135deg,#b91c1c,#b91c1c)', 'linear-gradient(135deg,#16a34a,#5c6b7a)', 'linear-gradient(135deg,#dc2626,#b91c1c)', 'linear-gradient(135deg,#2e72d6,#2e72d6)', 'linear-gradient(135deg,#9dbbdd,#5c6b7a)', 'linear-gradient(135deg,#f5a623,#e08a1e)']
                     const g = grads[idx % grads.length]
                     return (
-                      <div key={s.id} onClick={() => !bloqueado ? startScenario(s) : setTab('plans')} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', opacity: bloqueado ? 0.6 : 1 }}>
+                      <div key={s.id} onClick={() => !bloqueado ? startScenario(s) : irParaPlans('limite_simulador')} style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', opacity: bloqueado ? 0.6 : 1 }}>
                         <div style={{ width: 52, height: 52, background: bloqueado ? '#e5eaef' : g, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: bloqueado ? 'none' : '0 3px 8px rgba(0,0,0,0.16)' }}><Ic e={bloqueado ? '🔒' : s.icon} c={bloqueado ? undefined : '#fff'} /></div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.title}</div>
@@ -6307,7 +6346,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 14, color: '#1c55a3', fontWeight: 500, lineHeight: 1.5 }}><Ic e="💜" /> {fluencyReport.message}</div>
               </div>
               {!isPremium && (
-                <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #2E72D6, #1c55a3)', borderRadius: 14, padding: 16, marginBottom: 16, cursor: 'pointer' }}>
+                <div onClick={() => irParaPlans('outro')} style={{ background: 'linear-gradient(135deg, #2E72D6, #1c55a3)', borderRadius: 14, padding: 16, marginBottom: 16, cursor: 'pointer' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}><Ic e="🚀" /> Quer evoluir mais rápido?</div>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 1.5 }}>Com o Premium você treina exatamente esses pontos com conversas ilimitadas e chega à fluência muito antes.</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 10 }}>Ver o Premium <Ic e="→" /></div>
@@ -6350,8 +6389,9 @@ export default function AppPage() {
                   <div style={{ background: allDone ? goldLight : metaFeitaHoje ? greenLight : blueLight, borderRadius: 14, padding: '12px 14px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 11 }}>
                     <span style={{ fontSize: 22 }}><Ic e={allDone ? '🏆' : metaFeitaHoje ? '✅' : '🎯'} /></span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: allDone ? gold : metaFeitaHoje ? green : blue }}>{allDone ? 'Nível concluído!' : metaFeitaHoje ? `Meta de hoje concluída (${LIMITE_DIA_LICOES}/${LIMITE_DIA_LICOES})` : `Lições de hoje · ${licoesHoje}/${LIMITE_DIA_LICOES}`}</div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{allDone ? `Você terminou as ${lvl.length} lições deste nível 🎉` : metaFeitaHoje ? 'Volte amanhã para liberar mais — é assim que o aprendizado fixa.' : `Você pode concluir até ${LIMITE_DIA_LICOES} lições por dia.`}</div>
+                      {/* Premium/trial não tem teto de lições: a "meta" vira só comemoração. Free vê o limite do dia. */}
+                      <div style={{ fontSize: 14, fontWeight: 600, color: allDone ? gold : metaFeitaHoje ? green : blue }}>{allDone ? 'Nível concluído!' : isPremium ? `Lições de hoje · ${licoesHoje}` : metaFeitaHoje ? `Meta de hoje concluída (${LIMITE_DIA_LICOES}/${LIMITE_DIA_LICOES})` : `Lições de hoje · ${licoesHoje}/${LIMITE_DIA_LICOES}`}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{allDone ? `Você terminou as ${lvl.length} lições deste nível 🎉` : isPremium ? (licoesHoje >= LIMITE_DIA_LICOES ? 'Meta do dia batida! Continue se quiser 🚀' : 'Sem limite de lições — no seu ritmo.') : metaFeitaHoje ? 'Volte amanhã para liberar mais — é assim que o aprendizado fixa. Ou vire Premium e continue agora.' : `No plano grátis você pode concluir até ${LIMITE_DIA_LICOES} lições por dia.`}</div>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 700, whiteSpace: 'nowrap' }}>{feitasNivel}/{lvl.length}</div>
                   </div>
@@ -6371,11 +6411,11 @@ export default function AppPage() {
                             <div style={{ width: 36, height: 36, borderRadius: '50%', background: nodeBg, border: `2px solid ${nodeColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: nodeColor, fontWeight: 700 }}>{done ? <Ic e="✓" /> : unlocked ? (i + 1) : <Ic e="🔒" />}</div>
                             {!isLast && <div style={{ flex: 1, width: 2, background: done ? green : '#e4e9ef', minHeight: 16 }} />}
                           </div>
-                          <div onClick={() => { if (!unlocked) return; setLessonIdx(i); setView('explanation') }} style={{ flex: 1, minWidth: 0, marginBottom: 14, background: 'var(--color-background-primary)', border: liberada ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 13, display: 'flex', alignItems: 'center', gap: 11, cursor: unlocked ? 'pointer' : 'default', opacity: unlocked ? 1 : 0.6 }}>
+                          <div onClick={() => { if (amanha) { irParaPlans('limite_licoes'); return } ; if (!unlocked) return; setLessonIdx(i); setView('explanation') }} style={{ flex: 1, minWidth: 0, marginBottom: 14, background: 'var(--color-background-primary)', border: liberada ? `1.5px solid ${blue}` : '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 13, display: 'flex', alignItems: 'center', gap: 11, cursor: unlocked || amanha ? 'pointer' : 'default', opacity: unlocked ? 1 : 0.6 }}>
                             <div style={{ width: 40, height: 40, background: done ? greenLight : liberada ? blueLight : 'var(--color-background-secondary)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, filter: unlocked ? 'none' : 'grayscale(1)' }}><Ic e={l.icon} /></div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{l.title}</div>
-                              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{done ? 'Concluída · toque para revisar' : liberada ? `${l.sub} · ${l.q.length} exercícios` : amanha ? 'Liberada amanhã' : 'Conclua a anterior'}</div>
+                              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{done ? 'Concluída · toque para revisar' : liberada ? `${l.sub} · ${l.q.length} exercícios` : amanha ? 'Liberada amanhã · ou agora no Premium' : 'Conclua a anterior'}</div>
                             </div>
                             {done ? <span style={{ fontSize: 16 }}><Ic e="✅" /></span> : liberada ? <span style={{ background: blue, color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0 }}>Começar</span> : <span style={{ fontSize: 15, color: '#bcd6f2', flexShrink: 0 }}><Ic e="🔒" /></span>}
                           </div>
@@ -6667,7 +6707,7 @@ export default function AppPage() {
                 {/* Nudge de assinatura no MOMENTO DA VITÓRIA (só durante o trial): a emoção
                     de acabar de concluir a lição é o melhor gatilho de conversão. */}
                 {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
-                  <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.55s both' }}>
+                  <div onClick={() => irParaPlans('fim_licao')} style={{ background: 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.55s both' }}>
                     <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Você está indo muito bem! 🔥</div>
@@ -6810,7 +6850,7 @@ export default function AppPage() {
                     )
                   })()}
                   {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
-                    <div onClick={() => setTab('plans')} style={{ background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.45s both' }}>
+                    <div onClick={() => irParaPlans('fim_licao')} style={{ background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.45s both' }}>
                       <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Olha sua evolução aí em cima. 🔥</div>
@@ -6934,7 +6974,7 @@ export default function AppPage() {
                           <div aria-hidden style={{ position: 'absolute', top: 2, [dx > 0 ? 'left' : 'right']: 18, fontSize: 30, opacity: 0.7, pointerEvents: 'none', userSelect: 'none' }}>{['🌳', '🌲', '🌿', '🌸'][i % 4]}</div>
                           <div style={{ transform: `translateX(${dx}px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', width: 100, position: 'relative', zIndex: 1 }}>
                             {liberada && <div style={{ background: '#fff', border: `2px solid ${blue}`, color: blue, fontSize: 10.5, fontWeight: 700, padding: '3px 11px', borderRadius: 20, marginBottom: 7, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', animation: 'su_bob 1.4s ease-in-out infinite' }}>COMECE!</div>}
-                            <div onClick={() => { if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ position: 'relative', width: 62, height: 62, borderRadius: '50%', background: base, boxShadow: `0 5px 0 ${shadow}${glow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: unlocked ? 'pointer' : 'default', animation: liberada ? 'su_bob 1.4s ease-in-out infinite' : 'none' }}>
+                            <div onClick={() => { if (isAtual && metaFeitaHoje) { irParaPlans('limite_licoes'); return } ; if (!unlocked) return; setLevel(lv); setLessonIdx(i); setView('explanation'); setTab('lessons') }} style={{ position: 'relative', width: 62, height: 62, borderRadius: '50%', background: base, boxShadow: `0 5px 0 ${shadow}${glow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: unlocked ? 'pointer' : 'default', animation: liberada ? 'su_bob 1.4s ease-in-out infinite' : 'none' }}>
                               <Ic e={l.icon} c={unlocked ? '#fff' : '#93a1b0'} s={27} />
                               {done && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}><Ic e="✓" s={12} c="#16A34A" /></span>}
                               {!unlocked && <span style={{ position: 'absolute', right: -3, bottom: 0, width: 21, height: 21, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}><Ic e="🔒" s={11} c="#93a1b0" /></span>}
@@ -7179,7 +7219,7 @@ export default function AppPage() {
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: listening ? '#dc2626' : '#4ADE80', display: 'inline-block', animation: 'su_halo 1.8s ease-in-out infinite' }} />
                 {listening ? 'Ouvindo você…' : loadingChat ? 'Pensando na melhor resposta…' : 'Online · responde na hora'}
               </div>
-              {!isPremium && <div style={{ fontSize: 11, color: profBloqueado ? '#FFD98A' : '#bcd6f2', marginTop: 3, fontWeight: profBloqueado ? 600 : 400 }}>{profBloqueado ? '🌟 Limite de hoje atingido — vire Premium p/ conversar sem limite' : `${PROF_LIMIT - profHoje} de ${PROF_LIMIT} mensagens grátis hoje`}</div>}
+              {!isPremium && <div onClick={() => { if (profBloqueado) irParaPlans('limite_professor') }} style={{ fontSize: 11, color: profBloqueado ? '#FFD98A' : '#bcd6f2', marginTop: 3, fontWeight: profBloqueado ? 600 : 400, cursor: profBloqueado ? 'pointer' : 'default' }}>{profBloqueado ? '🌟 Limite de hoje atingido — vire Premium p/ conversar sem limite' : `${PROF_LIMIT - profHoje} de ${PROF_LIMIT} mensagens grátis hoje`}</div>}
             </div>
           </div>
           <div ref={chatBoxRef} style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', overscrollBehavior: 'contain' }}>
