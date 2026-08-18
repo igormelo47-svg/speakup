@@ -27,10 +27,13 @@ export const PRECO = {
   mensal: 'R$29,90',
   anual: 'R$289,80',
   anualPorMes: 'R$24,15',
-  diasGratis: 2,
-  // Limites do plano gratuito, espelhados de app/app/page.tsx (FREE_LIMIT, PROF_LIMIT).
+  // Trial de 7 dias (era 2 até 18/08/2026). Depois o aluno CONTINUA no plano gratuito, sem
+  // cobrança — freemium de verdade, não paywall.
+  diasGratis: 7,
+  // Limites do plano gratuito, espelhados de app/app/page.tsx (FREE_LIMIT, PROF_LIMIT, LICOES).
   freeConversas: 3,
   freeMensagens: 10,
+  freeLicoes: 3,
 }
 
 export const container: React.CSSProperties = { maxWidth: 1040, margin: '0 auto', padding: '0 20px' }
