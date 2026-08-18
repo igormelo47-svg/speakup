@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { PERGUNTAS, classificar } from '../../lib/teste-nivel'
 import { PlayBadge, AppStoreBadge } from '../_marketing/lojas'
+import { PRECO } from '../_marketing/ui'
 
 // Teste de nivelamento público, sem cadastro. A decisão de deixar responder ANTES de
 // pedir e-mail é deliberada: o anúncio promete "teste de nível grátis em 2 minutos" e
@@ -150,7 +151,7 @@ export default function Teste() {
         <div style={{ background: `linear-gradient(160deg, #2E72D6, ${ESCURO})`, borderRadius: 16, padding: '22px 20px', color: '#fff', textAlign: 'center' }}>
           <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Quer a trilha montada a partir do {r.nivel}?</div>
           <div style={{ fontSize: 14.5, color: '#D6E6FA', lineHeight: 1.6, marginBottom: 18 }}>
-            No app, o professor de IA começa exatamente daqui, conversa com você e corrige sua pronúncia na hora. 2 dias grátis, sem cartão.
+            No app, o professor de IA começa exatamente daqui, conversa com você e corrige sua pronúncia na hora. {PRECO.diasGratis} dias grátis, sem cartão.
           </div>
           {/* O nível vai na URL para o cadastro guardar e o app começar a trilha dali.
               Sem isso a promessa "comece do seu nível" morre no formulário. */}
