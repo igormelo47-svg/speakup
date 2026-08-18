@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PRECO } from '../_marketing/ui'
 
 export const metadata = { title: 'Termos de Uso — Vonai', alternates: { canonical: '/termos' } }
 
@@ -9,7 +10,7 @@ export default function Termos() {
     <div style={box}>
       <Link href="/login" style={{ color: '#1E63C7', fontSize: 14, textDecoration: 'none' }}>← Voltar</Link>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 16, color: '#103D77' }}>Termos de Uso</h1>
-      <p style={{ color: '#6b7280', fontSize: 13 }}>Última atualização: 30/06/2026</p>
+      <p style={{ color: '#6b7280', fontSize: 13 }}>Última atualização: 18/08/2026</p>
 
       <h2 style={h2}>1. Sobre o Vonai</h2>
       <p>O Vonai é uma plataforma online de ensino de inglês que oferece lições, vocabulário, exercícios de áudio, simulador de conversação e um professor com inteligência artificial. Ao criar uma conta e usar o aplicativo, você concorda com estes Termos.</p>
@@ -18,7 +19,7 @@ export default function Termos() {
       <p>Para usar o Vonai é necessário criar uma conta com e-mail e senha. Você é responsável por manter seus dados de acesso em sigilo e por todas as atividades realizadas na sua conta. Os dados informados devem ser verdadeiros.</p>
 
       <h2 style={h2}>3. Planos e pagamento</h2>
-      <p>O Vonai pode oferecer recursos gratuitos e recursos pagos (Premium). Os pagamentos são processados por plataformas parceiras (ex.: Kiwify). Valores, formas de cobrança e renovação são informados no momento da contratação. Cancelamentos e reembolsos seguem a legislação aplicável e as regras da plataforma de pagamento.</p>
+      <p>O Vonai oferece um plano gratuito, com limites diários de uso, e um plano pago (Premium). Toda conta nova recebe {PRECO.diasGratis} dias de acesso Premium gratuito, sem necessidade de cadastrar cartão e sem cobrança automática ao final: terminado esse período, a conta continua no plano gratuito até que você opte por assinar. Os pagamentos do Premium são processados por plataformas parceiras (ex.: Kiwify na web/Android; App Store no iPhone). Valores, formas de cobrança e renovação são informados no momento da contratação. Cancelamentos e reembolsos seguem a legislação aplicável e as regras da plataforma de pagamento.</p>
 
       <h2 style={h2}>4. Uso permitido</h2>
       <p>Você se compromete a usar o app apenas para fins pessoais e de aprendizado, sem copiar, revender ou redistribuir o conteúdo, e sem tentar burlar, sobrecarregar ou prejudicar o funcionamento da plataforma.</p>
