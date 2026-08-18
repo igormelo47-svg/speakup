@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { enviarEmailLembrete, emailLeadTeste } from '../../../lib/email'
 
 // Guarda o e-mail que a pessoa deixa no RESULTADO do teste de nível. É o único canal de
 // retorno que temos para quem faz o teste e não cria conta na hora — hoje essa pessoa some
@@ -72,5 +73,22 @@ export async function POST(req: NextRequest) {
     }, { onConflict: 'email' })
 
   if (error) return resposta({ salvo: false, motivo: 'banco' })
-  return resposta({ salvo: true })
+
+  // E-mail imediato com o nível, 3 dicas e o link de cadastro (?nivel=): a tela prometeu
+  // "plano dos 7 primeiros dias" e a motivação dura minutos, não dias. Best-effort e FORA
+  // do caminho da resposta (after() roda depois de a resposta sair): sem RESEND_API_KEY a
+  // função de envio devolve motivo e nada muda — o lead já está gravado como sempre.
+  // userId = 'lead:<email>' só para o rodapé de descadastro ter um id (é 1 e-mail por lead,
+  // não há lista; refazer o teste re-envia com o nível novo, o que é o desejado).
+  const temResend = !!process.env.RESEND_API_KEY
+  if (temResend) {
+    after(async () => {
+      try {
+        const t = emailLeadTeste(nivel)
+        const r = await enviarEmailLembrete({ para: email, userId: `lead:${email}`, titulo: t.titulo, corpo: t.corpo, cta: t.cta, href: t.href })
+        if (!r.ok) console.error('[lead-email] envio falhou', r.motivo)
+      } catch (e) { console.error('[lead-email] envio quebrou', e) }
+    })
+  }
+  return resposta({ salvo: true, email_enviado: temResend })
 }
