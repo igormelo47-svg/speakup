@@ -22,6 +22,9 @@ type Funil = {
 }
 type Origem = 'anuncio' | 'organico' | 'todos'
 type Canais = { contas: number; push: number; email: number; algumCanal: number; nenhumCanal: number; soPorEmail: number }
+type Pendente = { id: number; email: string | null; tipo: string | null; resolvido: boolean; criado_em: string; s1: string | null; produto: string | null; nome: string | null }
+type Recusado = { id: number; criado_em: string; origem: string; autorizado: boolean; tem_segredo: boolean | null; tem_token: boolean | null; tem_assinatura: boolean | null; tipo: string | null; bytes: number | null }
+type Pendentes = { pendentes: Pendente[]; pendentes_erro: string | null; recusados: Recusado[] }
 type Dados = {
   geradoEm: string
   totais: { contas: number; contas7d: number; viaAnuncio: number; assinantesReais: number; assinantesInternos: number; receitaMensalEstimada: number }
@@ -84,6 +87,19 @@ export default function Admin() {
   // Começa em "anúncio" de propósito: boa parte do orgânico é gente que foi convidada
   // a olhar o app, não aluno. Misturar as duas dá um retrato mais feio do que a verdade.
   const [origem, setOrigem] = useState<Origem>('anuncio')
+  // Pagamentos sem conta casada + batidas recusadas do webhook. Carrega separado do painel
+  // principal: se a tabela ainda não existir, o resto do painel continua abrindo.
+  const [pend, setPend] = useState<Pendentes | null>(null)
+  const [alvo, setAlvo] = useState<Record<number, string>>({})
+  const [liberando, setLiberando] = useState<number | null>(null)
+  const [msgPend, setMsgPend] = useState<string>('')
+
+  async function carregarPendentes(token: string) {
+    try {
+      const r = await fetch('/api/admin/pendentes', { headers: { Authorization: `Bearer ${token}` } })
+      if (r.ok) setPend(await r.json())
+    } catch {}
+  }
 
   useEffect(() => {
     ;(async () => {
@@ -94,8 +110,31 @@ export default function Admin() {
       if (r.status === 403) { setEstado('negado'); return }
       if (!r.ok) { setEstado('erro'); return }
       setDados(await r.json()); setEstado('ok')
+      carregarPendentes(token)
     })().catch(() => setEstado('erro'))
   }, [])
+
+  // Libera o Premium de um pendente: mesmo efeito do webhook numa compra aprovada.
+  async function liberar(p: Pendente) {
+    const quem = (alvo[p.id] || p.s1 || p.email || '').trim()
+    if (!quem) { setMsgPend('Informe o e-mail do cadastro (ou o id do aluno).'); return }
+    if (!confirm(`Liberar Premium para "${quem}"?`)) return
+    setLiberando(p.id); setMsgPend('')
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token || ''
+      const r = await fetch('/api/admin/pendentes', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_pendente: p.id, email_ou_user_id: quem }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) { setMsgPend(`Não deu: ${j?.error || r.status}`); return }
+      setMsgPend(`✅ Premium liberado para ${j.email || j.user_id} até ${dataBr(j.premium_expira)}.`)
+      carregarPendentes(token)
+    } catch { setMsgPend('Erro de rede ao liberar.') }
+    finally { setLiberando(null) }
+  }
 
   const cx: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '0 16px' }
   const card: React.CSSProperties = { background: '#fff', border: '1px solid #E8ECF2', borderRadius: 16, padding: 16 }
@@ -266,7 +305,7 @@ export default function Admin() {
               degraus={[
                 ['Abriram o app', f.permanencia.abriramOApp, 'ponto de partida (só quem já teve tempo de voltar)'],
                 ['Voltaram outro dia', f.permanencia.voltaramOutroDia, 'usaram em 2 dias diferentes ou mais'],
-                ['Vivos no fim do trial', f.permanencia.vivosNoFimDoTrial, 'ainda usavam quando os 2 dias grátis acabaram'],
+                ['Vivos no fim do trial', f.permanencia.vivosNoFimDoTrial, 'ainda usavam quando os dias grátis acabaram (2 dias até 18/08, 7 depois)'],
                 ['Voltaram depois do trial', f.permanencia.voltaramDepoisDoTrial, 'usaram o app já sem Premium'],
                 ['Assinaram', f.permanencia.assinaram, 'viraram pagantes'],
               ]}
@@ -352,6 +391,58 @@ export default function Admin() {
             <div key={i} style={{ borderTop: i ? '1px solid #EEF1F6' : 'none', padding: '10px 0', fontSize: 13.5 }}>
               <div style={{ fontWeight: 700 }}>{a.email} {a.interno && <span style={{ fontSize: 11, background: '#FFF3D6', color: '#7C4A00', borderRadius: 8, padding: '2px 8px', marginLeft: 6 }}>interna</span>}</div>
               <div style={{ color: '#5B6B82', marginTop: 2 }}>{a.canal} · válido até {dataBr(a.validoAte) === '—' ? 'renovação automática' : dataBr(a.validoAte)} · {a.xp} XP · 🔥 {a.streak}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pagamentos sem conta casada. A Kiwify chamou o webhook, mas o e-mail do checkout
+            não bate com nenhum cadastro (e não veio s1). O dono casa na mão aqui. */}
+        <div style={{ ...card, marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, marginBottom: 4 }}>Pagamentos sem conta casada</div>
+          <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>
+            A Kiwify avisou o pagamento, mas o e-mail do checkout não é o do cadastro. Digite o e-mail (ou o id) da conta do aluno e clique em Liberar — faz o mesmo que o webhook faria.
+          </div>
+          {!pend && <div style={{ fontSize: 13, color: '#5B6B82' }}>Carregando…</div>}
+          {pend?.pendentes_erro && <div style={{ fontSize: 12.5, color: '#B91C1C' }}>Tabela pagamentos_pendentes indisponível: {pend.pendentes_erro} (aplicar migracao_2026-08-18_freemium.sql)</div>}
+          {pend && !pend.pendentes_erro && pend.pendentes.filter(p => !p.resolvido).length === 0 && (
+            <div style={{ fontSize: 13.5, color: '#15803D' }}>✅ Nenhum pagamento pendente.</div>
+          )}
+          {pend?.pendentes.filter(p => !p.resolvido).map((p, i) => (
+            <div key={p.id} style={{ borderTop: i ? '1px solid #EEF1F6' : 'none', padding: '10px 0', fontSize: 13.5 }}>
+              <div style={{ fontWeight: 700 }}>{p.email || '(sem e-mail)'} {p.nome && <span style={{ fontWeight: 400, color: '#5B6B82' }}>· {p.nome}</span>}</div>
+              <div style={{ color: '#5B6B82', marginTop: 2, fontSize: 12.5 }}>{dataBr(p.criado_em)} · {p.tipo || '?'} · {p.produto || 'produto ?'}{p.s1 && <> · s1: <code>{p.s1}</code></>}</div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                <input
+                  value={alvo[p.id] ?? (p.s1 || p.email || '')}
+                  onChange={e => setAlvo(a => ({ ...a, [p.id]: e.target.value }))}
+                  placeholder="e-mail do cadastro ou id do aluno"
+                  style={{ flex: 1, minWidth: 200, padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13 }}
+                />
+                <button onClick={() => liberar(p)} disabled={liberando === p.id} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: AZUL, color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: liberando === p.id ? 0.6 : 1 }}>
+                  {liberando === p.id ? 'Liberando…' : 'Liberar'}
+                </button>
+              </div>
+            </div>
+          ))}
+          {msgPend && <div style={{ fontSize: 13, marginTop: 10, color: msgPend.startsWith('✅') ? '#15803D' : '#B91C1C' }}>{msgPend}</div>}
+          {!!pend?.pendentes.filter(p => p.resolvido).length && (
+            <div style={{ fontSize: 12, color: '#9AA7B8', marginTop: 10 }}>{pend.pendentes.filter(p => p.resolvido).length} já resolvido(s) nos últimos 50.</div>
+          )}
+        </div>
+
+        {/* Batidas recusadas do webhook (401). Foi o que escondeu a 1ª venda do Android em 17/08:
+            se aparecer linha aqui com tem_token=não ou tem_segredo=não, o token na Kiwify/Vercel
+            está errado ou ausente — arrumar lá, não no código. */}
+        <div style={{ ...card, marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, marginBottom: 4 }}>Webhooks recusados (últimos 20)</div>
+          <div style={{ fontSize: 12, color: '#5B6B82', marginBottom: 12 }}>
+            Chamadas que bateram no webhook e levaram 401. Se houver linha recente: conferir o <code>?token=</code> na Kiwify e a env <code>KIWIFY_TOKEN</code> na Vercel.
+          </div>
+          {pend && pend.recusados.length === 0 && <div style={{ fontSize: 13.5, color: '#15803D' }}>✅ Nenhuma chamada recusada registrada.</div>}
+          {pend?.recusados.map((r, i) => (
+            <div key={r.id} style={{ borderTop: i ? '1px solid #EEF1F6' : 'none', padding: '8px 0', fontSize: 12.5, color: '#5B6B82' }}>
+              <strong style={{ color: '#B91C1C' }}>{new Date(r.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</strong>
+              {' '}· {r.origem} · tipo: {r.tipo || '?'} · segredo no servidor: {r.tem_segredo ? 'sim' : 'NÃO'} · veio token: {r.tem_token ? 'sim' : 'não'} · veio assinatura: {r.tem_assinatura ? 'sim' : 'não'} · {r.bytes ?? 0} bytes
             </div>
           ))}
         </div>
