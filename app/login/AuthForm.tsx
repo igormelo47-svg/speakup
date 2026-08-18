@@ -15,6 +15,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingGoogle, setLoadingGoogle] = useState(false)
   const router = useRouter()
   const [indicado, setIndicado] = useState(false)
   // Nível vindo do teste público (?nivel=B2). Guardado em estado para o formulário DIZER
@@ -57,6 +58,33 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     return 'Não deu para concluir agora. Confira os campos e tente de novo.'
   }
 
+  // Entrar/criar conta com Google (OAuth do Supabase). Um toque em vez de nome+e-mail+senha
+  // +confirmação — é o maior atrito do cadastro no celular. O trigger handle_new_user cria o
+  // profile com trial (nome vem do Google via raw_user_meta_data ou cai no coalesce).
+  // Se o provider ainda não estiver habilitado no painel do Supabase, o erro vira uma frase
+  // amigável em vez de quebrar a tela.
+  async function handleGoogle() {
+    setLoadingGoogle(true); setErro(''); setAviso('')
+    try {
+      try { ;(window as any).dataLayer?.push({ event: modo === 'cadastro' ? 'cadastro_google_clique' : 'login_google_clique' }) } catch (e) {}
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/app` },
+      })
+      if (error) {
+        const m = (error.message || '').toLowerCase()
+        setErro(/provider|not enabled|unsupported|disabled/.test(m)
+          ? 'Login com Google ainda não está disponível — use e-mail e senha.'
+          : traduzErro(error.message))
+        setLoadingGoogle(false)
+      }
+      // Sem erro: o navegador está indo para o Google — não mexe no loading.
+    } catch {
+      setErro('Login com Google ainda não está disponível — use e-mail e senha.')
+      setLoadingGoogle(false)
+    }
+  }
+
   async function handleSubmit() {
     setLoading(true); setErro(''); setAviso('')
 
@@ -94,17 +122,23 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
 
     if (modo === 'cadastro') {
       const redirectApp = typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined
+      // Nome é opcional: um campo a menos no celular. Vazio → parte antes do @ (o mesmo
+      // fallback que o trigger handle_new_user já faz com coalesce/split_part).
+      const nomeFinal = nome.trim() || email.split('@')[0]
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
-        options: { data: { nome }, emailRedirectTo: redirectApp }
+        options: { data: { nome: nomeFinal }, emailRedirectTo: redirectApp }
       })
       if (error) { setErro(traduzErro(error.message)); setLoading(false); return }
       if (data.user) {
         // O banco pode já ter criado o profile via trigger — upsert evita o erro 409 de chave duplicada.
+        // Trial de 7 dias (era 2). A duração de verdade é decidida no banco (handle_new_user /
+        // protege_profiles, migracao_2026-08-18_freemium.sql); este valor só cobre o caso de
+        // o trigger não ter criado a linha.
         await supabase.from('profiles').upsert({
-          id: data.user.id, email, nome, plano: 'free', ativo: true,
-          trial_expira: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+          id: data.user.id, email, nome: nomeFinal, plano: 'free', ativo: true,
+          trial_expira: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }, { onConflict: 'id', ignoreDuplicates: true })
       }
       try { track('cadastro') } catch (e) {}
@@ -162,8 +196,29 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         )}
         {modo === 'cadastro' && (
           <p style={{ fontSize: 13, color: '#166534', background: '#E3F3EA', padding: '10px 12px', borderRadius: 10, marginBottom: 18, fontWeight: 600, textAlign: 'center' }}>
-            {indicado ? '🎁 Um amigo te indicou: 2 + 2 dias de Premium grátis!' : '✨ 2 dias de acesso Premium grátis — sem cartão'}
+            {indicado ? '🎁 Um amigo te indicou: 7 + 2 dias de Premium grátis!' : '✨ 7 dias de acesso Premium grátis — sem cartão'}
           </p>
+        )}
+
+        {/* Google em cima do formulário: no login e no cadastro (não em recuperar/magic). */}
+        {(modo === 'login' || modo === 'cadastro') && (
+          <>
+            <button type="button" onClick={handleGoogle} disabled={loadingGoogle || loading}
+              style={{ width: '100%', padding: 12, background: '#fff', color: '#16212C', border: '1px solid #D8E1EC', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loadingGoogle ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: loadingGoogle ? 0.7 : 1 }}>
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/>
+                <path fill="#FBBC05" d="M10.5 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.7l7.9-6.1z"/>
+                <path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+              </svg>
+              {loadingGoogle ? 'Abrindo o Google…' : 'Continuar com Google'}
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0' }}>
+              <div style={{ flex: 1, height: 1, background: '#E6EDF5' }} />
+              <span style={{ fontSize: 12, color: '#8896A6' }}>ou</span>
+              <div style={{ flex: 1, height: 1, background: '#E6EDF5' }} />
+            </div>
+          </>
         )}
 
         {/* <form> de verdade: o teclado do celular mostra "Ir", Enter envia de qualquer
@@ -172,9 +227,9 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         <form onSubmit={e => { e.preventDefault(); handleSubmit() }}>
         {modo === 'cadastro' && (
           <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle}>Nome</label>
-            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo"
-              autoComplete="name" required style={inputStyle} />
+            <label style={labelStyle}>Nome <span style={{ fontWeight: 400, color: '#8896A6' }}>(opcional)</span></label>
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Como o professor deve te chamar"
+              autoComplete="name" style={inputStyle} />
           </div>
         )}
         <div style={{ marginBottom: 14 }}>
