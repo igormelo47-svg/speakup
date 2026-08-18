@@ -13,8 +13,8 @@ const AZUL = '#1E63C7'
 const ESCURO = '#103D77'
 
 const FAQ = [
-  { q: 'Onde eu baixo o aplicativo?', a: 'O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — busque "Vonai" ou acesse vonai.com.br/baixar, que leva direto à loja do seu celular. Baixar é grátis e você começa com 2 dias de Premium de brinde. Se preferir, também funciona direto no navegador.' },
-  { q: 'O Vonai é grátis?', a: 'Você começa com 2 dias de Premium grátis, sem cartão de crédito. Depois, pode continuar no plano gratuito (com limites diários) ou assinar o Premium por R$29,90/mês ou R$289,80/ano para usar o Professor IA e o Simulador sem limites.' },
+  { q: 'Onde eu baixo o aplicativo?', a: `O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — busque "Vonai" ou acesse vonai.com.br/baixar, que leva direto à loja do seu celular. Baixar é grátis e você começa com ${PRECO.diasGratis} dias de Premium de brinde. Se preferir, também funciona direto no navegador.` },
+  { q: 'O Vonai é grátis?', a: `Você começa com ${PRECO.diasGratis} dias de Premium grátis, sem cartão de crédito. Depois, você continua no plano gratuito, sem cobrança (${PRECO.freeLicoes} lições, ${PRECO.freeMensagens} mensagens com o professor e ${PRECO.freeConversas} simulações por dia) — ou assina o Premium por ${PRECO.mensal}/mês ou ${PRECO.anual}/ano para usar tudo sem limites.` },
   { q: 'Funciona para quem está começando do zero?', a: 'Sim. A trilha vai do A1 (primeiras palavras) ao C2 (nível quase nativo), e um teste rápido de nivelamento posiciona você no ponto certo. As explicações são todas em português.' },
   { q: 'Como a IA corrige minha pronúncia?', a: 'Você lê frases em voz alta e o app compara o que você falou com o esperado, mostrando palavra por palavra o que ficou bom — com dicas específicas para os sons difíceis para brasileiros, como o "th" e o "-ed".' },
   { q: 'Em que o Vonai é diferente de Duolingo ou Babbel?', a: 'O Vonai é um professor de IA que lembra de você: seus erros, seu objetivo e sua pronúncia alimentam as próximas aulas. E é feito para brasileiros — as armadilhas do português (falsos cognatos, "I have 25 years") são parte do treino diário.' },
@@ -193,7 +193,7 @@ export default function Home() {
       <div style={{ background: '#F6F8FB', marginTop: 48 }}>
         <div style={{ ...container, padding: '48px 20px 56px' }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Planos simples, sem pegadinha</h2>
-          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>Todo mundo começa com 2 dias de Premium grátis — sem cartão de crédito.</p>
+          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>Todo mundo começa com {PRECO.diasGratis} dias de Premium grátis — sem cartão de crédito. Depois, você continua no plano gratuito, sem cobrança.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, maxWidth: 720, margin: '0 auto' }}>
             {/* Grátis */}
             <div style={{ background: '#fff', border: '1px solid #E8ECF2', borderRadius: 20, padding: 26 }}>
@@ -202,20 +202,20 @@ export default function Home() {
               <div style={{ fontSize: 13, color: '#7C8AA0', marginBottom: 18 }}>para sempre</div>
               {/* Mesmos números de /planos, saindo da MESMA constante (PRECO) — página
                   descrevendo o plano de um jeito diferente da outra é promessa quebrada. */}
-              {['Lições da trilha (com limite diário)', `${PRECO.freeMensagens} mensagens por dia com o Professor de IA`, `${PRECO.freeConversas} simulações de conversa por dia`, 'Revisão inteligente + Caça-Erros do Brasileiro', 'Sequência, XP e missões'].map((t, i) => (
+              {[`${PRECO.freeLicoes} lições por dia`, `${PRECO.freeMensagens} mensagens por dia com o Professor de IA`, `${PRECO.freeConversas} simulações de conversa por dia`, 'Revisão inteligente + Caça-Erros do Brasileiro', 'Sequência, XP e missões'].map((t, i) => (
                 <div key={i} style={{ fontSize: 14, color: '#5B6B82', marginBottom: 10, display: 'flex', gap: 8 }}><span style={{ color: '#16A34A' }}>✓</span>{t}</div>
               ))}
             </div>
             {/* Premium */}
             <div style={{ background: '#fff', border: `2px solid ${AZUL}`, borderRadius: 20, padding: 26, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: -12, right: 20, background: AZUL, color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>2 dias grátis</div>
+              <div style={{ position: 'absolute', top: -12, right: 20, background: AZUL, color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>{PRECO.diasGratis} dias grátis</div>
               <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Premium</div>
               <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 2, color: AZUL }}>R$29,90<span style={{ fontSize: 15, fontWeight: 600, color: '#7C8AA0' }}>/mês</span></div>
               <div style={{ fontSize: 13, color: '#7C8AA0', marginBottom: 18 }}>ou R$289,80/ano (sai por R$24,15/mês)</div>
-              {['Tudo do plano Grátis, sem limites', 'Professor IA ilimitado, 24h', 'Simulador de conversas ilimitado', 'Todas as +300 lições, do A1 ao C2', 'Relatório de evolução e trilha personalizada'].map((t, i) => (
+              {['Tudo do plano Grátis, sem limites', 'Lições sem limite diário', 'Professor IA ilimitado, 24h', 'Simulador de conversas ilimitado', 'Todas as +300 lições, do A1 ao C2', 'Relatório de evolução e trilha personalizada'].map((t, i) => (
                 <div key={i} style={{ fontSize: 14, color: '#102A4C', fontWeight: 500, marginBottom: 10, display: 'flex', gap: 8 }}><span style={{ color: '#16A34A' }}>✓</span>{t}</div>
               ))}
-              <Link href="/cadastro" style={{ ...cta, display: 'block', textAlign: 'center', marginTop: 18, fontSize: 15, padding: '13px 20px' }}>Testar grátis por 2 dias →</Link>
+              <Link href="/cadastro" style={{ ...cta, display: 'block', textAlign: 'center', marginTop: 18, fontSize: 15, padding: '13px 20px' }}>Testar grátis por {PRECO.diasGratis} dias →</Link>
             </div>
           </div>
           <p style={{ textAlign: 'center', fontSize: 12.5, color: '#7C8AA0', marginTop: 22 }}>Renovação automática · Pix, cartão ou boleto · Cancele quando quiser, sem multa</p>
@@ -242,7 +242,7 @@ export default function Home() {
       <div style={{ background: `linear-gradient(160deg, #2E72D6, ${ESCURO})` }}>
         <div style={{ ...container, padding: '56px 20px', textAlign: 'center', color: '#fff' }}>
           <h2 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 10px' }}>Baixe o Vonai e fale inglês ainda hoje</h2>
-          <p style={{ fontSize: 17, color: '#D6E6FA', margin: '0 0 26px' }}>Grátis na loja, 2 dias de Premium de brinde — e a primeira conversa leva 5 minutos.</p>
+          <p style={{ fontSize: 17, color: '#D6E6FA', margin: '0 0 26px' }}>Grátis na loja, {PRECO.diasGratis} dias de Premium de brinde — e a primeira conversa leva 5 minutos.</p>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <PlayBadge grande />
             <AppStoreBadge grande />
