@@ -8,37 +8,39 @@ import { AZUL, ESCURO, LARANJA, PRECO, container, cta, Nav, Footer, Faq, Hero, S
 // (2) Objeção — quem procura o preço já está decidindo. Esconder valor não segura
 //     ninguém, só empurra a pessoa para procurar no Reclame Aqui.
 //
-// Regra desta página: preço, limite do plano grátis e regra de cancelamento têm que
+// Regra desta página: preço, duração do teste grátis e regra de cancelamento têm que
 // bater exatamente com o app (app/app/page.tsx) e com a loja. Divergência aqui vira
 // contestação de cobrança e nota 1.
 
 export const metadata = {
   title: `Planos e Preços do Vonai — ${PRECO.mensal}/mês | ${PRECO.diasGratis} dias grátis`,
-  description: `Quanto custa o Vonai: plano gratuito com limites diários e Premium por ${PRECO.mensal}/mês (ou ${PRECO.anual}/ano, ${PRECO.anualPorMes}/mês). ${PRECO.diasGratis} dias de Premium grátis, sem cartão de crédito. Cancele quando quiser, sem multa.`,
+  description: `Quanto custa o Vonai: Premium por ${PRECO.mensal}/mês (ou ${PRECO.anual}/ano, ${PRECO.anualPorMes}/mês). ${PRECO.diasGratis} dias de Premium grátis para testar, sem cartão de crédito. Cancele quando quiser, sem multa.`,
   alternates: { canonical: '/planos' },
 }
 
 const FAQ: Pergunta[] = [
   { q: 'Preciso cadastrar cartão para testar?', a: `Não. Você cria a conta e ganha ${PRECO.diasGratis} dias de Premium completo sem informar nenhum dado de pagamento. Se não quiser continuar, não precisa fazer nada — nada é cobrado.` },
-  { q: 'O que acontece quando acabam os dias grátis?', a: `Nada é cobrado. Depois dos ${PRECO.diasGratis} dias você continua no plano gratuito, sem cobrança: sua conta e seu progresso ficam guardados, com até ${PRECO.freeLicoes} lições, ${PRECO.freeMensagens} mensagens com o professor de IA e ${PRECO.freeConversas} simulações por dia. Para voltar a usar sem limite, é só assinar o Premium.` },
+  { q: 'O que acontece quando acabam os dias grátis?', a: `O app pede a assinatura para continuar. Nada é cobrado automaticamente — você só paga se decidir assinar — e sua conta e seu progresso ficam guardados: ao assinar, você volta exatamente de onde parou.` },
   { q: 'Como cancelo?', a: 'Se você assinou pelo site ou pelo Android, o cancelamento é feito no e-mail de confirmação da compra ou pelo nosso suporte — sem multa e sem fidelidade. Se assinou pelo iPhone, o cancelamento é nos Ajustes do seu ID Apple, em Assinaturas, como em qualquer app da App Store. Você continua com o Premium até o fim do período já pago.' },
   { q: 'Quais formas de pagamento vocês aceitam?', a: 'Pelo site e pelo Android: Pix, cartão de crédito e boleto. Pelo iPhone, a cobrança é feita pela própria Apple, com a forma de pagamento cadastrada no seu ID Apple.' },
   { q: 'O plano anual vale a pena?', a: `O anual sai por ${PRECO.anual}, o equivalente a ${PRECO.anualPorMes} por mês — cerca de 19% mais barato que o mensal. Faz sentido se você já testou e sabe que vai usar. Se ainda está decidindo, comece no mensal ou nos dias grátis.` },
-  { q: 'Existe desconto para estudante ou plano família?', a: 'Ainda não. Hoje existem apenas o plano gratuito, o mensal e o anual. Quando houver outra opção, ela aparece nesta página.' },
+  { q: 'Existe desconto para estudante ou plano família?', a: 'Ainda não. Hoje existem apenas o mensal e o anual (além dos dias grátis para testar). Quando houver outra opção, ela aparece nesta página.' },
   { q: 'Se eu assinar, o preço pode aumentar?', a: 'Enquanto sua assinatura estiver ativa, você mantém o valor que contratou. Se um dia o preço mudar para novas assinaturas, quem já é assinante não é afetado no ciclo em andamento.' },
 ]
 
-type Linha = { recurso: string; gratis: string; premium: string }
+// O teste grátis É o Premium completo por PRECO.diasGratis dias — por isso a tabela não tem
+// coluna "grátis": o que o Premium inclui é o que o aluno experimenta no teste.
+type Linha = { recurso: string; premium: string }
 const TABELA: Linha[] = [
-  { recurso: 'Trilha de lições (A1 ao C2)', gratis: 'Completa, +300 lições', premium: 'Completa, +300 lições' },
-  { recurso: 'Teste de nivelamento', gratis: 'Sim', premium: 'Sim' },
-  { recurso: 'Lições por dia', gratis: `Até ${PRECO.freeLicoes} por dia`, premium: 'Sem limite' },
-  { recurso: 'Conversas com o Professor de IA', gratis: `${PRECO.freeMensagens} mensagens por dia`, premium: 'Sem limite' },
-  { recurso: 'Simulador de situações reais', gratis: `${PRECO.freeConversas} por dia`, premium: 'Sem limite' },
-  { recurso: 'Correção de pronúncia', gratis: 'Sim, dentro dos limites do dia', premium: 'Sim, sem limite' },
-  { recurso: 'Plano de estudo diário', gratis: 'Sim', premium: 'Sim' },
-  { recurso: 'Sequência de dias, XP e missões', gratis: 'Sim', premium: 'Sim' },
-  { recurso: 'Progresso salvo em todos os aparelhos', gratis: 'Sim', premium: 'Sim' },
+  { recurso: 'Trilha de lições (A1 ao C2)', premium: 'Completa, +300 lições' },
+  { recurso: 'Teste de nivelamento', premium: 'Sim' },
+  { recurso: 'Lições por dia', premium: 'Sem limite' },
+  { recurso: 'Conversas com o Professor de IA', premium: 'Sem limite, 24h' },
+  { recurso: 'Simulador de situações reais', premium: 'Sem limite' },
+  { recurso: 'Correção de pronúncia', premium: 'Sim, sem limite' },
+  { recurso: 'Plano de estudo diário', premium: 'Sim' },
+  { recurso: 'Sequência de dias, XP e missões', premium: 'Sim' },
+  { recurso: 'Progresso salvo em todos os aparelhos', premium: 'Sim' },
 ]
 
 function Check() {
@@ -54,26 +56,26 @@ export default function Planos() {
         <Hero
           badge={<><Selo>💳 Sem cartão para testar</Selo><Selo>🚫 Sem fidelidade</Selo></>}
           titulo={<>Planos e preços do <span style={{ color: '#FFD98A' }}>Vonai</span></>}
-          sub={<>Comece com {PRECO.diasGratis} dias de Premium grátis. Depois dos {PRECO.diasGratis} dias você continua no plano gratuito, sem cobrança — ou assina por {PRECO.mensal} por mês (anual: {PRECO.anual}). Cancele quando quiser.</>}
+          sub={<>Comece com {PRECO.diasGratis} dias de Premium grátis, sem cartão. Depois, assine por {PRECO.mensal} por mês (anual: {PRECO.anual}) para continuar — nada é cobrado automaticamente. Cancele quando quiser.</>}
         >
           <Link href="/cadastro" style={cta}>Começar meus {PRECO.diasGratis} dias grátis →</Link>
         </Hero>
 
-        {/* Os dois cartões — decisão binária, sem letra miúda escondida */}
+        {/* Os dois cartões — teste grátis e Premium, sem letra miúda escondida */}
         <div style={{ ...container, padding: '52px 20px 8px', maxWidth: 880 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
             <div style={{ background: '#fff', border: '1px solid #E8ECF2', borderRadius: 20, padding: 26 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#5B6B82', marginBottom: 6 }}>Gratuito</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#5B6B82', marginBottom: 6 }}>Teste grátis</div>
               <div style={{ fontSize: 34, fontWeight: 800, color: '#102A4C', lineHeight: 1 }}>R$0</div>
-              <div style={{ fontSize: 13.5, color: '#7C8AA0', marginTop: 6, marginBottom: 20 }}>para sempre, sem cartão</div>
+              <div style={{ fontSize: 13.5, color: '#7C8AA0', marginTop: 6, marginBottom: 20 }}>por {PRECO.diasGratis} dias, sem cartão</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 14.5, color: '#5B6B82', lineHeight: 1.9 }}>
-                <li><Check /> Todas as +300 lições, do A1 ao C2 — até {PRECO.freeLicoes} lições por dia</li>
+                <li><Check /> Premium completo durante o teste</li>
                 <li><Check /> Teste de nivelamento e plano diário</li>
-                <li><Check /> {PRECO.freeMensagens} mensagens por dia com o Professor de IA</li>
-                <li><Check /> {PRECO.freeConversas} simulações de conversa por dia</li>
+                <li><Check /> Professor de IA, lições e simulações liberados</li>
+                <li><Check /> Nada é cobrado ao fim do teste</li>
                 <li><Check /> Progresso salvo na sua conta</li>
               </ul>
-              <Link href="/cadastro" style={{ display: 'block', textAlign: 'center', marginTop: 24, border: `1px solid ${AZUL}`, color: AZUL, fontWeight: 700, fontSize: 15, padding: '12px 20px', borderRadius: 26, textDecoration: 'none' }}>Criar conta grátis</Link>
+              <Link href="/cadastro" style={{ display: 'block', textAlign: 'center', marginTop: 24, border: `1px solid ${AZUL}`, color: AZUL, fontWeight: 700, fontSize: 15, padding: '12px 20px', borderRadius: 26, textDecoration: 'none' }}>Começar meus {PRECO.diasGratis} dias</Link>
             </div>
 
             <div style={{ background: `linear-gradient(160deg, #2E72D6, ${ESCURO})`, borderRadius: 20, padding: 26, color: '#fff', position: 'relative' }}>
@@ -82,7 +84,7 @@ export default function Planos() {
               <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{PRECO.mensal}<span style={{ fontSize: 16, fontWeight: 600, color: '#B5D4F4' }}>/mês</span></div>
               <div style={{ fontSize: 13.5, color: '#B5D4F4', marginTop: 6, marginBottom: 20 }}>ou {PRECO.anual}/ano — sai por {PRECO.anualPorMes}/mês</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 14.5, color: '#E4EFFB', lineHeight: 1.9 }}>
-                <li>⭐ Tudo do plano gratuito</li>
+                <li>⭐ Todas as +300 lições, do A1 ao C2</li>
                 <li>⭐ Lições <strong>sem limite</strong> por dia</li>
                 <li>⭐ Conversa <strong>sem limite</strong> com o Professor de IA</li>
                 <li>⭐ Simulador de entrevista, viagem e +20 situações, sem limite</li>
@@ -90,29 +92,27 @@ export default function Planos() {
                 <li>⭐ {PRECO.diasGratis} dias grátis antes de qualquer cobrança</li>
               </ul>
               <Link href="/cadastro" style={{ ...cta, display: 'block', textAlign: 'center', marginTop: 24 }}>Testar Premium grátis →</Link>
-              <div style={{ fontSize: 12.5, color: '#B5D4F4', textAlign: 'center', marginTop: 12 }}>Sem cartão agora · depois dos {PRECO.diasGratis} dias você continua no grátis, sem cobrança</div>
+              <div style={{ fontSize: 12.5, color: '#B5D4F4', textAlign: 'center', marginTop: 12 }}>Sem cartão agora · nada é cobrado automaticamente ao fim dos {PRECO.diasGratis} dias</div>
             </div>
           </div>
         </div>
 
-        {/* Comparação linha a linha — quem chega aqui quer saber o que muda de verdade */}
+        {/* Linha a linha — quem chega aqui quer saber o que está incluído de verdade */}
         <div style={{ ...container, padding: '48px 20px 8px', maxWidth: 880 }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>O que muda entre o grátis e o Premium</h2>
-          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 28px' }}>O conteúdo é o mesmo nos dois. O que o Premium tira é o limite diário de lições e de quanto você pode falar por dia.</p>
+          <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>O que o Premium inclui</h2>
+          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 28px' }}>Tudo isto fica liberado nos {PRECO.diasGratis} dias de teste — e continua igual quando você assina.</p>
           <div style={{ overflowX: 'auto', border: '1px solid #E8ECF2', borderRadius: 16 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
               <thead>
                 <tr style={{ background: '#F6F8FB' }}>
                   <th style={{ ...celula, textAlign: 'left', fontWeight: 700, fontSize: 14 }}>Recurso</th>
-                  <th style={{ ...celula, textAlign: 'left', fontWeight: 700, fontSize: 14, color: '#5B6B82' }}>Gratuito</th>
-                  <th style={{ ...celula, textAlign: 'left', fontWeight: 700, fontSize: 14, color: AZUL }}>Premium</th>
+                  <th style={{ ...celula, textAlign: 'left', fontWeight: 700, fontSize: 14, color: AZUL }}>Teste grátis ({PRECO.diasGratis} dias) e Premium</th>
                 </tr>
               </thead>
               <tbody>
                 {TABELA.map(l => (
                   <tr key={l.recurso}>
                     <td style={{ ...celula, fontWeight: 600 }}>{l.recurso}</td>
-                    <td style={{ ...celula, color: '#5B6B82' }}>{l.gratis}</td>
                     <td style={{ ...celula, color: '#102A4C', fontWeight: 600 }}>{l.premium}</td>
                   </tr>
                 ))}
@@ -144,7 +144,7 @@ export default function Planos() {
             {[
               ['🔓', 'Cancele quando quiser', 'Sem multa, sem fidelidade, sem ligar para ninguém. Você continua Premium até o fim do período já pago.'],
               ['💳', 'Nada é cobrado no teste', `Os ${PRECO.diasGratis} dias grátis não pedem cartão. Não existe cobrança automática ao fim do teste.`],
-              ['💾', 'Seu progresso é seu', 'Se você parar de pagar, a conta e todo o progresso continuam lá. Você volta de onde parou.'],
+              ['💾', 'Seu progresso é seu', 'Se o teste acabar ou você parar de pagar, a conta e todo o progresso continuam guardados. Ao assinar, você volta de onde parou.'],
               ['📄', 'Preço na cara', 'O valor está nesta página, nos Termos e na tela de compra do app. Se mudar aqui, mudou em todo lugar.'],
             ].map(([e, t, d]) => (
               <div key={t} style={{ background: '#fff', border: '1px solid #E8ECF2', borderRadius: 16, padding: 20 }}>

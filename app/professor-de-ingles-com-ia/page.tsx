@@ -20,7 +20,7 @@ const FAQ: Pergunta[] = [
   { q: 'E se eu errar muito? Fico com vergonha.', a: 'É exatamente para isso que ele existe. Não tem plateia, não tem turma rindo e não tem nota. Errar na frente da IA custa zero, e essa é a diferença que destrava quem entende inglês mas trava na hora de falar.' },
   { q: 'Posso conversar sobre qualquer assunto?', a: 'Pode puxar assunto livre ou escolher uma situação pronta: entrevista de emprego, imigração no aeroporto, hotel, restaurante, reunião de trabalho, médico, e mais de vinte cenas. O simulador é onde a maioria dos alunos passa mais tempo, porque é o mais parecido com a vida real.' },
   { q: 'Ele erra?', a: 'Como toda IA, pode errar em casos raros e ambíguos — uma gíria muito regional, uma construção rara. Na correção do dia a dia (concordância, tempo verbal, preposição, pronúncia, ordem da frase) o acerto é alto e consistente. Se algo parecer estranho, pergunte "why?" que ele explica o raciocínio, e aí você julga.' },
-  { q: 'Quanto custa conversar com ele?', a: `No plano gratuito você tem ${PRECO.freeMensagens} mensagens por dia com o professor e ${PRECO.freeConversas} simulações. No Premium, ${PRECO.mensal} por mês, não há limite. Novos alunos começam com ${PRECO.diasGratis} dias de Premium grátis, sem cartão.` },
+  { q: 'Quanto custa conversar com ele?', a: `Novos alunos começam com ${PRECO.diasGratis} dias de Premium grátis, sem cartão — conversa sem limite com o professor e todas as simulações. Depois, o Premium custa ${PRECO.mensal} por mês (ou ${PRECO.anual}/ano), sem fidelidade.` },
 ]
 
 function Bolha({ eu, children }: { eu?: boolean; children: React.ReactNode }) {

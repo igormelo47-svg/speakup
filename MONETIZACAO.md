@@ -1,19 +1,30 @@
-# 💰 Monetização — estado atual (18/08/2026)
+# 💰 Monetização — estado atual (19/08/2026)
 
 A cobrança está **LIGADA** (`BETA_GRATIS = false` em `app/app/page.tsx` e em `app/api/chat/route.ts`).
-O modelo é **freemium com trial**:
+O modelo é **trial de 2 dias + bloqueio total** (decisão do dono em 19/08/2026):
 
-| | Grátis | Premium |
+| | Trial (2 dias) | Premium |
 |---|---|---|
-| Trial | 7 dias de Premium ao criar a conta, sem cartão | — |
-| Professor IA | 10 msgs/dia (teto técnico 30/dia no servidor) | sem limite (uso justo: 80/dia no servidor) |
-| Simulador | 3 simulações/dia | sem limite |
-| Lições da trilha | 3 lições/dia | sem limite |
-| Voz neural (TTS) / transcrição (STT) | cota pequena (20/dia cada) | 350 / 150 por dia (rede de segurança) |
-| Preço | R$0 | R$29,90/mês ou **R$289,80/ano (anual em destaque, "Melhor valor")** |
+| Como começa | ao criar a conta, sem cartão — Premium completo | R$29,90/mês ou **R$289,80/ano (anual em destaque, "Melhor valor")** |
+| Professor IA | sem limite (uso justo: 80/dia no servidor) | idem |
+| Simulador / lições | sem limite | idem |
+| Voz neural (TTS) / transcrição (STT) | 350 / 150 por dia (rede de segurança) | idem |
 
-**Depois dos 7 dias ninguém é trancado**: o app abre no plano grátis, sem cobrança. O servidor
-não devolve mais 402 em `chat`/`tts`/`stt` — só aplica a cota do grátis. Preços não mudam.
+**Depois dos 2 dias o app tranca**: `app/app/page.tsx` renderiza só a tela "Seu teste grátis
+terminou" (anual + mensal, "Já assinei — atualizar"/"Restaurar compras", Sair, Excluir conta,
+termos/privacidade) enquanto `xpHydrated && !isPremium`. O servidor devolve **402** em
+`chat` (mensagem amigável do Vô) e em `tts`/`stt` (`premium_necessario`) para quem não tem
+trial ativo nem assinatura. Nada é cobrado automaticamente; o progresso fica guardado.
+
+A duração do trial sai de `PRECO.diasGratis` (`app/_marketing/ui.tsx`) no site e no app, e de
+`now() + interval '2 days'` nos triggers do banco (`migracao_2026-08-19_trial_2_dias.sql`).
+
+**Freemium desligado.** Em 18/08 o app rodou por um dia como freemium (trial de 7 dias, paywall
+soft 1x/dia com "Continuar no plano grátis", cota do grátis em chat/tts/stt, plano "Grátis para
+sempre" no site). Tudo isso está no histórico do git (commit do dia 18/08 e
+`migracao_2026-08-18_freemium.sql`) se um dia quiser voltar. Os limites do free no `page.tsx`
+(`FREE_LIMIT`, `PROF_LIMIT`, `LIMITE_DIA_LICOES` para `!isPremium`) ficaram no código, mas
+ninguém os alcança — quem não é Premium está no paywall.
 
 ## Como o Premium é liberado
 
@@ -65,13 +76,14 @@ HMAC-SHA1 do corpo em `?signature=` (o Kiwify manda) — é a forma forte.
 
 Cron 2x/dia (`vercel.json`). Cada e-mail é enviado 1x por pessoa, com registro em
 `progresso.emails_enviados` (JSON `{ chave: 'YYYY-MM-DD' }`):
-- `trial_t24` — trial acaba em ≤24h: "Seu teste Premium acaba amanhã" (o que muda no grátis + link).
-- `pos_trial_1` (T+1) e `pos_trial_2` (T+4) — "Você continua no Vonai grátis — e o Premium com
+- `trial_t24` — trial acaba em ≤24h: "Seu teste Premium acaba amanhã" (o app vai pedir a
+  assinatura; nada é cobrado; progresso guardado + link).
+- `pos_trial_1` (T+1) e `pos_trial_2` (T+4) — "Seu acesso ao Vonai está pausado — volte por
   R$0,79/dia". Máximo 2.
 - `winback` — "sua trilha continua", só para quem não tem push, no máximo a cada 3 dias e nunca
   depois de 30 dias sem uso.
 - Lead do teste de nível público (`/api/lead-email`) recebe na hora o nível + 3 dicas + link
-  `/cadastro?nivel=<nivel>` com "7 dias de Premium grátis".
+  `/cadastro?nivel=<nivel>` com "2 dias de Premium grátis".
 Todos respeitam `progresso.email_lembretes = false` (descadastro em 1 clique).
 
 ## Checklist de configuração externa
@@ -90,9 +102,10 @@ Todos respeitam `progresso.email_lembretes = false` (descadastro em 1 clique).
       `https://<projeto>.supabase.co/auth/v1/callback`). Em URL Configuration, adicionar
       `https://vonai.com.br/app` às Redirect URLs. Sem isso o botão "Continuar com Google" mostra
       "ainda não está disponível — use e-mail e senha".
-- [ ] **Supabase** → SQL Editor: rodar `migracao_2026-08-18_freemium.sql` (trial 7 dias nos dois
-      triggers, `pagamentos_pendentes.resolvido_em`, `webhook_recebidos.s1`,
-      `progresso.emails_enviados`). Avaliar os blocos opcionais (reativação dos ~50 alunos antigos
-      com e-mail avisando; `revoke select on ranking_semanal from anon`).
+- [ ] **Supabase** → SQL Editor: rodar `migracao_2026-08-18_freemium.sql` (se ainda não rodou:
+      `pagamentos_pendentes.resolvido_em`, `webhook_recebidos.s1`, `progresso.emails_enviados` —
+      NÃO rodar o bloco opcional de reativação) e DEPOIS `migracao_2026-08-19_trial_2_dias.sql`
+      (trial volta a 2 dias nos dois triggers; não mexe em trial já concedido). Avaliar o opcional
+      `revoke select on ranking_semanal from anon`.
 - [ ] Depois do deploy: fazer uma compra-teste (ou evento de teste) e ver o Premium ligar em
       /admin → Assinantes.

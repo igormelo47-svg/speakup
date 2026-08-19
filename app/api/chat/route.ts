@@ -8,9 +8,8 @@ const BETA_GRATIS = false
 // ficam bem acima do que um humano usa num dia, para o Premium seguir sendo "ilimitado" de fato).
 // Dimensionados pela margem: a mensalidade de R$29,90 rende ~R$24 líquidos, e 80 chamadas
 // de chat/dia já custam ~US$0,28 — quem encostar no teto todo dia dá prejuízo sozinho.
-// O grátis tem 10 msgs do Professor na tela (PROF_LIMIT em page.tsx); as 30 aqui cobrem
-// também ajuda_licao/dica_pron e as retentativas.
-const LIMIT_FREE = 30
+// Sem trial e sem assinatura não há uso de IA (paywall duro, 402 abaixo) — só existe o teto
+// do Premium/trial.
 const LIMIT_PREMIUM = 80
 // Teto diário por IP (todas as contas somadas — barra farm de contas num IP só).
 // 10x o Premium: não atrapalha escola/escritório com vários alunos na mesma rede.
@@ -82,10 +81,12 @@ export async function POST(req: NextRequest) {
     const emTrial = !!perfil?.trial_expira && new Date(perfil.trial_expira) > new Date()
     const pagoAtivo = !!prog?.is_premium && (!prog?.premium_expira || new Date(prog.premium_expira) > new Date())
     const premium = BETA_GRATIS || pagoAtivo || emTrial
-    // Freemium de verdade: sem trial e sem assinatura o aluno NÃO é barrado (nada de 402);
-    // ele cai no teto do grátis (LIMIT_FREE), que já cobre as 10 msgs/dia da tela + ajuda de
-    // lição/dica de pronúncia. Premium (ou trial) usa o teto de uso justo (LIMIT_PREMIUM).
-    const limite = premium ? LIMIT_PREMIUM : LIMIT_FREE
+    // Paywall duro também no servidor: sem trial e sem assinatura, não há uso legítimo de IA
+    // (o cliente bloqueia a tela; isto barra quem chama a API direto com o token).
+    if (!premium) {
+      return amigavel("Seu teste grátis terminou 😊 Assine o Vonai Premium para continuar conversando comigo!", 402)
+    }
+    const limite = LIMIT_PREMIUM
 
     const [{ data: okUser, error: e1 }, { data: okIp, error: e2 }] = await Promise.all([
       admin.rpc("incrementa_uso", { p_user: userId, p_tipo: "chat", p_limite: limite }),

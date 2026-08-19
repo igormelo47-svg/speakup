@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import crypto from 'crypto'
 import { NextRequest } from 'next/server'
-import { POST, classificarEvento, acharEmail, acharTipo, ehAnual, acharExpiracao } from '../app/api/kiwify-webhook/route'
+import { POST, classificarEvento, acharEmail, acharTipo, ehAnual, acharExpiracao, extrairS1 } from '../app/api/kiwify-webhook/route'
 
 // Estes testes protegem o caminho do DINHEIRO: se algo aqui quebrar, aluno paga e não
 // recebe Premium (ou recebe sem pagar). Rodam sem rede: só a lógica pura + autenticação.
@@ -36,6 +36,23 @@ describe('acharEmail — formatos de payload da Kiwify', () => {
   it('null quando não há e-mail (evento vira ignored, nunca crash)', () => {
     expect(acharEmail({})).toBe(null)
     expect(acharEmail(null)).toBe(null)
+  })
+})
+
+describe('extrairS1 — user_id que o app manda no link do checkout (?s1=)', () => {
+  const ID = '3f2b1c4e-8a9d-4b7c-9e1f-0a2b3c4d5e6f'
+  it('acha o s1 nas variações de payload da Kiwify e normaliza para minúsculas', () => {
+    expect(extrairS1({ TrackingParameters: { s1: ID } })).toBe(ID)
+    expect(extrairS1({ tracking: { s1: ID.toUpperCase() } })).toBe(ID)
+    expect(extrairS1({ Subscription: { tracking: { s1: ID } } })).toBe(ID)
+    expect(extrairS1({ s1: ID })).toBe(ID)
+  })
+  it('recusa o que não é UUID (utm colada errada, vazio) — cai no casamento por e-mail', () => {
+    expect(extrairS1({ TrackingParameters: { s1: 'google_ads' } })).toBe(null)
+    expect(extrairS1({ TrackingParameters: { s1: '' } })).toBe(null)
+    expect(extrairS1({ TrackingParameters: { s1: "' or 1=1 --" } })).toBe(null)
+    expect(extrairS1({})).toBe(null)
+    expect(extrairS1(null)).toBe(null)
   })
 })
 

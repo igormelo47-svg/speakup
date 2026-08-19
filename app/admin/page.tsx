@@ -305,7 +305,7 @@ export default function Admin() {
               degraus={[
                 ['Abriram o app', f.permanencia.abriramOApp, 'ponto de partida (só quem já teve tempo de voltar)'],
                 ['Voltaram outro dia', f.permanencia.voltaramOutroDia, 'usaram em 2 dias diferentes ou mais'],
-                ['Vivos no fim do trial', f.permanencia.vivosNoFimDoTrial, 'ainda usavam quando os dias grátis acabaram (2 dias até 18/08, 7 depois)'],
+                ['Vivos no fim do trial', f.permanencia.vivosNoFimDoTrial, 'ainda usavam quando os dias grátis acabaram (2 dias; 7 só para contas de 18/08)'],
                 ['Voltaram depois do trial', f.permanencia.voltaramDepoisDoTrial, 'usaram o app já sem Premium'],
                 ['Assinaram', f.permanencia.assinaram, 'viraram pagantes'],
               ]}

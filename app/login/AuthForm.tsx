@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import { VALOR, MOEDA } from '../../lib/valor-eventos'
+import { PRECO } from '../_marketing/ui'
 
 // Formulário de login/cadastro compartilhado entre /login (modo login) e /cadastro (modo cadastro).
 // O CTA da landing aponta pra /cadastro: o visitante novo cai direto na criação de conta.
@@ -133,12 +134,12 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       if (error) { setErro(traduzErro(error.message)); setLoading(false); return }
       if (data.user) {
         // O banco pode já ter criado o profile via trigger — upsert evita o erro 409 de chave duplicada.
-        // Trial de 7 dias (era 2). A duração de verdade é decidida no banco (handle_new_user /
-        // protege_profiles, migracao_2026-08-18_freemium.sql); este valor só cobre o caso de
+        // Trial de PRECO.diasGratis dias. A duração de verdade é decidida no banco (handle_new_user /
+        // protege_profiles, migracao_2026-08-19_trial_2_dias.sql); este valor só cobre o caso de
         // o trigger não ter criado a linha.
         await supabase.from('profiles').upsert({
           id: data.user.id, email, nome: nomeFinal, plano: 'free', ativo: true,
-          trial_expira: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          trial_expira: new Date(Date.now() + PRECO.diasGratis * 24 * 60 * 60 * 1000)
         }, { onConflict: 'id', ignoreDuplicates: true })
       }
       try { track('cadastro') } catch (e) {}
@@ -196,7 +197,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         )}
         {modo === 'cadastro' && (
           <p style={{ fontSize: 13, color: '#166534', background: '#E3F3EA', padding: '10px 12px', borderRadius: 10, marginBottom: 18, fontWeight: 600, textAlign: 'center' }}>
-            {indicado ? '🎁 Um amigo te indicou: 7 + 2 dias de Premium grátis!' : '✨ 7 dias de acesso Premium grátis — sem cartão'}
+            {indicado ? `🎁 Um amigo te indicou: ${PRECO.diasGratis} + 2 dias de Premium grátis!` : `✨ ${PRECO.diasGratis} dias de acesso Premium grátis — sem cartão`}
           </p>
         )}
 

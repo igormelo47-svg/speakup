@@ -27,13 +27,10 @@ export const PRECO = {
   mensal: 'R$29,90',
   anual: 'R$289,80',
   anualPorMes: 'R$24,15',
-  // Trial de 7 dias (era 2 até 18/08/2026). Depois o aluno CONTINUA no plano gratuito, sem
-  // cobrança — freemium de verdade, não paywall.
-  diasGratis: 7,
-  // Limites do plano gratuito, espelhados de app/app/page.tsx (FREE_LIMIT, PROF_LIMIT, LICOES).
-  freeConversas: 3,
-  freeMensagens: 10,
-  freeLicoes: 3,
+  // Trial de 2 dias de Premium completo, sem cartão. Depois o app PEDE a assinatura para
+  // continuar (paywall duro) — não existe plano grátis. Decisão do dono em 19/08/2026; o
+  // freemium de 7 dias (18/08) ficou no histórico do git, caso um dia volte.
+  diasGratis: 2,
 }
 
 export const container: React.CSSProperties = { maxWidth: 1040, margin: '0 auto', padding: '0 20px' }

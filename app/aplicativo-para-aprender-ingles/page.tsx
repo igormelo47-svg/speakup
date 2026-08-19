@@ -17,7 +17,7 @@ export const metadata = {
 
 const FAQ = [
   { q: 'Qual o melhor aplicativo para aprender inglês sozinho?', a: 'O melhor aplicativo é o que faz você FALAR — é falando que a fluência aparece. O Vonai foi construído em volta disso: um professor de IA disponível 24h conversa com você, corrige sua pronúncia na hora e explica os erros em português. Apps de memorização ensinam palavras; o Vonai ensina você a usá-las numa conversa.' },
-  { q: 'O aplicativo é grátis?', a: `Você começa com ${PRECO.diasGratis} dias de Premium grátis, sem cadastrar cartão de crédito. Depois você continua no plano gratuito, sem cobrança (com limites diários), ou assina o Premium por ${PRECO.mensal}/mês. Sem multa e sem fidelidade: cancela quando quiser.` },
+  { q: 'O aplicativo é grátis?', a: `Você começa com ${PRECO.diasGratis} dias de Premium grátis, sem cadastrar cartão de crédito. Depois dos ${PRECO.diasGratis} dias, assine o Premium por ${PRECO.mensal}/mês para continuar — nada é cobrado automaticamente e seu progresso fica guardado. Sem multa e sem fidelidade: cancela quando quiser.` },
   { q: 'Funciona para quem está começando do zero?', a: 'Sim. Um teste rápido descobre seu nível e a trilha começa exatamente do seu ponto — do A1 (primeiras palavras) ao C2 (quase nativo). Todas as explicações são em português.' },
   { q: 'Como o aplicativo corrige minha pronúncia?', a: 'Você fala com o app e ele analisa palavra por palavra, com dicas específicas para os sons que não existem em português — o "th" de three, o "-ed" de worked, o H aspirado. É treino de pronúncia feito para a boca do brasileiro.' },
   { q: 'Funciona no celular Android e no iPhone?', a: 'Sim. O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — e também funciona direto pelo navegador em vonai.com.br. Mesma conta, mesmo progresso em todos os aparelhos.' },
@@ -156,8 +156,8 @@ export default function AplicativoParaAprenderIngles() {
         {/* Preço transparente — remove a objeção antes do cadastro */}
         <div style={{ ...container, padding: '48px 20px 8px', maxWidth: 640, textAlign: 'center' }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 10px' }}>Quanto custa?</h2>
-          <p style={{ color: '#5B6B82', fontSize: 16.5, lineHeight: 1.65, margin: '0 0 18px' }}>Depois dos {PRECO.diasGratis} dias grátis você continua no plano gratuito, sem cobrança. Se quiser tudo sem limite, o Premium custa <strong style={{ color: '#102A4C' }}>{PRECO.mensal}/mês</strong> (ou {PRECO.anual}/ano, que sai por {PRECO.anualPorMes}/mês) — menos de R$1 por dia por um professor disponível 24h. Pix, cartão ou boleto. <strong>Cancele quando quiser, sem multa.</strong></p>
-          <p style={{ color: '#7C8AA0', fontSize: 14, margin: 0 }}>Prefere não assinar? Existe um plano gratuito com limites diários. Você decide depois de testar.</p>
+          <p style={{ color: '#5B6B82', fontSize: 16.5, lineHeight: 1.65, margin: '0 0 18px' }}>Os primeiros {PRECO.diasGratis} dias são grátis, com tudo liberado. Depois, para continuar, o Premium custa <strong style={{ color: '#102A4C' }}>{PRECO.mensal}/mês</strong> (ou {PRECO.anual}/ano, que sai por {PRECO.anualPorMes}/mês) — menos de R$1 por dia por um professor disponível 24h. Pix, cartão ou boleto. <strong>Cancele quando quiser, sem multa.</strong></p>
+          <p style={{ color: '#7C8AA0', fontSize: 14, margin: 0 }}>Nada é cobrado automaticamente ao fim do teste — você decide depois de testar, e seu progresso fica guardado.</p>
         </div>
 
         {/* FAQ */}

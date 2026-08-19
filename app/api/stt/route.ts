@@ -8,11 +8,9 @@ import { createClient } from '@supabase/supabase-js'
 // Corpo da requisição: o áudio cru (webm/mp4), até ~1,5 MB (frases curtas).
 
 // Tetos diários por usuário e por IP + estimativa de custo do Whisper (clipes ≤15s).
-// Premium: rede de segurança, não limite de produto — 150 tentativas de fala/dia são ~25 lições
-// falando cada frase, muito acima do uso real. Grátis: cota pequena de verdade (freemium — dá
-// para as 3 lições do dia; passou disso o app cai no reconhecimento do navegador).
-// Ver a mesma conta de margem em chat/route.ts.
-const STT_FREE = 20
+// Rede de segurança, não limite de produto: 150 tentativas de fala/dia são ~25 lições
+// falando cada frase, muito acima do uso real. Ver a mesma conta de margem em chat/route.ts.
+// Sem trial/assinatura não tem STT (402 abaixo; o app cai no reconhecimento do navegador).
 const STT_PREMIUM = 150
 const LIMIT_IP = 1500
 const CUSTO_STT = 0.0012
@@ -56,9 +54,9 @@ export async function POST(req: NextRequest) {
     ])
     const emTrial = !!perfil?.trial_expira && new Date(perfil.trial_expira) > new Date()
     const pagoAtivo = !!prog?.is_premium && (!prog?.premium_expira || new Date(prog.premium_expira) > new Date())
-    // Freemium: o grátis não é barrado (nada de 402) — só tem cota diária menor.
-    // Estourou a cota → 429 e o app cai no reconhecimento do navegador.
-    const limite = pagoAtivo || emTrial ? STT_PREMIUM : STT_FREE
+    // Paywall duro no servidor: sem trial/assinatura não há STT (o app cai no reconhecimento do navegador).
+    if (!pagoAtivo && !emTrial) return NextResponse.json({ error: 'premium_necessario' }, { status: 402 })
+    const limite = STT_PREMIUM
     const [{ data: okUser, error: e1 }, { data: okIp, error: e2 }] = await Promise.all([
       admin.rpc('incrementa_uso', { p_user: userId, p_tipo: 'stt', p_limite: limite }),
       admin.rpc('incrementa_ip', { p_ip: ip, p_limite: LIMIT_IP }),

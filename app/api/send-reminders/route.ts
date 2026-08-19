@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ---------------------------------------------------------------------------------
-  // E-MAILS DO CICLO DE VIDA (trial → grátis). Vão para TODO MUNDO com e-mail (mesmo quem
+  // E-MAILS DO CICLO DE VIDA (trial → paywall). Vão para TODO MUNDO com e-mail (mesmo quem
   // tem push): é a decisão de assinar, e um push some em segundos. Cada e-mail é enviado
   // UMA vez por pessoa, com a chave gravada em progresso.emails_enviados (JSON
   // { chave: 'YYYY-MM-DD' }). O cron roda 2x/dia — sem essa trava, o T-24h iria duas

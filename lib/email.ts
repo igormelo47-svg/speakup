@@ -109,53 +109,47 @@ export async function enviarEmailLembrete(params: {
 // Preço por dia do anual: R$289,80 / 365 ≈ R$0,79. É o número que cabe na cabeça
 // ("menos que um pão") — o mensal é o que aparece grande no app.
 const PLANOS = `${BASE}/planos`
-const CHAT_MSGS_GRATIS = 10
-const LICOES_GRATIS = 3
-const SIMULACOES_GRATIS = 3
+// Duração do trial. Espelha PRECO.diasGratis (app/_marketing/ui.tsx) — constante própria
+// para esta lib de servidor não puxar os componentes React do site.
+const TRIAL_DIAS = 2
 
 const p = (t: string) => `<p style="margin:0 0 12px;">${t}</p>`
 const li = (t: string) => `<li style="margin:0 0 6px;">${t}</li>`
 const ul = (itens: string[]) => `<ul style="margin:0 0 14px;padding-left:20px;">${itens.join('')}</ul>`
 
-// (a) Trial acabando em ≤24h: diz o que muda no grátis, sem ameaça — o aluno continua
-// tendo app amanhã. O que vende é a diferença, não o medo de perder tudo.
+// (a) Trial acabando em ≤24h: honesto sobre o que acontece (o acesso pausa até assinar),
+// sem drama — o progresso fica guardado. O que vende é não perder o ritmo.
 export function emailTrialAcabando(nome: string): { titulo: string; corpo: string; cta: string; href: string } {
   const oi = nome ? `${nome}, ` : ''
   return {
     titulo: 'Seu teste Premium acaba amanhã',
     corpo:
-      p(`${oi}seus 7 dias de Premium grátis terminam amanhã. <strong>Você não perde nada</strong>: o app continua no plano gratuito, com seu progresso, sua sequência e sua trilha guardados.`) +
-      p('O que muda no grátis:') +
-      ul([
-        li(`Professor IA: até <strong>${CHAT_MSGS_GRATIS} mensagens por dia</strong> (no Premium, sem limite)`),
-        li(`Lições da trilha: até <strong>${LICOES_GRATIS} por dia</strong> (no Premium, sem limite)`),
-        li(`Simulações de conversa: até <strong>${SIMULACOES_GRATIS} por dia</strong>`),
-      ]) +
-      p('Se você quiser continuar no ritmo de agora, o Premium anual sai por <strong>R$289,80/ano — menos de R$0,79 por dia</strong>. Ou R$29,90 no mensal, cancele quando quiser.'),
+      p(`${oi}seus ${TRIAL_DIAS} dias de Premium grátis terminam amanhã. Depois disso o app pede a assinatura para continuar — <strong>nada é cobrado automaticamente</strong>, e seu progresso, sua sequência e sua trilha ficam guardados.`) +
+      p('Para seguir no ritmo de agora, o Premium anual sai por <strong>R$289,80/ano — menos de R$0,79 por dia</strong>. Ou R$29,90 no mensal, cancele quando quiser.'),
     cta: 'Continuar no Premium',
     href: PLANOS,
   }
 }
 
 // (b) Trial acabou e a pessoa não assinou. Dois e-mails no máximo: T+1 e T+4.
-// O primeiro reforça que ela continua tendo o app (muita gente acha que "acabou" =
-// "fechou"); o segundo é o último empurrão com o preço por dia — e para por aí.
+// O primeiro diz que o acesso está pausado e que volta ao assinar (progresso guardado);
+// o segundo é o último empurrão com o preço por dia — e para por aí.
 export function emailPosTrial(nome: string, numero: 1 | 2): { titulo: string; corpo: string; cta: string; href: string } {
   const oi = nome ? `${nome}, ` : ''
   if (numero === 1) {
     return {
-      titulo: 'Você continua no Vonai grátis — e o Premium sai por R$0,79/dia',
+      titulo: 'Seu acesso ao Vonai está pausado — volte por R$0,79/dia',
       corpo:
-        p(`${oi}seu período de teste terminou, mas <strong>sua conta continua ativa</strong> no plano gratuito: ${CHAT_MSGS_GRATIS} mensagens por dia com o professor, ${LICOES_GRATIS} lições e ${SIMULACOES_GRATIS} simulações por dia. Sua trilha está exatamente onde você parou.`) +
-        p('Se sentiu falta de conversar sem limite, o Premium anual custa <strong>menos de R$0,79 por dia</strong> (R$289,80/ano). Sem fidelidade — cancele quando quiser.'),
-      cta: 'Ver o Premium',
+        p(`${oi}seu período de teste terminou e o acesso ao app está <strong>pausado</strong>. Nada foi cobrado. Seu progresso, sua sequência e sua trilha estão guardados exatamente onde você parou — e voltam na hora em que você assinar.`) +
+        p('O Premium anual custa <strong>menos de R$0,79 por dia</strong> (R$289,80/ano), ou R$29,90 no mensal. Sem fidelidade — cancele quando quiser.'),
+      cta: 'Voltar ao Vonai',
       href: PLANOS,
     }
   }
   return {
     titulo: 'Última lembrança: Premium por menos de R$0,79/dia',
     corpo:
-      p(`${oi}este é o último e-mail sobre isso, prometido. Você segue no plano gratuito do Vonai quando quiser voltar — sem prazo, sem cobrança.`) +
+      p(`${oi}este é o último e-mail sobre isso, prometido. Seu progresso continua guardado, sem prazo — quando quiser voltar, é só assinar.`) +
       p(`Se quiser destravar o professor sem limite de mensagens, lições sem limite e voz neural o dia todo, o Premium anual sai por <strong>R$289,80 (≈ R$0,79/dia)</strong> ou R$29,90/mês.`),
     cta: 'Assinar o Premium',
     href: PLANOS,
@@ -186,7 +180,7 @@ export function emailLeadTeste(nivel: string | null): { titulo: string; corpo: s
       p(n ? `Seu inglês está no nível <strong>${n}</strong>. Boa notícia: dá para sentir diferença em 7 dias se você treinar do jeito certo.` : 'Obrigado por fazer o teste! Dá para sentir diferença em 7 dias se você treinar do jeito certo.') +
       p(`3 dicas para o seu nível${n ? ` (${n})` : ''}:`) +
       ul(dicas.map(li)) +
-      p(`No Vonai, um professor de IA conversa com você e corrige na hora, com uma trilha que começa exatamente do ${n || 'seu nível'}. São <strong>7 dias de Premium grátis, sem cartão</strong> — depois você continua no plano gratuito se quiser.`),
+      p(`No Vonai, um professor de IA conversa com você e corrige na hora, com uma trilha que começa exatamente do ${n || 'seu nível'}. São <strong>${TRIAL_DIAS} dias de Premium grátis, sem cartão</strong> — nada é cobrado automaticamente.`),
     cta: `Começar do ${n || 'meu nível'} grátis`,
     href,
   }

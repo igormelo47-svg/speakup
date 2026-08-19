@@ -763,9 +763,9 @@ const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/1c7zem8'
 // true  = beta grátis (todos Premium, sem paywall)
 // false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify) — estado atual
 const BETA_GRATIS = false
-// Trial Premium: TRIAL_DIAS dias como Premium; depois o app segue no plano grátis
-// (freemium de verdade — 10 msgs do professor, 3 simulações e 3 lições por dia).
-// Antes eram 2 dias e um paywall que trancava o app inteiro: ninguém assinava.
+// Trial Premium: TRIAL_DIAS dias como Premium completo; depois o app TRANCA na tela de
+// assinatura (paywall duro) — decisão do dono em 19/08/2026. O freemium de 7 dias
+// (18/08) ficou no histórico do git, caso um dia volte.
 const TRIAL_DIAS = PRECO.diasGratis
 const TRIAL_MS = TRIAL_DIAS * 24 * 60 * 60 * 1000
 // De onde o aluno chegou na aba de planos (medição paywall_visto no dataLayer).
@@ -2395,11 +2395,6 @@ export default function AppPage() {
   const [aguardandoPagamento, setAguardandoPagamento] = useState(false)
   // De onde o aluno abriu a aba de planos — vai no evento paywall_visto (1x por sessão).
   const [origemPlans, setOrigemPlans] = useState<OrigemPlans>('outro')
-  // Paywall SOFT (fim do trial): tela cheia 1x por dia, fechável — o app continua no grátis.
-  const [paywallSoft, setPaywallSoft] = useState(false)
-  // Data de criação da conta (auth): quem tem trial_expira nulo só vê o paywall se a conta
-  // já passou do período de trial — conta nova sem trial gravado não é "teste terminou".
-  const [contaCriadaEm, setContaCriadaEm] = useState<number | null>(null)
   const [treinoAposOnboarding, setTreinoAposOnboarding] = useState(false)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
@@ -2780,23 +2775,17 @@ export default function AppPage() {
     setConqNova({ e: '🏆', nome: `Desafio dos 3 dias completo! +${DESAFIO_3_DIAS_MOEDAS} 🪙` })
   }, [xpHydrated, streak, userId])
 
-  // Paywall SOFT do fim do trial: o app não tranca mais — mostra UMA tela cheia por dia
-  // ("seu teste terminou, isto é o que muda no grátis") e o aluno segue usando. Só para
-  // quem de fato teve o trial e ele acabou; trial_expira nulo só conta como "acabou" se a
-  // conta for mais velha que o próprio trial (senão seria paywall na primeira abertura).
+  // Medição do paywall duro (fim do trial): quantos alunos batem na tela de assinatura e não
+  // pagam, 1x por dia — permite ao gestor de tráfego montar remarketing de "viu paywall" e
+  // medir a conversão do fim do trial. A tela em si é decidida no render (xpHydrated && !isPremium).
   useEffect(() => {
-    if (!xpHydrated || isPremium || pagante) return
-    const trialAcabou = trialExpira ? trialExpira <= Date.now() : (!!contaCriadaEm && Date.now() - contaCriadaEm > TRIAL_MS)
-    if (!trialAcabou) return
+    if (!xpHydrated || isPremium) return
     try {
-      if (localStorage.getItem('vonai_paywall_visto_em') === hojeStr) return
-      localStorage.setItem('vonai_paywall_visto_em', hojeStr)
-    } catch (e) { return }
-    setPaywallSoft(true)
-    // Medição: quantos alunos batem no paywall e não pagam (1x por dia) — permite ao gestor
-    // de tráfego montar remarketing de "viu paywall" e medir a conversão do fim do trial.
-    try { ;(window as any).dataLayer?.push({ event: 'paywall_visto', origem: 'fim_trial', user_id: userId || undefined }) } catch (e) {}
-  }, [xpHydrated, isPremium, pagante, trialExpira, contaCriadaEm])
+      if (localStorage.getItem('speakup_paywall_visto') === hojeStr) return
+      localStorage.setItem('speakup_paywall_visto', hojeStr)
+      ;(window as any).dataLayer?.push({ event: 'paywall_visto', origem: 'fim_trial', user_id: userId || undefined })
+    } catch (e) {}
+  }, [xpHydrated, isPremium])
 
   // Medição da aba de planos: 1x por sessão, com a origem (de onde o aluno veio) — sem
   // isso não dá pra saber qual gatilho (limite, chip, fim de lição…) leva mais gente ao preço.
@@ -3257,7 +3246,6 @@ export default function AppPage() {
       setUserName(nome.split(' ')[0])
       setUserId(user.id)
       setUserEmail(user.email || '')
-      try { const c = user.created_at ? new Date(user.created_at).getTime() : NaN; if (!isNaN(c)) setContaCriadaEm(c) } catch (e) {}
       // Conversões otimizadas do Google Ads: o e-mail criptografado fica disponível no
       // dataLayer ANTES de qualquer evento de conversão, porque o GTM lê essa variável no
       // momento em que a tag dispara. Sem isso, toda conversão sem cookie se perde.
@@ -3271,7 +3259,7 @@ export default function AppPage() {
       try {
         const prevUid = localStorage.getItem('speakup_uid')
         if (prevUid && prevUid !== user.id) {
-          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', 'speakup_ultima_atividade', 'speakup_erros_qs', 'speakup_hist_done', 'speakup_errbr', 'speakup_fala_dia', 'speakup_meta_dia', 'speakup_paywall_visto', 'vonai_paywall_visto_em', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
+          ['speakup_onboarded', 'speakup_licao_dia', 'speakup_vocab_dia', 'speakup_vocab_srs', 'speakup_xpdia', 'speakup_desafio', 'speakup_prova', 'speakup_prof_dia', 'speakup_sim_dia', 'speakup_bau_dia', 'speakup_srs', 'speakup_recorde', 'speakup_conq_vistas', 'speakup_plano_bonus', 'speakup_hist', 'speakup_nivel', 'speakup_nivel_visto', 'speakup_streak_marcos', 'speakup_tempo', 'speakup_missoes', 'speakup_prog_cache', 'speakup_ultima_atividade', 'speakup_erros_qs', 'speakup_hist_done', 'speakup_errbr', 'speakup_fala_dia', 'speakup_meta_dia', 'speakup_paywall_visto', XP_PENDING_KEY].forEach(k => { try { localStorage.removeItem(k) } catch (e) {} })
           // Flags de evento de ativação são por-aparelho: limpa na troca de conta pra não bloquear
           // os eventos do próximo aluno (mediria ativação errada). Os de compra/trial já são por-uid.
           try { Object.keys(localStorage).forEach(k => { if (k.startsWith('speakup_ev_')) localStorage.removeItem(k) }) } catch (e) {}
@@ -4004,7 +3992,7 @@ export default function AppPage() {
     try {
       const { data } = await supabase.from('progresso').select('is_premium, premium_expira').eq('user_id', userId).maybeSingle()
       const ok = !!data?.is_premium && (!data?.premium_expira || new Date(data.premium_expira).getTime() > Date.now())
-      if (ok) { setPagante(true); setIsPremium(true); setAguardandoPagamento(false); setPaywallSoft(false); setConqNova({ e: '⭐', nome: 'Bem-vindo ao Premium! 🎉' }); return }
+      if (ok) { setPagante(true); setIsPremium(true); setAguardandoPagamento(false); setConqNova({ e: '⭐', nome: 'Bem-vindo ao Premium! 🎉' }); return }
       alert('Ainda não recebemos a confirmação do pagamento. Pix e boleto podem levar alguns minutos — tente de novo daqui a pouco. Se pagou com outro e-mail, fale com a gente.')
     } catch (e) {
       window.location.reload()
@@ -4544,77 +4532,97 @@ export default function AppPage() {
     )
   }
 
-  // 🔔 PAYWALL SOFT: o trial acabou e o aluno não paga -> UMA tela cheia por dia (efeito
-  // acima decide quando), fechável, e o app continua aberto no plano grátis. O paywall
-  // duro que trancava tudo saiu: quem não podia usar não assinava, só sumia.
-  const fecharPaywallSoft = () => { setPaywallSoft(false); setTab('home') }
-  const paywallSoftTela = paywallSoft && !isPremium && !mostrarOnboarding ? (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 210, display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)', overflowY: 'auto' }}>
-      <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ background: 'linear-gradient(150deg, #103d77, #2e72d6)', padding: '40px 20px 26px', textAlign: 'center', position: 'relative' }}>
-          <button onClick={fecharPaywallSoft} aria-label="Fechar" style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.16)', border: 'none', color: '#fff', width: 34, height: 34, borderRadius: '50%', fontSize: 18, cursor: 'pointer', fontFamily: 'inherit' }}>×</button>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
-          <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste Premium terminou</div>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Você continua no <b>plano grátis</b> — com limites. Assine o <b>Vonai Premium</b> para seguir sem freio.</div>
-        </div>
-        <div style={{ padding: 18, flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Aversão à perda: a decisão de assinar é tomada olhando para o que JÁ é do aluno,
-              não para uma lista de features (padrão Duolingo/Speak). */}
-          {(xp > 0 || streak > 0 || licoesConcluidas.length > 0) && (
+  // 🔒 PAYWALL DURO: acabou o trial de TRIAL_DIAS dias e não é Premium -> tranca o app na
+  // tela de assinatura até assinar (isPremium já cobre trial ativo e pagante). Não há
+  // plano grátis: o progresso fica guardado e volta inteiro quando ele assina.
+  if (xpHydrated && !isPremium) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
+        <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: 'linear-gradient(150deg, #103d77, #2e72d6)', padding: '44px 20px 30px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
+            <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste grátis terminou</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Assine o <b>Vonai Premium</b> para continuar de onde parou — seu progresso está guardado.</div>
+          </div>
+          <div style={{ padding: 18, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Aversão à perda: a decisão de assinar é tomada olhando para o que JÁ é do aluno,
+                não para uma lista de features (padrão Duolingo/Speak). */}
+            {(xp > 0 || streak > 0 || licoesConcluidas.length > 0) && (
+              <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>No seu teste você construiu:</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[['🔥', String(streak), streak === 1 ? 'dia seguido' : 'dias seguidos'], ['⚡', String(xp), 'XP ganhos'], ['📖', String(licoesConcluidas.length), licoesConcluidas.length === 1 ? 'lição feita' : 'lições feitas']].map(([e, n, l], i) => (
+                    <div key={i} style={{ flex: 1, background: '#f2f5f8', borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 16 }}><Ic e={e} /></div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#16212c', marginTop: 2 }}>{n}</div>
+                      <div style={{ fontSize: 10, color: '#5c6b7a', lineHeight: 1.2 }}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>No seu teste você construiu:</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {[['🔥', String(streak), streak === 1 ? 'dia seguido' : 'dias seguidos'], ['⚡', String(xp), 'XP ganhos'], ['📖', String(licoesConcluidas.length), licoesConcluidas.length === 1 ? 'lição feita' : 'lições feitas']].map(([e, n, l], i) => (
-                  <div key={i} style={{ flex: 1, background: '#f2f5f8', borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 16 }}><Ic e={e} /></div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#16212c', marginTop: 2 }}>{n}</div>
-                    <div style={{ fontSize: 10, color: '#5c6b7a', lineHeight: 1.2 }}>{l}</div>
-                  </div>
-                ))}
-              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>Com o Premium você tem:</div>
+              {[['📖', 'Todas as lições, do A1 ao C2'], ['🤖', 'Professor de IA ilimitado'], ['🎭', 'Conversas ilimitadas'], ['📊', 'Relatório de evolução'], ['🎯', 'Trilha personalizada']].map(([ic, t], i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < 4 ? 10 : 0 }}>
+                  <span style={{ fontSize: 17 }}><Ic e={ic} /></span>
+                  <span style={{ fontSize: 13.5, color: '#16212c' }}>{t}</span>
+                  <span style={{ marginLeft: 'auto', color: green }}><Ic e="✓" /></span>
+                </div>
+              ))}
             </div>
-          )}
-          {/* O que muda no grátis — dito com clareza. Ninguém perde o progresso; perde ritmo. */}
-          <div style={{ background: '#ffffff', borderRadius: 14, border: '0.5px solid #e5eaef', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#16212c', marginBottom: 12 }}>O que muda no plano grátis:</div>
-            {[['🤖', `${PROF_LIMIT} mensagens por dia com o professor`, 'ilimitado no Premium'], ['🎭', `${FREE_LIMIT} simulações por dia`, 'ilimitado no Premium'], ['📖', `${LIMITE_DIA_LICOES} lições por dia na trilha`, 'sem limite no Premium']].map(([ic, t, d], i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
-                <span style={{ fontSize: 17 }}><Ic e={ic} /></span>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, color: '#16212c' }}>{t}</div><div style={{ fontSize: 11.5, color: '#5c6b7a' }}>{d}</div></div>
+            {/* Voltou do checkout: o polling (efeito acima) libera sozinho; dizer que está
+                conferindo evita o aluno achar que "não funcionou" e pagar de novo. */}
+            {aguardandoPagamento && !isIOSNative && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: blueLight, border: `1px solid ${blue}33`, borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
+                <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${blue}`, borderTopColor: 'transparent', flexShrink: 0, animation: 'su_girar 1s linear infinite' }} />
+                <div style={{ fontSize: 12.5, color: blueDark, lineHeight: 1.45 }}>Aguardando confirmação do pagamento… Pix pode levar alguns minutos. Se já pagou, toque em <b>&ldquo;Já assinei&rdquo;</b> abaixo.</div>
               </div>
-            ))}
-          </div>
-          {/* Anual em destaque (melhor valor); mensal simples embaixo. */}
-          <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(224,138,30,0.35)', marginBottom: 12 }}>
-            <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: '#16A34A', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>MELHOR VALOR — ECONOMIZE R$69</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Plano Anual</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: 6 }}>
-              <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{isIOSNative ? 'R$24,16' : 'R$24,15'}</span>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>/mês</span>
+            )}
+            {/* Anual em destaque (melhor valor); mensal simples embaixo. */}
+            <div onClick={() => abrirAssinatura('anual')} style={{ position: 'relative', background: 'linear-gradient(135deg, #f5a623, #e08a1e)', borderRadius: 14, padding: '18px 16px 16px', cursor: 'pointer', boxShadow: '0 6px 20px rgba(224,138,30,0.35)', marginBottom: 12 }}>
+              <div style={{ position: 'absolute', top: 0, right: 14, transform: 'translateY(-50%)', background: '#16A34A', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>MELHOR VALOR — ECONOMIZE R$69</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Plano Anual</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: 6 }}>
+                <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{isIOSNative ? 'R$24,16' : 'R$24,15'}</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>/mês</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>cobrado {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano · R$0,79 por dia</div>
+              <div style={{ width: '100%', marginTop: 12, padding: 12, background: '#fff', color: '#8a5a10', borderRadius: 10, fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Assinar <Ic e="→" /></div>
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>cobrado {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano · R$0,79 por dia</div>
-            <div style={{ width: '100%', marginTop: 12, padding: 12, background: '#fff', color: '#8a5a10', borderRadius: 10, fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Assinar <Ic e="→" /></div>
+            <div onClick={() => abrirAssinatura('mensal')} style={{ background: '#ffffff', border: '1px solid #e5eaef', borderRadius: 14, padding: 14, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div><div style={{ fontSize: 14, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Cancele quando quiser</div></div>
+              <div style={{ textAlign: 'right' }}><span style={{ fontSize: 20, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
+            </div>
+            <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser · sem fidelidade' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele quando quiser · sem fidelidade'}</div>
+            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
+            <div style={{ fontSize: 11.5, color: '#93a1b0', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
+              Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
+              <a href="/termos" style={{ color: blue }}>Termos de Uso</a> · <a href="/privacidade" style={{ color: blue }}>Política de Privacidade</a>
+            </div>
+            {isIOSNative
+              ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Restaurar compras</button>
+              : <button onClick={conferirPagamento} disabled={conferindoPagamento} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: conferindoPagamento ? 0.6 : 1 }}>{conferindoPagamento ? 'Conferindo…' : 'Já assinei — atualizar'}</button>}
+            <button onClick={logout} style={{ width: '100%', padding: 12, marginTop: 10, background: 'none', color: '#93a1b0', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Sair da conta</button>
+            {/* Exclusão precisa ser alcançável também daqui (5.1.1(v)): quem expirou fica bloqueado no paywall. */}
+            <button onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ width: '100%', padding: 8, background: 'none', color: '#b91c1c', border: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Excluir minha conta e dados</button>
+            {excluirModal && (
+              <div onClick={() => !excluindoConta && setExcluirModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <div onClick={e => e.stopPropagation()} style={{ background: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, width: '100%', maxWidth: 430, boxSizing: 'border-box', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#16212c', marginBottom: 6 }}>🗑️ Excluir sua conta</div>
+                  <div style={{ fontSize: 13, color: '#5c6b7a', lineHeight: 1.6, marginBottom: 14 }}>Isso apaga <b>permanentemente</b> sua conta e todos os seus dados. <b>Não dá para desfazer.</b></div>
+                  {excluirErro && <div style={{ fontSize: 12.5, color: '#DC2626', background: '#fcecec', borderRadius: 10, padding: '10px 12px', marginBottom: 12, lineHeight: 1.5 }}>{excluirErro}</div>}
+                  <button onClick={excluirConta} disabled={excluindoConta} style={{ width: '100%', padding: 14, background: '#DC2626', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: excluindoConta ? 0.6 : 1, fontFamily: 'inherit' }}>{excluindoConta ? 'Excluindo…' : 'Excluir permanentemente'}</button>
+                  <button onClick={() => setExcluirModal(false)} disabled={excluindoConta} style={{ width: '100%', padding: 10, marginTop: 8, background: 'none', color: '#93a1b0', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+                </div>
+              </div>
+            )}
           </div>
-          <div onClick={() => abrirAssinatura('mensal')} style={{ background: '#ffffff', border: '1px solid #e5eaef', borderRadius: 14, padding: 14, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div><div style={{ fontSize: 14, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Cancele quando quiser</div></div>
-            <div style={{ textAlign: 'right' }}><span style={{ fontSize: 20, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
-          </div>
-          {/* Saída bem visível: continuar no grátis é uma escolha legítima, não uma derrota. */}
-          <button onClick={fecharPaywallSoft} style={{ width: '100%', padding: 14, marginTop: 14, background: '#fff', color: blue, border: `1.5px solid ${blue}`, borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Continuar no plano grátis</button>
-          <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser · sem fidelidade' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele quando quiser · sem fidelidade'}</div>
-          {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
-          {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
-          <div style={{ fontSize: 11.5, color: '#93a1b0', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
-            Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
-            <a href="/termos" style={{ color: blue }}>Termos de Uso</a> · <a href="/privacidade" style={{ color: blue }}>Política de Privacidade</a>
-          </div>
-          {isIOSNative
-            ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: 'none', color: blue, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Restaurar compras</button>
-            : <button onClick={conferirPagamento} disabled={conferindoPagamento} style={{ width: '100%', padding: 12, marginTop: 16, background: 'none', color: blue, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: conferindoPagamento ? 0.6 : 1 }}>{conferindoPagamento ? 'Conferindo…' : 'Já assinei — atualizar'}</button>}
         </div>
       </div>
-    </div>
-  ) : null
+    )
+  }
 
   // ---- HOME GUIADA (nova experiência: UMA ação diária) ----
   // "Treino de hoje": retoma a trilha na lição ONDE O ALUNO PAROU (a próxima não
@@ -4697,9 +4705,9 @@ export default function AppPage() {
       ? Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
       : 0
     const urgente = restam > 0 && restam <= 24
-    // Honesto sobre o que acontece no fim: ninguém é trancado, só volta aos limites do grátis.
+    // Honesto sobre o que acontece no fim: sem assinatura o app tranca (progresso guardado).
     const linha2 = restam > 0
-      ? (urgente ? 'Seu teste acaba hoje — depois você continua no grátis com limites' : `Teste Premium · ${Math.ceil(restam / 24)} dias`)
+      ? (urgente ? 'Seu teste acaba hoje — assine para não perder o acesso' : `Teste Premium · ${Math.ceil(restam / 24)} dias`)
       : 'Todas as lições, professor de IA e conversas sem limite'
     return (
       <div
@@ -5015,7 +5023,7 @@ export default function AppPage() {
             return (
               <div onClick={() => irParaPlans('card_home')} style={{ background: urgente ? 'linear-gradient(135deg, #b91c1c, #dc2626)' : `linear-gradient(135deg, ${blueDark}, ${blue})`, borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <IcBadge e={urgente ? '⏰' : '⭐'} color={urgente ? '#dc2626' : gold} onDark box={42} size={22} />
-                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Depois você segue no grátis, com limites</div></div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Assine para não perder o acesso</div></div>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
               </div>
             )
@@ -5360,7 +5368,7 @@ export default function AppPage() {
               return (
                 <div onClick={() => irParaPlans('card_home')} style={{ background: urgente ? 'linear-gradient(135deg, #b91c1c, #dc2626)' : 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <IcBadge e={urgente ? '⏰' : '⭐'} color={urgente ? '#dc2626' : gold} onDark box={44} size={24} />
-                  <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'} <Ic e={urgente ? '🔥' : '✨'} /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Depois você segue no grátis, com limites</div></div>
+                  <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'} <Ic e={urgente ? '🔥' : '✨'} /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Assine para não perder o acesso</div></div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
                 </div>
               )
@@ -5535,7 +5543,6 @@ export default function AppPage() {
         </div>
       )}
 
-      {paywallSoftTela}
 
       {mostrarOnboarding && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, display: 'flex', padding: 24, overflowY: 'auto' }}>
