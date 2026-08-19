@@ -41,7 +41,14 @@ export async function POST(req: NextRequest) {
   }
 
   let text = ''
-  try { text = String((await req.json())?.text || '').trim() } catch {}
+  let lang = 'en'
+  try {
+    const body = await req.json()
+    text = String(body?.text || '').trim()
+    // 'pt' = voz do Vô (mascote) em português. Antes o Vô usava o sintetizador do aparelho
+    // (robótico/lento no Android e no Windows) — a queixa "voz feia e artificial" no onboarding.
+    if (body?.lang === 'pt') lang = 'pt'
+  } catch {}
   if (!text || text.length > 290) return NextResponse.json({ error: 'texto inválido' }, { status: 400 })
 
   // Limite diário ATÔMICO + teto por IP. Fail-closed: sem verificação, sem gasto
@@ -73,7 +80,12 @@ export async function POST(req: NextRequest) {
     r = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'nova', input: text, response_format: 'mp3', speed: 0.95 }),
+      body: JSON.stringify(
+        lang === 'pt'
+          // Vô em português: voz quente e natural, ritmo de conversa (não de locutor).
+          ? { model: 'gpt-4o-mini-tts', voice: 'nova', input: text, response_format: 'mp3', speed: 1.0, instructions: 'Fale em português do Brasil, com sotaque brasileiro natural. Tom caloroso, simpático e encorajador, como um professor particular conversando. Ritmo normal de fala, sem pausas longas.' }
+          : { model: 'gpt-4o-mini-tts', voice: 'nova', input: text, response_format: 'mp3', speed: 0.95 }
+      ),
     })
   } catch {
     return NextResponse.json({ error: 'tts_falhou' }, { status: 502 })
