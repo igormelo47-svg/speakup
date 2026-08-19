@@ -1737,9 +1737,43 @@ function melhorVozPt(): SpeechSynthesisVoice | null {
   } catch (e) { return null }
 }
 
+// Voz NEURAL do Vô (mesma voz do /api/tts que lê o inglês), com cache local por frase.
+// Motivo: a voz do sintetizador do aparelho em português é feia, lenta e artificial
+// (queixa direta do dono no onboarding) — e a primeira impressão do app é essa fala.
+// Se o servidor não tiver TTS (501) ou a cota acabar, cai no sintetizador do navegador.
+let voNeuralDisponivel = true
+let voAudioAtual: HTMLAudioElement | null = null
+function pararVoNeural() { try { if (voAudioAtual) { voAudioAtual.pause(); voAudioAtual = null } } catch (e) {} }
+async function falarPtNeural(limpo: string): Promise<boolean> {
+  if (!voNeuralDisponivel || typeof window === 'undefined' || limpo.length > 290) return false
+  try {
+    const chave = '/api/tts?pt=1&t=' + encodeURIComponent(limpo)
+    const cache = 'caches' in window ? await caches.open('vonai-tts-v1') : null
+    let r: Response | undefined = cache ? await cache.match(chave) : undefined
+    if (!r) {
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) return false
+      const rede = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text: limpo, lang: 'pt' }) })
+      if (rede.status === 501) { voNeuralDisponivel = false; return false }
+      if (!rede.ok) return false
+      if (cache) { try { await cache.put(chave, rede.clone()) } catch (e) {} }
+      r = rede
+    }
+    const blob = await r.blob()
+    pararVoNeural()
+    try { window.speechSynthesis?.cancel() } catch (e) {}
+    const audio = new Audio(URL.createObjectURL(blob))
+    voAudioAtual = audio
+    audio.onended = () => { if (voAudioAtual === audio) voAudioAtual = null }
+    await audio.play()
+    return true
+  } catch (e) { return false }
+}
+
 function falarPt(texto: string) {
   try {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    if (typeof window === 'undefined') return
     if (localStorage.getItem('speakup_vo_mudo') === '1') return
     // Limpeza do texto: emoji vira nome falado ("rosto piscando") e travessão vira
     // pausa longa — os dois deixam a fala picotada. Some com eles só no áudio.
@@ -1749,6 +1783,14 @@ function falarPt(texto: string) {
       .replace(/\s{2,}/g, ' ')
       .trim()
     if (!limpo) return
+    // 1º a voz neural; só se ela falhar é que o navegador fala.
+    falarPtNeural(limpo).then(ok => { if (!ok) falarPtNavegador(limpo) }).catch(() => falarPtNavegador(limpo))
+  } catch (e) {}
+}
+
+function falarPtNavegador(limpo: string) {
+  try {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
     const falar = () => {
       const u = new SpeechSynthesisUtterance(limpo)
       u.lang = 'pt-BR'; u.rate = 1.05; u.pitch = 0.95
@@ -1782,12 +1824,12 @@ function VoFala({ fala, humor = 'feliz', size = 64, voz = false, escuro = false 
     let i = 0
     const id = setInterval(() => { i += 2; setMostrado(fala.slice(0, i)); if (i >= fala.length) clearInterval(id) }, 28)
     if (voz) falarPt(fala)
-    return () => { clearInterval(id); try { window.speechSynthesis?.cancel() } catch (e) {} }
+    return () => { clearInterval(id); pararVoNeural(); try { window.speechSynthesis?.cancel() } catch (e) {} }
   }, [fala, voz])
   function alternarMudo() {
     const novo = !mudo; setMudo(novo)
     try { localStorage.setItem('speakup_vo_mudo', novo ? '1' : '0') } catch (e) {}
-    if (novo) { try { window.speechSynthesis?.cancel() } catch (e) {} } else falarPt(fala)
+    if (novo) { pararVoNeural(); try { window.speechSynthesis?.cancel() } catch (e) {} } else falarPt(fala)
   }
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
