@@ -9,6 +9,7 @@ import { fatiarIngles, trechosIngles, semMarcacao } from '../../lib/fatiar-ingle
 import { alvoDeRolagem } from '../../lib/rolagem-chat'
 import { lerResposta, type Correcao } from '../../lib/resposta-professor'
 import { historicoParaIA } from '../../lib/historico-chat'
+import { PROFESSORES, VELOCIDADES, professorDe, fatorVelocidade, type ProfessorId, type Velocidade } from '../../lib/professores'
 // Fonte única do trial (dias grátis): o site promete o mesmo número — mudar lá muda aqui.
 import { PRECO } from '../_marketing/ui'
 import { useRouter } from 'next/navigation'
@@ -1743,18 +1744,23 @@ function melhorVozPt(): SpeechSynthesisVoice | null {
 // Se o servidor não tiver TTS (501) ou a cota acabar, cai no sintetizador do navegador.
 let voNeuralDisponivel = true
 let voAudioAtual: HTMLAudioElement | null = null
+// Voz e velocidade do professor escolhido (perfil_ia.professor / velocidade). Ficam fora do
+// componente porque falarPtNeural também fica; o AppPage atualiza via useEffect.
+let vozAtual = 'nova'
+let velocidadeAtual = 1.0
+function paramsVoz() { return { voz: vozAtual, velocidade: velocidadeAtual } }
 function pararVoNeural() { try { if (voAudioAtual) { voAudioAtual.pause(); voAudioAtual = null } } catch (e) {} }
 async function falarPtNeural(limpo: string): Promise<boolean> {
   if (!voNeuralDisponivel || typeof window === 'undefined' || limpo.length > 290) return false
   try {
-    const chave = '/api/tts?pt=1&t=' + encodeURIComponent(limpo)
+    const chave = '/api/tts?pt=1&v=' + vozAtual + '&s=' + velocidadeAtual + '&t=' + encodeURIComponent(limpo)
     const cache = 'caches' in window ? await caches.open('vonai-tts-v1') : null
     let r: Response | undefined = cache ? await cache.match(chave) : undefined
     if (!r) {
       const { data: s } = await supabase.auth.getSession()
       const token = s.session?.access_token
       if (!token) return false
-      const rede = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text: limpo, lang: 'pt' }) })
+      const rede = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text: limpo, lang: 'pt', ...paramsVoz() }) })
       if (rede.status === 501) { voNeuralDisponivel = false; return false }
       if (!rede.ok) return false
       if (cache) { try { await cache.put(chave, rede.clone()) } catch (e) {} }
@@ -2351,6 +2357,53 @@ function Skel({ h = 16, w = '100%' as string | number, r = 12, mb = 0 }: { h?: n
 }
 
 // Nível numérico a partir do XP total (sobe rápido no começo, dando "level up" frequente).
+// Avatar ilustrado dos professores (flat, em SVG — sem imagem externa, mesma estética em
+// qualquer tela). Cores vêm de lib/professores.ts. O Vô continua sendo o Mascote.
+function AvatarProf({ id, size = 64 }: { id: ProfessorId; size?: number }) {
+  const p = professorDe(id)
+  const fem = id === 'sofia' || id === 'helena'
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-label={p.nome} style={{ borderRadius: '50%', background: p.cor + '33', flexShrink: 0 }}>
+      <circle cx="50" cy="50" r="50" fill={p.cor} opacity="0.18" />
+      {/* ombros */}
+      <path d="M18 100 C18 76 32 68 50 68 C68 68 82 76 82 100 Z" fill={p.cor} />
+      {/* pescoço */}
+      <rect x="43" y="56" width="14" height="14" rx="4" fill={p.pele} />
+      {/* cabelo (fundo) */}
+      {fem ? <path d="M26 48 C22 22 78 22 74 48 L76 70 C70 66 66 60 64 48 C52 52 44 52 36 48 C34 60 30 66 24 70 Z" fill={p.cabelo} /> : <path d="M28 44 C28 24 72 24 72 44 L70 50 C62 40 38 40 30 50 Z" fill={p.cabelo} />}
+      {/* rosto */}
+      <ellipse cx="50" cy="44" rx="19" ry="22" fill={p.pele} />
+      {/* franja */}
+      {fem ? <path d="M31 40 C34 26 66 26 69 40 C60 34 40 34 31 40 Z" fill={p.cabelo} /> : <path d="M31 38 C36 27 64 27 69 38 C60 33 40 33 31 38 Z" fill={p.cabelo} />}
+      {/* olhos e sorriso */}
+      <circle cx="42" cy="45" r="2.4" fill="#1a1a1a" /><circle cx="58" cy="45" r="2.4" fill="#1a1a1a" />
+      <path d="M42 54 Q50 60 58 54" stroke="#8a3a2a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// Opt-in de WhatsApp: uma mensagem por dia, no horário escolhido, com a frase do aluno
+// corrigida e o link da lição. O número fica em perfil_ia.whatsapp (com DDI 55); quem
+// envia é /api/send-reminders, só se WHATSAPP_API_URL/WHATSAPP_API_TOKEN existirem na Vercel.
+function WhatsappOptin({ onSalvar, onRecusar }: { onSalvar: (n: string) => boolean; onRecusar: () => void }) {
+  const [num, setNum] = useState('')
+  const [erro, setErro] = useState(false)
+  const [ok, setOk] = useState(false)
+  if (ok) return <div style={{ background: '#E3F3EA', border: '1px solid #4ade80', borderRadius: 14, padding: 12, marginBottom: 14, fontSize: 13, fontWeight: 700, color: '#0f7a37', textAlign: 'left' }}>✅ Combinado — amanhã te chamo no WhatsApp.</div>
+  return (
+    <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left' }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 2 }}>💬 Prefere o lembrete no WhatsApp?</div>
+      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 10, lineHeight: 1.4 }}>Uma mensagem por dia com a sua frase corrigida e o link da lição. Sem grupo, sem spam.</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input value={num} onChange={e => { setNum(e.target.value); setErro(false) }} inputMode="tel" placeholder="(DDD) número" style={{ flex: 1, padding: '11px 12px', borderRadius: 10, border: `1.5px solid ${erro ? '#dc2626' : 'var(--color-border-tertiary)'}`, fontSize: 14, fontFamily: 'inherit', background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)' }} />
+        <button onClick={() => { if (onSalvar(num)) setOk(true); else setErro(true) }} style={{ padding: '11px 14px', background: '#25D366', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Receber</button>
+      </div>
+      {erro && <div style={{ fontSize: 11.5, color: '#dc2626', marginTop: 6 }}>Número incompleto — use DDD + número, ex.: 85 99999-9999.</div>}
+      <button onClick={onRecusar} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: 12, cursor: 'pointer', marginTop: 8, padding: 0, fontFamily: 'inherit' }}>Prefiro não</button>
+    </div>
+  )
+}
+
 function nivelDeXp(xp: number) {
   let nivel = 1, need = 100, acc = 0
   while (xp >= acc + need) { acc += need; nivel++; need = 100 + (nivel - 1) * 50 }
@@ -2466,6 +2519,9 @@ export default function AppPage() {
   const [onbObj, setOnbObj] = useState('')
   // Meta diária padrão (a tela de "quanto tempo por dia" saiu do onboarding — 3 telas só). Dá pra mudar depois.
   const [onbMeta, setOnbMeta] = useState(50)
+  // Respostas do onboarding de 8 telas (Lucida adaptado). Tudo vai para perfil_ia no fim.
+  const [onb, setOnb] = useState<{ objetivo: string; trava: string; nivel: string; testar: boolean; interesses: string[]; minutos: number; professor: ProfessorId | ''; velocidade: Velocidade }>({ objetivo: '', trava: '', nivel: '', testar: false, interesses: [], minutos: 10, professor: '', velocidade: 'normal' })
+  const [onbIniciando, setOnbIniciando] = useState(false)
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?', local: true }])
   const [chatInput, setChatInput] = useState('')
   const [loadingChat, setLoadingChat] = useState(false)
@@ -4128,7 +4184,7 @@ export default function AppPage() {
   async function obterTTS(text: string): Promise<Response | null> {
     if (!ttsServidorRef.current || text.length > 290) return null
     const cache = 'caches' in window ? await caches.open('vonai-tts-v1') : null
-    const chave = '/api/tts?t=' + encodeURIComponent(text)
+    const chave = '/api/tts?v=' + vozAtual + '&s=' + velocidadeAtual + '&t=' + encodeURIComponent(text)
     const hit = cache ? await cache.match(chave) : undefined
     if (hit) return hit
     // dedupe: se a mesma frase já está sendo gerada, não dispara outra chamada
@@ -4141,7 +4197,7 @@ export default function AppPage() {
       const { data: s } = await supabase.auth.getSession()
       const token = s.session?.access_token
       if (!token) return null
-      const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text }) })
+      const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text, ...paramsVoz() }) })
       if (r.ok) { if (cache) { try { await cache.put(chave, r.clone()) } catch (e) {} } return r }
       if (r.status === 501) ttsServidorRef.current = false
       return null
@@ -4305,6 +4361,96 @@ export default function AppPage() {
   const vocabFeitoHoje = vocabDiaData === hojeStr
   const OBJETIVO_PADRAO = 'Conversar 30 minutos em inglês sem usar português'
   function salvarPerfil(novo: any) { setPerfilIa(novo); salvarProgresso({ perfil_ia: novo }) }
+  // Professor e velocidade escolhidos valem para TODA voz do app (chat, lições, pronúncia).
+  const professor = professorDe(perfilIa.professor)
+  useEffect(() => {
+    if (mostrarOnboarding) return // no onboarding a amostra define a voz na hora do toque
+    vozAtual = professor.voz
+    velocidadeAtual = fatorVelocidade(perfilIa.velocidade)
+  }, [perfilIa.professor, perfilIa.velocidade])
+  // Fim do onboarding: grava o perfil, e no iPhone abre a assinatura da Apple (oferta
+  // introdutória de TRIAL_DIAS dias configurada na App Store Connect via RevenueCat) ANTES
+  // de liberar o app. Na web o trial já nasce no banco (trigger) — o cartão fica para o
+  // fim do trial, via Kiwify (que não guarda cartão). Ver RETENCAO_2026-08-21.md.
+  async function iniciarTrialOnboarding() {
+    if (onbIniciando) return
+    setOnbIniciando(true)
+    const objetivo = onb.objetivo || OBJETIVO_PADRAO
+    salvarPerfil({ ...perfilIa, objetivo, trava: onb.trava, interesses: onb.interesses, meta_diaria: onb.minutos * 5, meta_min: onb.minutos, professor: onb.professor || 'vo', velocidade: onb.velocidade, estilo_aprender: 'tarefas', onboarding_v2: hojeStr })
+    try { track('onboarding_v2_concluido', { prof: onb.professor || 'vo', nivel: onb.nivel || 'teste', min: onb.minutos }) } catch (e) {}
+    try { (window as any).dataLayer?.push({ event: 'trial_iniciar_clique', user_id: userId || undefined }) } catch (e) {}
+    if (isIOSNative) {
+      const nat = (window as any).VonaiNative
+      if (nat?.subscribe) {
+        try { await nat.subscribe('mensal') } catch (e) {}
+        // Se a compra fechou, a página recarrega sozinha (ponte acima). Se a pessoa desistiu,
+        // ela continua no resumo — sem acesso ao app sem iniciar o trial.
+        setOnbIniciando(false)
+        return
+      }
+    }
+    setOnbIniciando(false)
+    concluirOnboarding(onb.testar ? { estilo: 'tarefas', irNivelamento: true } : { nivel: onb.nivel || undefined, estilo: 'tarefas', destino: 'treino' })
+  }
+
+  // ---- COMPROMISSO + APOSTA DE 7 DIAS (retenção, 21/08/2026) ----
+  // O painel mostrou 97% dos alunos usando o app UM dia só. O que falta não é conteúdo, é
+  // um motivo concreto para voltar amanhã. Três peças, todas no perfil_ia (sem migração):
+  //   hora_lembrete  'manha' | 'noite' — o cron só manda push/e-mail/WhatsApp nesse turno.
+  //   aposta_inicio  'YYYY-MM-DD' — o aluno apostou 7 dias seguidos. Progresso = streak.
+  //   aposta_ganha   'YYYY-MM-DD' — streak chegou a 7: +7 dias de Premium, 1 protetor, 100 moedas.
+  //   whatsapp       número com DDI — canal de retorno que o brasileiro realmente abre
+  //                  (push tem 3% de aceite e não existe no app da App Store).
+  const apostaInicio: string | null = perfilIa.aposta_inicio || null
+  const apostaGanha = !!perfilIa.aposta_ganha
+  const apostaAtiva = !!apostaInicio && !apostaGanha
+  const apostaPerdida = apostaAtiva && streak === 0 && apostaInicio !== hojeStr
+  const apostaDia = apostaAtiva ? Math.min(7, Math.max(streak, 1)) : 0
+  function apostarSeteDias() {
+    salvarPerfil({ ...perfilIa, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO, aposta_inicio: hojeStr, aposta_ganha: null })
+    try { track('aposta_7d_iniciada') } catch (e) {}
+  }
+  function escolherHoraLembrete(h: 'manha' | 'noite') {
+    salvarPerfil({ ...perfilIa, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO, hora_lembrete: h })
+    try { track('hora_lembrete', { h }) } catch (e) {}
+  }
+  function salvarWhatsappOptin(num: string) {
+    const so = num.replace(/\D/g, '')
+    if (so.length < 10) return false
+    const comDdi = so.startsWith('55') && so.length >= 12 ? so : '55' + so
+    // Vai nos dois lugares: progresso.whatsapp (coluna que já existia) e perfil_ia.whatsapp
+    // (o cron lê perfil_ia de qualquer jeito; assim funciona mesmo se a coluna faltar).
+    setWhatsapp(comDdi)
+    salvarProgresso({ whatsapp: comDdi })
+    salvarPerfil({ ...perfilIa, objetivo: perfilIa.objetivo || OBJETIVO_PADRAO, whatsapp: comDdi })
+    try { track('whatsapp_optin') } catch (e) {}
+    return true
+  }
+  // Prêmio da aposta: dispara UMA vez quando a sequência chega a 7. O Premium extra é
+  // concedido no servidor (/api/aposta) porque o trigger protege_profiles ignora
+  // trial_expira vindo do cliente — só a service role consegue estender.
+  const apostaPremiadaRef = useRef(false)
+  useEffect(() => {
+    if (!xpHydrated || !apostaAtiva || streak < 7 || apostaPremiadaRef.current) return
+    apostaPremiadaRef.current = true
+    const novoF = streakFreezes + 1
+    setStreakFreezes(novoF)
+    salvarProgresso({ streak_freezes: novoF, moedas: moedas + 100 })
+    setMoedas(moedas + 100)
+    salvarPerfil({ ...perfilIa, aposta_ganha: hojeStr })
+    setConqNova({ e: '🏆', nome: 'Aposta de 7 dias VENCIDA: +7 dias de Premium, 1 protetor e 100 moedas' })
+    try { track('aposta_7d_ganha') } catch (e) {}
+    ;(async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const token = data.session?.access_token
+        if (!token) return
+        const r = await fetch('/api/aposta', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+        const j = await r.json().catch(() => null)
+        if (j?.trialExpira) { const t = new Date(j.trialExpira).getTime(); if (t > Date.now()) { setTrialExpira(t); setIsPremium(true) } }
+      } catch (e) {}
+    })()
+  }, [xpHydrated, apostaAtiva, streak])
   // Domínio no servidor: upsert SEPARADO (se as colunas de dominio_columns.sql ainda
   // não existirem no banco, só esta gravação falha — XP/streak seguem intactos).
   function salvarDominio(campos: Record<string, any>) {
@@ -5050,6 +5196,8 @@ export default function AppPage() {
           </div>
           {bannerRow('🇧🇷', green, 'Caça-Erros do Brasileiro', '5 armadilhas que todo brasileiro cai', 'Jogar', () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} })}
           {histDone.length < HISTORIAS.length && bannerRow('📖', purple, 'Histórias', `Mini-novelas · ${histDone.length}/${HISTORIAS.length}`, 'Ler', () => { setHistSel(null); setTab('historias') })}
+          {apostaAtiva && !apostaPerdida && bannerRow('🔥', green, `Aposta de 7 dias: dia ${apostaDia} de 7`, streak >= 7 ? 'Cumprida! Prêmio liberado' : `Faltam ${7 - apostaDia} ${7 - apostaDia === 1 ? 'dia' : 'dias'} pro Premium extra`, 'Treinar', iniciarTreino)}
+          {apostaPerdida && bannerRow('💔', '#dc2626', 'A aposta de 7 dias quebrou', 'A sequência zerou. Quer tentar de novo hoje?', 'Apostar', apostarSeteDias)}
           {bannerRow('🎁', '#e08a1e', 'Convide um amigo', 'Ele ganha +2 dias, você ganha 100 🪙', 'Enviar', compartilharIndicacao)}
           {/* Lembretes usam web push (serviceWorker/PushManager), que NÃO existe no app
               iOS nativo (Capacitor). Esconde lá pra não mostrar o botão que só dá erro;
@@ -5544,50 +5692,145 @@ export default function AppPage() {
       )}
 
 
-      {mostrarOnboarding && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, display: 'flex', padding: 24, overflowY: 'auto' }}>
+      {mostrarOnboarding && (() => {
+        // ONBOARDING DE 8 TELAS (21/08/2026, padrão Lucida adaptado): cada resposta alimenta o
+        // professor E faz o aluno investir antes do paywall. A última tela devolve tudo que
+        // ele respondeu como "seu plano" e pede os 3 dias grátis. Não há botão de pular.
+        const total = 8
+        const prof = professorDe(onb.professor)
+        const topo = (titulo: string, sub?: string) => (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.25 }}>{titulo}</div>
+            {sub && <div style={{ fontSize: 13.5, color: '#BCD6F2', marginTop: 6, lineHeight: 1.45 }}>{sub}</div>}
+          </div>
+        )
+        const opcao = (ativo: boolean, onClick: () => void, conteudo: ReactNode, key: string) => (
+          <button key={key} onClick={onClick} style={{ ...onbOpt, background: ativo ? 'rgba(47,210,122,0.22)' : 'rgba(255,255,255,0.12)', border: ativo ? '1.5px solid #2fd27a' : '1px solid rgba(255,255,255,0.28)' }}>{conteudo}</button>
+        )
+        const continuar = (ok: boolean, onClick: () => void, rotulo = 'Continuar') => (
+          <button disabled={!ok} onClick={onClick} style={{ width: '100%', padding: 15, marginTop: 14, background: ok ? '#2fd27a' : 'rgba(255,255,255,0.18)', color: ok ? '#0a2a55' : 'rgba(255,255,255,0.5)', border: 'none', borderRadius: 12, fontSize: 15.5, fontWeight: 800, cursor: ok ? 'pointer' : 'default', fontFamily: 'inherit' }}>{rotulo}</button>
+        )
+        const voltar = onbStep > 0 ? <button onClick={() => setOnbStep(onbStep - 1)} style={onbBack}>← Voltar</button> : null
+        const avancar = () => setOnbStep(onbStep + 1)
+        const OBJETIVOS = [['✈️', 'Me virar em viagens', 'Me virar em viagens no exterior'], ['💼', 'Trabalho e entrevistas', 'Usar inglês no trabalho e em entrevistas'], ['💬', 'Conversar com confiança', 'Conversar com fluência e confiança'], ['🎓', 'Prova ou intercâmbio', 'Passar em prova ou fazer intercâmbio'], ['🌍', 'Morar fora', 'Morar fora do Brasil']]
+        const TRAVAS = [['🧠', 'Entendo, mas não consigo falar'], ['🎤', 'Travo em reunião ou entrevista'], ['🗣️', 'Minha pronúncia me envergonha'], ['💭', 'Esqueço as palavras na hora'], ['📐', 'Gramática me confunde']]
+        const NIVEIS = [['A1', 'Sei dizer "hello" e falar meu nome'], ['A2', 'Consigo comprar coisas e pedir comida'], ['B1', 'Discuto planos de viagem e reservo hotel'], ['B2', 'Falo com conforto sobre meus interesses'], ['C1', 'Falo de vários temas e entendo séries']]
+        const INTERESSES = ['🎵 Música', '🎬 Filmes e séries', '🍳 Culinária', '📚 Leitura', '⚽ Esportes', '📷 Fotografia', '✈️ Viagens', '💪 Fitness', '🎮 Jogos', '🍻 Socializar', '🌿 Natureza', '💻 Tecnologia', '🎨 Arte', '💼 Negócios', '🙏 Fé', '👨‍👩‍👧 Família']
+        const MINUTOS = [[5, 'Relaxado', '1 lição por dia'], [10, 'Recomendado', '3 lições + 1 conversa'], [15, 'Intenso', 'Conversa + lições + revisão']]
+        const ouvirAmostra = (p: typeof PROFESSORES[number], vel: Velocidade) => {
+          const frase = p.id === 'vo' ? `Oi! Eu sou o Vô. Pode errar à vontade que eu te ajudo.` : `Oi! Eu sou ${p.id === 'rafael' ? 'o' : 'a'} ${p.nome}. Vamos destravar o seu inglês juntos?`
+          vozAtual = p.voz; velocidadeAtual = fatorVelocidade(vel)
+          try { track('onb_ouvir_professor', { prof: p.id, vel }) } catch (e) {}
+          falarPt(frase)
+        }
+        return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'radial-gradient(900px 520px at 15% 20%, #1b5fb3 0%, #103d77 45%, #0a2a55 100%)', display: 'flex', padding: 24, overflowY: 'auto' }}>
           <div key={onbStep} style={{ maxWidth: 420, margin: 'auto', width: '100%', color: '#fff', animation: 'su_screen 0.32s ease' }}>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 22 }}>
+              {Array.from({ length: total }).map((_, s) => <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: s <= onbStep ? '#2fd27a' : 'rgba(255,255,255,0.25)' }} />)}
+            </div>
+
             {onbStep === 0 && (<>
-              {/* Boas-vindas + objetivo na MESMA tela: a primeira coisa que o aluno vê é uma
-                  pessoa (bem, um vô-robô) falando com ele — e a 1ª pergunta já vem junto.
-                  Eram 5 telas até a 1ª lição; agora são 3 (a de tempo saiu — meta padrão). */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-                <div style={{ width: 104, height: 104, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', animation: 'su_bob 2.4s ease-in-out infinite' }}>
-                  <Mascote size={74} prof humor="acena" />
+                <div style={{ width: 92, height: 92, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', animation: 'su_bob 2.4s ease-in-out infinite' }}><Mascote size={66} prof humor="acena" /></div>
+              </div>
+              {topo(`Oi${userName && userName !== 'Aluno' ? ', ' + userName.split(' ')[0] : ''}! Qual é o seu objetivo com o inglês?`, 'Em 2 minutos eu monto seu plano. Começa por aqui.')}
+              {OBJETIVOS.map(([e, t, o]) => opcao(onb.objetivo === o, () => { setOnb({ ...onb, objetivo: o }); setOnbObj(o); setTimeout(avancar, 180) }, <><span style={{ fontSize: 24, marginRight: 12 }}>{e}</span>{t}</>, t))}
+            </>)}
+
+            {onbStep === 1 && (<>
+              {topo('Onde você mais trava hoje?', 'Isso define por onde o seu professor vai começar.')}
+              {TRAVAS.map(([e, t]) => opcao(onb.trava === t, () => { setOnb({ ...onb, trava: t }); setTimeout(avancar, 180) }, <><span style={{ fontSize: 24, marginRight: 12 }}>{e}</span>{t}</>, t))}
+              {voltar}
+            </>)}
+
+            {onbStep === 2 && (<>
+              {topo('Qual é o seu nível de inglês?', 'Se não souber, eu descubro pra você em 2 minutos no fim.')}
+              {NIVEIS.map(([n, d]) => opcao(onb.nivel === n, () => { setOnb({ ...onb, nivel: n, testar: false }); setTimeout(avancar, 180) }, <><span style={{ fontSize: 16, fontWeight: 800, marginRight: 12, minWidth: 28, color: '#2fd27a' }}>{n}</span><span style={{ fontSize: 14, fontWeight: 600, textAlign: 'left' }}>{d}</span></>, n))}
+              {opcao(!!onb.testar, () => { setOnb({ ...onb, nivel: '', testar: true }); setTimeout(avancar, 180) }, <><span style={{ fontSize: 24, marginRight: 12 }}>📊</span>Não sei — me testa em 2 minutos</>, 'testar')}
+              {voltar}
+            </>)}
+
+            {onbStep === 3 && (<>
+              {topo('Escolha 3 ou mais coisas que você curte', 'Suas conversas com o professor vão ser sobre isso.')}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {INTERESSES.map(t => { const on = onb.interesses.includes(t); return (
+                  <button key={t} onClick={() => setOnb({ ...onb, interesses: on ? onb.interesses.filter(x => x !== t) : [...onb.interesses, t] })} style={{ padding: '12px 10px', borderRadius: 12, border: on ? '1.5px solid #2fd27a' : '1px solid rgba(255,255,255,0.28)', background: on ? 'rgba(47,210,122,0.22)' : 'rgba(255,255,255,0.10)', color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>{t}</button>
+                ) })}
+              </div>
+              {continuar(onb.interesses.length >= 3, avancar, onb.interesses.length >= 3 ? 'Continuar' : `Escolha mais ${3 - onb.interesses.length}`)}
+              {voltar}
+            </>)}
+
+            {onbStep === 4 && (<>
+              {topo('Quanto tempo por dia?', 'Dá pra mudar depois. O que importa é todo dia.')}
+              {MINUTOS.map(([m, r, d]) => opcao(onb.minutos === m, () => { setOnb({ ...onb, minutos: m as number }); setOnbMeta((m as number) * 5); setTimeout(avancar, 180) }, <><span style={{ fontSize: 18, fontWeight: 800, marginRight: 12, minWidth: 64, color: '#2fd27a' }}>{m} min</span><span style={{ textAlign: 'left' }}><span style={{ display: 'block', fontSize: 14 }}>{r}</span><span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 500 }}>{d}</span></span></>, String(m)))}
+              {voltar}
+            </>)}
+
+            {onbStep === 5 && (<>
+              {topo('Escolha o seu professor', 'Toque pra ouvir a voz. Você pode trocar quando quiser.')}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {PROFESSORES.map(p => { const on = onb.professor === p.id; return (
+                  <div key={p.id} onClick={() => { setOnb({ ...onb, professor: p.id }); ouvirAmostra(p, onb.velocidade) }} style={{ borderRadius: 16, border: on ? '2px solid #2fd27a' : '1px solid rgba(255,255,255,0.28)', background: on ? 'rgba(47,210,122,0.18)' : 'rgba(255,255,255,0.10)', padding: 12, cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>{p.id === 'vo' ? <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mascote size={54} prof humor="feliz" /></div> : <AvatarProf id={p.id} size={72} />}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800 }}>{p.nome}</div>
+                    <div style={{ fontSize: 11.5, color: '#2fd27a', fontWeight: 700, marginBottom: 4 }}>{p.tag}</div>
+                    <div style={{ fontSize: 11.5, color: '#BCD6F2', lineHeight: 1.35 }}>{p.desc}</div>
+                    <div style={{ marginTop: 8, fontSize: 11.5, color: '#fff', fontWeight: 700 }}>🔊 Ouvir</div>
+                  </div>
+                ) })}
+              </div>
+              {continuar(!!onb.professor, avancar)}
+              {voltar}
+            </>)}
+
+            {onbStep === 6 && (<>
+              {topo(`Em que velocidade ${prof.tratamento} deve falar?`, 'Toque no alto-falante pra comparar. Muda quando quiser.')}
+              {(Object.keys(VELOCIDADES) as Velocidade[]).map(v => opcao(onb.velocidade === v, () => setOnb({ ...onb, velocidade: v }), <><span style={{ flex: 1, textAlign: 'left' }}><span style={{ display: 'block', fontSize: 15 }}>{VELOCIDADES[v].rotulo}{v === 'normal' && <span style={{ marginLeft: 8, fontSize: 10.5, background: '#2fd27a', color: '#0a2a55', borderRadius: 999, padding: '2px 8px', fontWeight: 800 }}>Recomendado</span>}</span><span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 500 }}>{VELOCIDADES[v].desc}</span></span><span onClick={e => { e.stopPropagation(); setOnb({ ...onb, velocidade: v }); ouvirAmostra(prof, v) }} style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔊</span></>, v))}
+              {continuar(true, avancar)}
+              {voltar}
+            </>)}
+
+            {onbStep === 7 && (<>
+              {/* RESUMO + PAYWALL: a tela mais importante do app. Devolve tudo que o aluno
+                  respondeu como "seu plano" (Lucida) e pede os TRIAL_DIAS dias grátis. Linha do
+                  tempo com R$0 hoje e o valor no fim do trial: a Apple exige, e a transparência
+                  é o que derruba o medo de "mais um app que eu pago e esqueço". */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>{prof.id === 'vo' ? <div style={{ width: 84, height: 84, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }}><Mascote size={62} prof humor="comemora" /></div> : <AvatarProf id={prof.id} size={84} />}</div>
+              <div style={{ textAlign: 'center', fontSize: 13, color: '#2fd27a', fontWeight: 800 }}>Seu plano está pronto{userName && userName !== 'Aluno' ? ', ' + userName.split(' ')[0] : ''}!</div>
+              <div style={{ textAlign: 'center', fontSize: 21, fontWeight: 800, lineHeight: 1.25, margin: '4px 0 14px' }}>{onb.trava ? `Vamos destravar: "${onb.trava.toLowerCase()}"` : 'Do seu nível até a fluência'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+                {([['🎯', 'OBJETIVO', (OBJETIVOS.find(o => o[2] === onb.objetivo) || [])[1] || '—'], ['📊', 'SEU NÍVEL', onb.testar ? 'Teste em 2 min' : onb.nivel || '—'], ['⏱️', 'META DIÁRIA', `${onb.minutos} min/dia`], ['🧑‍🏫', 'PROFESSOR', `${prof.nome} · ${VELOCIDADES[onb.velocidade].rotulo.toLowerCase()}`]] as [string, string, string][]).map(([e, r, v]) => (
+                  <div key={r} style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 12, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 10, color: '#BCD6F2', fontWeight: 800, letterSpacing: 0.5 }}>{e} {r}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3 }}>{v}</div>
+                  </div>
+                ))}
+                <div style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 12, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 10, color: '#BCD6F2', fontWeight: 800, letterSpacing: 0.5 }}>💙 INTERESSES</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 3 }}>{onb.interesses.map(i => i.replace(/^\S+\s/, '')).join(', ')}</div>
                 </div>
               </div>
-              <VoFala escuro voz size={0} fala={`Oi${userName ? ', ' + userName.split(' ')[0] : ''}! Eu sou o Vô, seu professor de inglês aqui do Vonai. 👋 Pode errar à vontade, que errar comigo não tem plateia. Me conta: qual é o seu grande objetivo com o inglês?`} />
-              <div style={{ height: 16 }} />
-              {[{ e: '✈️', t: 'Me virar em viagens', o: 'Me virar em viagens no exterior' }, { e: '💼', t: 'Trabalho e carreira', o: 'Usar inglês no trabalho e na carreira' }, { e: '💬', t: 'Conversar com fluência', o: 'Conversar com fluência em inglês' }, { e: '🎓', t: 'Estudos e provas', o: 'Passar em provas e estudar em inglês' }].map(op => (
-                <button key={op.t} onClick={() => { setOnbObj(op.o); setOnbStep(1) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>{op.e}</span> {op.t}</button>
-              ))}
+              <div style={{ background: '#fff', borderRadius: 16, padding: 14, color: '#16212c', marginBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 3 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2fd27a' }} /><div style={{ width: 2, height: 26, background: '#dfe5ec' }} /><div style={{ width: 10, height: 10, borderRadius: '50%', background: '#c9d2dc' }} /></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span><b>Hoje</b> · {TRIAL_DIAS} dias grátis, tudo liberado</span><b style={{ color: '#0f7a37' }}>R$ 0,00</b></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#5c6b7a', marginTop: 16 }}><span>{new Date(Date.now() + TRIAL_MS).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} · começa a assinatura</span><span>{PRECO.mensal}/mês</span></div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11.5, color: '#5c6b7a', marginTop: 10, lineHeight: 1.4 }}>Avisamos 1 dia antes. Cancele em 1 toque, sem multa. Ou escolha o anual: {PRECO.anual}/ano ({PRECO.anualPorMes}/mês).</div>
+              </div>
+              <button onClick={iniciarTrialOnboarding} disabled={onbIniciando} style={{ width: '100%', padding: 16, background: '#2fd27a', color: '#0a2a55', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: onbIniciando ? 0.6 : 1 }}>{onbIniciando ? 'Preparando…' : `Começar ${TRIAL_DIAS} dias grátis`}</button>
+              <div style={{ textAlign: 'center', fontSize: 11.5, color: '#BCD6F2', marginTop: 10 }}>🔒 Cancele a qualquer momento{isIOSNative ? ' · Pagamento seguro pela App Store' : ''}</div>
+              {isIOSNative && <button onClick={() => { try { (window as any).VonaiNative?.restore?.() } catch (e) {} }} style={{ ...onbBack, width: '100%', textAlign: 'center' }}>Já sou assinante — restaurar compras</button>}
+              {voltar}
             </>)}
-            {onbStep === 1 && (<>
-              {/* A pergunta da autonomia: cada aluno aprende de um jeito, e quem escolhe
-                  a porta de entrada é ele. O nivelamento só existe no caminho das lições. */}
-              <VoFala escuro fala="Combinado! Agora a pergunta mais importante: como VOCÊ prefere aprender? Aqui quem manda é você." />
-              <div style={{ height: 16 }} />
-              <button onClick={() => concluirOnboarding({ estilo: 'conversa', destino: 'ai' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>💬</span><span style={{ flex: 1, textAlign: 'left' }}>Conversando com o professor<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Fale comigo e eu corrijo na hora, em português</span></span></button>
-              {/* Já sabemos o nível (localStorage): pula a tela de nível e cai direto no treino. */}
-              <button onClick={() => { try { if (localStorage.getItem('speakup_nivel')) { concluirOnboarding({ estilo: 'licoes', destino: 'treino' }); return } } catch (e) {}; setOnbStep(2) }} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📖</span><span style={{ flex: 1, textAlign: 'left' }}>Com lições passo a passo<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Trilha do básico ao avançado, no seu ritmo</span></span></button>
-              <button onClick={() => concluirOnboarding({ estilo: 'tarefas', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>✅</span><span style={{ flex: 1, textAlign: 'left' }}>Com tarefas diárias<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Um treino curtinho por dia, montado pra você</span></span></button>
-              <button onClick={() => setOnbStep(0)} style={onbBack}>← Voltar</button>
-            </>)}
-            {onbStep === 2 && (<>
-              <VoFala escuro fala="Boa escolha! Pra trilha começar no ponto certo: qual é o seu nível hoje? Se não souber, eu descubro pra você em 2 minutinhos." />
-              <div style={{ height: 16 }} />
-              <button onClick={() => concluirOnboarding({ nivel: 'A1', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌱</span> Sou iniciante</button>
-              <button onClick={() => concluirOnboarding({ nivel: 'A2', estilo: 'licoes', destino: 'treino' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🌿</span> Já sei um pouco</button>
-              <button onClick={() => concluirOnboarding({ estilo: 'licoes', irNivelamento: true })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>📊</span><span style={{ flex: 1, textAlign: 'left' }}>Fazer o teste de nivelamento<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>20 questões que se adaptam a você · ~5 min</span></span></button>
-              <button onClick={() => concluirOnboarding({ estilo: 'licoes', destino: 'nivelManual' })} style={onbOpt}><span style={{ fontSize: 24, marginRight: 12 }}>🎚️</span><span style={{ flex: 1, textAlign: 'left' }}>Já sei meu nível<span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 400 }}>Escolher direto, sem fazer teste</span></span></button>
-              <button onClick={() => setOnbStep(1)} style={onbBack}>← Voltar</button>
-            </>)}
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 24 }}>
-              {[0, 1, 2].map(s => <div key={s} style={{ width: 8, height: 8, borderRadius: '50%', background: s === Math.min(onbStep, 2) ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
-            </div>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {conqNova && (
         <div onClick={() => setConqNova(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -6866,6 +7109,58 @@ export default function AppPage() {
                       ))}
                     </div>
                   </div>
+                  {/* COMPROMISSO (só na 1ª sessão, até a pessoa escolher): horário do lembrete,
+                      aposta de 7 dias e WhatsApp. Vem DEPOIS do valor entregue, não antes —
+                      pedir compromisso na entrada é pedir antes de provar. */}
+                  {!perfilIa.hora_lembrete && (
+                    <div style={{ background: 'var(--color-background-primary)', border: `1.5px solid ${blue}`, borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', animation: 'su_risefade 0.5s ease 0.35s both' }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 4 }}>Que horas eu te lembro amanhã?</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginBottom: 10 }}>Um aviso por dia, só no horário que você escolher.</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => escolherHoraLembrete('manha')} style={{ flex: 1, padding: 12, background: blueLight, color: blueDark, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>☀️ Manhã (9h)</button>
+                        <button onClick={() => escolherHoraLembrete('noite')} style={{ flex: 1, padding: 12, background: blueLight, color: blueDark, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>🌙 Noite (20h)</button>
+                      </div>
+                    </div>
+                  )}
+                  {perfilIa.hora_lembrete && !apostaInicio && !apostaGanha && (
+                    <div style={{ background: 'linear-gradient(135deg, #16A34A, #0f7a37)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', animation: 'su_risefade 0.5s ease 0.35s both' }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Topa apostar 7 dias seguidos?</div>
+                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.9)', lineHeight: 1.45, marginBottom: 10 }}>Quem chega a 7 dias tem 2× mais chance de continuar. Cumpriu: <strong>+7 dias de Premium, 1 protetor de sequência e 100 moedas</strong>. Quebrou: perde a aposta, não o progresso.</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={apostarSeteDias} style={{ flex: 1, padding: 12, background: '#fff', color: '#0f7a37', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>🔥 Apostar 7 dias</button>
+                        <button onClick={() => salvarPerfil({ ...perfilIa, aposta_ganha: 'recusou' })} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Agora não</button>
+                      </div>
+                    </div>
+                  )}
+                  {apostaAtiva && !apostaPerdida && (
+                    <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: '12px 14px', marginBottom: 14, textAlign: 'left' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--color-text-primary)' }}>🔥 Aposta de 7 dias</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: green }}>dia {apostaDia} de 7</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>{[1, 2, 3, 4, 5, 6, 7].map(d => <div key={d} style={{ flex: 1, height: 8, borderRadius: 4, background: d <= apostaDia ? green : 'var(--color-background-secondary)' }} />)}</div>
+                    </div>
+                  )}
+                  {perfilIa.hora_lembrete && !perfilIa.whatsapp && !whatsapp && !perfilIa.whatsapp_recusou && (
+                    <WhatsappOptin onSalvar={salvarWhatsappOptin} onRecusar={() => salvarPerfil({ ...perfilIa, whatsapp_recusou: hojeStr })} />
+                  )}
+                  {/* LOOP ABERTO (Zeigarnik): a sessão termina com o começo da próxima, não com
+                      "parabéns". O aluno sai sabendo exatamente o que o espera amanhã. */}
+                  {(() => {
+                    const arr = lessons[level] || []
+                    const prox = arr.find(l => !licoesConcluidas.includes(chaveLicao(l)))
+                    const quando = perfilIa.hora_lembrete === 'manha' ? 'amanhã às 9h' : perfilIa.hora_lembrete === 'noite' ? 'amanhã às 20h' : 'amanhã'
+                    return (
+                      <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: '12px 14px', marginBottom: 14, textAlign: 'left', display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <IcBadge e={prox ? prox.icon : '🎙️'} color={blue} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--color-text-secondary)', letterSpacing: 0.4 }}>AMANHÃ, {quando.toUpperCase().replace('AMANHÃ', '').trim() || 'NO SEU HORÁRIO'}</div>
+                          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 2 }}>{prox ? prox.title : 'Simulação de conversa no seu nível'}</div>
+                          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Já deixei preparada no seu nível. 2 minutos.</div>
+                        </div>
+                      </div>
+                    )
+                  })()}
                   {/* Baú do Dia — recompensa VARIÁVEL (Hooked): não saber o prêmio é o que gera
                       a expectativa que traz o aluno de volta amanhã. 1x por dia, após o treino. */}
                   {(() => {
@@ -7249,21 +7544,21 @@ export default function AppPage() {
       )}
 
       {tab === 'ai' && (
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: temaEscuro ? 'linear-gradient(180deg, #16212c 0%, #1a2430 60%, #0f1720 100%)' : 'linear-gradient(180deg, #e7f0fa 0%, #e7f0fa 55%, #e7f0fa 100%)', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: 'radial-gradient(900px 520px at 15% 30%, #1b5fb3 0%, #103d77 45%, #0a2a55 100%)', overflow: 'hidden' }}>
           {/* Ambiente: dois brilhos que respiram no fundo. Dá profundidade sem pesar —
               é o que separa "tela de chat" de "sala onde alguém te espera". */}
-          <div aria-hidden style={{ position: 'absolute', top: -120, right: -90, width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,148,240,0.30), rgba(74,148,240,0) 70%)', pointerEvents: 'none', animation: 'su_respira 7s ease-in-out infinite' }} />
-          <div aria-hidden style={{ position: 'absolute', bottom: 40, left: -110, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,166,35,0.20), rgba(245,166,35,0) 70%)', pointerEvents: 'none', animation: 'su_respira 9s ease-in-out infinite 1.5s' }} />
+          <div aria-hidden style={{ position: 'absolute', top: -120, right: -90, width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,210,122,0.28), rgba(47,210,122,0) 70%)', pointerEvents: 'none', animation: 'su_respira 7s ease-in-out infinite' }} />
+          <div aria-hidden style={{ position: 'absolute', bottom: 40, left: -110, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(56,163,255,0.30), rgba(56,163,255,0) 70%)', pointerEvents: 'none', animation: 'su_respira 9s ease-in-out infinite 1.5s' }} />
 
-          <div style={{ position: 'relative', background: `linear-gradient(135deg, #2E72D6, ${blueDark})`, padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 6px 22px rgba(16,42,76,0.28)' }}>
+          <div style={{ position: 'relative', background: 'rgba(11,31,63,0.85)', backdropFilter: 'blur(6px)', padding: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 6px 22px rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             {/* anel de IA girando quando o Vô está pensando; pulsa devagar em repouso */}
             <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ position: 'relative', width: 52, height: 52, flexShrink: 0, cursor: 'pointer' }}>
               <span aria-hidden style={{ position: 'absolute', inset: -4, borderRadius: '50%', border: '2px solid transparent', borderTopColor: '#FFD98A', borderRightColor: 'rgba(255,217,138,0.35)', animation: loadingChat ? 'su_girar 1s linear infinite' : 'su_girar 6s linear infinite', opacity: loadingChat ? 1 : 0.55 }} />
               <span aria-hidden style={{ position: 'absolute', inset: -10, borderRadius: '50%', background: 'rgba(255,217,138,0.16)', animation: 'su_halo 2.6s ease-in-out infinite' }} />
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'su_bob 2.6s ease-in-out infinite' }}><Mascote size={36} prof humor={loadingChat ? 'normal' : 'feliz'} /></div>
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'su_bob 2.6s ease-in-out infinite', overflow: 'hidden' }}>{professor.id === 'vo' ? <Mascote size={36} prof humor={loadingChat ? 'normal' : 'feliz'} /> : <AvatarProf id={professor.id} size={52} />}</div>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>Vô, seu professor de IA</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>{professor.id === 'vo' ? 'Vô, seu professor de IA' : professor.id === 'rafael' ? 'Rafael, seu professor de IA' : `${professor.nome}, sua professora de IA`}</div>
               <div style={{ fontSize: 12, color: '#bcd6f2', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: listening ? '#dc2626' : '#4ADE80', display: 'inline-block', animation: 'su_halo 1.8s ease-in-out infinite' }} />
                 {listening ? 'Ouvindo você…' : loadingChat ? 'Pensando na melhor resposta…' : 'Online · responde na hora'}
@@ -7288,8 +7583,8 @@ export default function AppPage() {
                       <span key={i} style={{ width: 4, borderRadius: 6, background: 'rgba(46,114,214,0.55)', height: 8 + (i % 3) * 5, animation: `su_onda 1.1s ease-in-out ${i * 0.11}s infinite` }} />
                     ))}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginTop: 8 }}>Oi{userName ? `, ${userName}` : ''}! Sou o Vô 👋</div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3, lineHeight: 1.5 }}>Toque em mim pra me ouvir, segure o 🎤 pra falar<br />ou escolha por onde começar</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 8 }}>Oi{userName ? `, ${userName}` : ''}! Sou {professor.id === 'vo' ? 'o Vô' : professor.nome} 👋</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 3, lineHeight: 1.5 }}>Toque em mim pra me ouvir, segure o 🎤 pra falar<br />ou escolha por onde começar</div>
                 </div>
                 {/* O servidor já manda os pontos fracos do aluno no prompt, mas o aluno nunca
                     VIA isso. Mostrar aqui é a diferença entre "mais um chatbot" e um professor
@@ -7300,10 +7595,10 @@ export default function AppPage() {
                   const itens = [...fracos, ...sons.map(s => SONS_NOME[s] || s)]
                   if (!itens.length) return null
                   return (
-                    <div style={{ background: 'rgba(46,114,214,0.07)', border: '1px solid rgba(46,114,214,0.16)', borderRadius: 14, padding: '10px 13px', marginBottom: 4, animation: 'su_risefade 0.5s ease 0.1s both' }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: blueDark, textTransform: 'uppercase', letterSpacing: 0.4 }}>Eu lembro de você</div>
-                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 4, lineHeight: 1.45 }}>A gente ainda tem que apertar: {itens.join(' · ')}</div>
-                      <button onClick={() => sendChat(`Vamos treinar o que eu erro mais: ${itens.join(', ')}. Comece com uma pergunta só.`)} style={{ marginTop: 8, background: blue, color: '#fff', border: 'none', borderRadius: 20, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Treinar isso agora →</button>
+                    <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 14, padding: '10px 13px', marginBottom: 4, animation: 'su_risefade 0.5s ease 0.1s both' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#2fd27a', textTransform: 'uppercase', letterSpacing: 0.4 }}>Eu lembro de você</div>
+                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', marginTop: 4, lineHeight: 1.45 }}>A gente ainda tem que apertar: {itens.join(' · ')}</div>
+                      <button onClick={() => sendChat(`Vamos treinar o que eu erro mais: ${itens.join(', ')}. Comece com uma pergunta só.`)} style={{ marginTop: 8, background: '#2fd27a', color: '#0a2a55', border: 'none', borderRadius: 20, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Treinar isso agora →</button>
                     </div>
                   )
                 })()}
@@ -7319,7 +7614,7 @@ export default function AppPage() {
                     ['📘', 'Tenho uma dúvida', 'Como eu digo ', false],
                   ] as [string, string, string, boolean][]).map(([e, rotulo, envio, manda], i) => (
                     <button key={rotulo} onClick={() => { if (manda) { try { track('professor_porta', { porta: rotulo }) } catch (err) {} ; sendChat(envio) } else { setChatInput(envio); chatInputRef.current?.focus() } }}
-                      style={{ padding: '13px 12px', border: '1px solid rgba(46,114,214,0.22)', borderRadius: 14, background: 'var(--color-background-primary)', color: blueDark, fontSize: 13, cursor: 'pointer', fontWeight: 700, boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.45s ease ${i * 0.07}s both`, fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, lineHeight: 1.25 }}>
+                      style={{ padding: '13px 12px', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 14, background: 'rgba(255,255,255,0.10)', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 700, boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.45s ease ${i * 0.07}s both`, fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, lineHeight: 1.25 }}>
                       <span style={{ fontSize: 20 }} aria-hidden>{e}</span>{rotulo}
                     </button>
                   ))}
@@ -7328,7 +7623,7 @@ export default function AppPage() {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} data-msg style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
-                {m.role === 'ai' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-background-primary)', border: '1.5px solid rgba(245,166,35,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>}
+                {m.role === 'ai' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', border: '1.5px solid rgba(47,210,122,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16,42,76,0.14)', overflow: 'hidden' }}>{professor.id === 'vo' ? <Mascote size={24} prof /> : <AvatarProf id={professor.id} size={32} />}</div>}
                 <div style={{ minWidth: 0 }}>
                   {/* Cartão de correção: o aluno vê o próprio erro virar acerto na hora.
                       É o momento em que a conversa deixa de ser papo e vira aula — e é o
@@ -7342,7 +7637,7 @@ export default function AppPage() {
                       <button onClick={() => praticarNoChat(m.correcao!.certo)} style={{ marginTop: 8, background: blueLight, color: blue, border: 'none', borderRadius: 20, padding: '6px 13px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}><Ic e="🎤" /> Falar do jeito certo</button>
                     </div>
                   )}
-                  <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? `linear-gradient(135deg, #2e72d6, #1c55a3)` : 'var(--color-background-primary)', color: m.role === 'user' ? '#fff' : 'var(--color-text-primary)', border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} onPraticar={praticarNoChat} /> : m.text}</div>
+                  <div style={{ padding: '12px 16px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? '#2fd27a' : '#163f7a', color: m.role === 'user' ? '#0a2a55' : '#fff', fontWeight: m.role === 'user' ? 700 : 500, border: m.role === 'ai' ? '0.5px solid var(--color-border-tertiary)' : 'none', boxShadow: m.role === 'user' ? '0 4px 14px rgba(30,99,199,0.32)' : '0 3px 12px rgba(16,42,76,0.10)' }}>{m.role === 'ai' ? <TextoIA text={m.text} onPraticar={praticarNoChat} /> : m.text}</div>
                   {/* Dois botões quando a resposta tem inglês E explicação: quem está no
                       básico precisa OUVIR a explicação em português, não só o exemplo em
                       inglês. Antes existia um botão só, e ele lia apenas o inglês. */}
@@ -7350,7 +7645,7 @@ export default function AppPage() {
                     const temIngles = trechosIngles(m.text).length > 0 || /["“”]/.test(m.text) || textoEmIngles(m.text)
                     const falandoEn = speakingId === 1000 + i
                     const falandoPt = speakingId === 3000 + i
-                    const bt = (ativo: boolean): React.CSSProperties => ({ marginTop: 6, background: ativo ? blue : 'var(--color-background-primary)', color: ativo ? '#fff' : blue, border: ativo ? 'none' : `1px solid ${blueLight}`, borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: ativo ? 'su_pulse 1.2s infinite' : 'none' })
+                    const bt = (ativo: boolean): React.CSSProperties => ({ marginTop: 6, background: ativo ? '#2fd27a' : 'rgba(255,255,255,0.10)', color: ativo ? '#0a2a55' : '#fff', border: ativo ? 'none' : '1px solid rgba(255,255,255,0.3)', borderRadius: 20, padding: '5px 13px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', animation: ativo ? 'su_pulse 1.2s infinite' : 'none' })
                     return (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginLeft: 2 }}>
                         <button onClick={() => falarIngles(m.text, 1000 + i)} style={bt(falandoEn)}>{falandoEn ? <><Ic e="⏸️" /> Parar</> : <><Ic e="🔊" /> {temIngles ? 'Ouvir em inglês' : 'Ouvir'}</>}</button>
@@ -7364,7 +7659,7 @@ export default function AppPage() {
                   {m.role === 'ai' && !loadingChat && i === chatMsgs.length - 1 && !!m.sugestoes?.length && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                       {m.sugestoes.map((s, k) => (
-                        <button key={s} onClick={() => usarSugestao(s)} style={{ padding: '8px 14px', border: `1px solid ${blueLight}`, borderRadius: 20, background: 'var(--color-background-primary)', color: blueDark, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.4s ease ${0.05 + k * 0.07}s both` }}>{s}</button>
+                        <button key={s} onClick={() => usarSugestao(s)} style={{ padding: '8px 14px', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 20, background: 'rgba(255,255,255,0.10)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(16,42,76,0.07)', animation: `su_risefade 0.4s ease ${0.05 + k * 0.07}s both` }}>{s}</button>
                       ))}
                     </div>
                   )}
@@ -7373,12 +7668,12 @@ export default function AppPage() {
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-background-primary)', border: '1.5px solid rgba(245,166,35,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>
-                <div style={{ padding: '13px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 3px 12px rgba(16,42,76,0.10)' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: blue, display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: blue, display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: blue, display: 'inline-block', animation: 'su_dot 1.2s infinite 0.4s' }} />
-                  <span style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', marginLeft: 2 }}>o Vô está pensando</span>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', border: '1.5px solid rgba(47,210,122,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>
+                <div style={{ padding: '13px 16px', borderRadius: '18px 18px 18px 4px', background: '#163f7a', border: 'none', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 3px 12px rgba(16,42,76,0.10)' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2fd27a', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2fd27a', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2fd27a', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.4s' }} />
+                  <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginLeft: 2 }}>{professor.tratamento} está pensando</span>
                 </div>
               </div>
             )}
@@ -7420,8 +7715,8 @@ export default function AppPage() {
               ))}
             </div>
           )}
-          <div style={{ position: 'relative', padding: '10px 12px', borderTop: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-            <button onClick={micChat} aria-label={listening ? 'Parar gravação' : 'Falar com o Vô'} style={{ position: 'relative', width: 46, height: 46, background: listening ? '#dc2626' : blueLight, color: listening ? '#fff' : blue, border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: listening ? '0 0 0 6px rgba(226,75,74,0.18)' : 'none', transition: 'box-shadow 0.2s' }}>
+          <div style={{ position: 'relative', padding: '10px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', background: '#0b1f3f', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            <button onClick={micChat} aria-label={listening ? 'Parar gravação' : 'Falar com o Vô'} style={{ position: 'relative', width: 46, height: 46, background: listening ? '#dc2626' : '#2fd27a', color: listening ? '#fff' : '#0a2a55', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: listening ? '0 0 0 6px rgba(226,75,74,0.18)' : 'none', transition: 'box-shadow 0.2s' }}>
               {listening && <span aria-hidden style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '2px solid rgba(226,75,74,0.55)', animation: 'su_halo 1.4s ease-in-out infinite' }} />}
               <Ic e={listening ? '⏹️' : '🎤'} />
             </button>
@@ -7429,7 +7724,7 @@ export default function AppPage() {
                 microfone porque é ali que a dúvida aparece. */}
             <button onClick={trocarIdiomaMic} title={micPt ? 'Estou te ouvindo em português — toque para mudar para inglês' : 'Estou te ouvindo em inglês — toque para mudar para português'} aria-label={`Microfone ouvindo em ${micPt ? 'português' : 'inglês'}`}
               style={{ position: 'absolute', left: 34, top: 2, background: micPt ? '#16A34A' : blue, color: '#fff', border: '2px solid var(--color-background-primary)', borderRadius: 10, padding: '1px 5px', fontSize: 9.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', lineHeight: 1.5, letterSpacing: 0.3 }}>{micPt ? 'PT' : 'EN'}</button>
-            <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? (micPt ? '🎙️ Pode falar em português...' : '🎙️ Speaking in English...') : 'Digite ou fale...'} style={{ flex: 1, padding: '11px 14px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 20, fontSize: 16, background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
+            <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder={listening ? (micPt ? '🎙️ Pode falar em português...' : '🎙️ Speaking in English...') : 'Toque para falar ou digite…'} style={{ flex: 1, padding: '11px 14px', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 20, fontSize: 16, background: '#112b52', color: '#fff', fontFamily: 'inherit' }} />
             <button onClick={() => sendChat()} disabled={loadingChat} style={{ width: 44, height: 44, background: blue, color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 500, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loadingChat ? 0.5 : 1 }}><Ic e="→" /></button>
           </div>
         </div>

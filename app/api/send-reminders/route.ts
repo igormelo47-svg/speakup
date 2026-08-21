@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
-import { enviarEmailLembrete, emailTrialAcabando, emailPosTrial } from '../../../lib/email'
+import { enviarEmailLembrete, emailTrialAcabando, emailPosTrial, emailDia2, emailDia3 } from '../../../lib/email'
+import { enviarWhatsapp, whatsappConfigurado } from '../../../lib/whatsapp'
 import { missaoPara } from '../../../lib/missao'
 
 // Teto do winback: depois de 30 dias sem uso a pessoa não é "aluno sumido", é alguém que
@@ -46,6 +47,13 @@ export async function GET(req: NextRequest) {
     admin.from('profiles').select('id, trial_expira'),
   ])
   let prog: any[] | null = progRes.data
+  // Colunas opcionais de retenção: criado_em (retencao.sql) para os e-mails do dia 2/3 e
+  // whatsapp (número com DDI). Consulta separada e tolerante: se faltar, só esses canais param.
+  const extraDe = new Map<string, { criado_em?: string; whatsapp?: string }>()
+  try {
+    const r = await admin.from('progresso').select('user_id, criado_em, whatsapp')
+    for (const x of (r.data || []) as any[]) extraDe.set(x.user_id, { criado_em: x.criado_em, whatsapp: x.whatsapp })
+  } catch (e) { console.warn('[Lembretes] criado_em/whatsapp indisponíveis', e) }
   if (progRes.error) {
     console.warn('[Lembretes] coluna opcional ausente, repetindo sem ela:', progRes.error.message)
     temColunaEmails = false
@@ -111,10 +119,55 @@ export async function GET(req: NextRequest) {
     return { title: `Sua missão de hoje te espera ${missao.emoji}`, body: fraco ? `${oi}${missao.titulo} — e o Vô guardou um treino de "${fraco}" pra depois.` : `${oi}${missao.titulo}. ${missao.chamada}` }
   }
 
+  // Turno que o aluno escolheu na 1ª sessão (perfil_ia.hora_lembrete). Quem escolheu
+  // "manhã" recebe de manhã (e o alerta de sequência à noite); quem não escolheu ou
+  // escolheu "noite" recebe SÓ à noite — um aviso por dia, não dois.
+  const turnoOk = (userId: string) => {
+    const h = (progDe.get(userId) as any)?.perfil_ia?.hora_lembrete
+    if (turno === 'manha') return h === 'manha'
+    return true
+  }
+  const numeroWhats = (userId: string): string => {
+    const p: any = progDe.get(userId) || {}
+    const n = String(extraDe.get(userId)?.whatsapp || p?.perfil_ia?.whatsapp || '').replace(/\D/g, '')
+    return n.length >= 12 ? n : ''
+  }
+
+  // ---------------------------------------------------------------------------------
+  // WHATSAPP — o canal que o brasileiro abre. Só sai se WHATSAPP_API_URL/TOKEN existirem
+  // na Vercel (lib/whatsapp.ts). Uma mensagem por dia (chave 'wa' em emails_enviados),
+  // no turno do aluno. Quem tem WhatsApp NÃO recebe o push no mesmo turno (sem duplicar).
+  let whats = 0, whatsFalha = 0
+  const comWhats = new Set<string>()
+  if (whatsappConfigurado()) {
+    for (const p of prog || []) {
+      const uid = (p as any).user_id as string
+      const num = numeroWhats(uid)
+      if (!num) continue
+      comWhats.add(uid)
+      if (!turnoOk(uid)) continue
+      const ev = (p as any).emails_enviados
+      if (ev && typeof ev === 'object' && ev.wa === hoje) continue
+      const msg = mensagemPara(uid)
+      if (!msg) continue
+      const r = await enviarWhatsapp(num, `${msg.title}\n${msg.body}\n\n👉 https://vonai.com.br/app`)
+      if (r.ok) {
+        whats++
+        if (temColunaEmails) {
+          const novo = { ...(ev && typeof ev === 'object' ? ev : {}), wa: hoje }
+          ;(p as any).emails_enviados = novo
+          await admin.from('progresso').update({ emails_enviados: novo }).eq('user_id', uid)
+        }
+      } else { whatsFalha++; console.error('[WhatsApp] falhou', r.motivo) }
+    }
+  }
+
   let enviados = 0, removidos = 0
   const comPush = new Set<string>()
   for (const s of subs || []) {
     comPush.add(s.user_id)
+    if (!turnoOk(s.user_id)) continue
+    if (comWhats.has(s.user_id)) continue
     const msg = mensagemPara(s.user_id)
     if (!msg) continue
     const payload = JSON.stringify({ title: msg.title, body: msg.body, url: '/app' })
@@ -167,6 +220,39 @@ export async function GET(req: NextRequest) {
     return r.ok
   }
 
+  // E-MAILS DO DIA 2 E DO DIA 3 (retenção, 21/08/2026). O painel mostrou que só 1 em 32
+  // volta num segundo dia: o aluno precisa de um motivo CONCRETO e SEU para voltar, não de
+  // "sua trilha continua". Dia 2: a trava dele (topicos_fracos) e a lição que ficou pronta.
+  // Dia 3: se ainda não voltou, uma lição de 2 minutos, mais fácil, sem culpa. Vão no
+  // turno do aluno (padrão: noite), uma vez cada, e suspendem o winback genérico do dia.
+  contagem.d2 = 0; contagem.d3 = 0
+  for (const p of prog || []) {
+    const uid = p.user_id as string
+    if (!podeReceber(p)) continue
+    if (!turnoOk(uid)) continue
+    if (estudouHoje.has(uid)) continue
+    const criado = extraDe.get(uid)?.criado_em
+    if (!criado) continue
+    const diaCadastro = new Date(criado).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const diasDesdeCadastro = Math.round((new Date(hoje).getTime() - new Date(diaCadastro).getTime()) / DIA)
+    const nome = String(p.nome || '').split(' ')[0]
+    const fracos = p?.perfil_ia?.topicos_fracos
+    const fraco = Array.isArray(fracos) && fracos.length ? String(fracos[fracos.length - 1]) : ''
+    const hora = p?.perfil_ia?.hora_lembrete === 'manha' ? '9h' : '20h'
+    const ev = p.emails_enviados
+    if (ev && typeof ev === 'object' && Object.values(ev).includes(hoje)) continue
+    if (diasDesdeCadastro === 1 && !jaMandou(p, 'd2')) {
+      await mandar(p, 'd2', emailDia2(nome, fraco, hora))
+      continue
+    }
+    const dias: string[] = Array.isArray(p.dias_ativos) ? p.dias_ativos : []
+    const voltou = dias.some(d => d > diaCadastro)
+    if (diasDesdeCadastro >= 3 && diasDesdeCadastro <= 4 && !voltou && !jaMandou(p, 'd3')) {
+      await mandar(p, 'd3', emailDia3(nome))
+      continue
+    }
+  }
+
   for (const p of prog || []) {
     if (!podeReceber(p)) continue
     const pagoAtivo = !!p.is_premium && (!p.premium_expira || new Date(p.premium_expira).getTime() > agora)
@@ -174,6 +260,9 @@ export async function GET(req: NextRequest) {
     const texp = trialDe.get(p.user_id) ? new Date(trialDe.get(p.user_id)).getTime() : 0
     if (!texp) continue
     const nome = String(p.nome || '').split(' ')[0]
+    // Um e-mail por dia por pessoa: se o do dia 2/3 já saiu hoje, o do trial espera amanhã.
+    const evHoje = p.emails_enviados
+    if (evHoje && typeof evHoje === 'object' && Object.values(evHoje).includes(hoje)) continue
 
     // (a) T-24h: trial ainda vale e acaba dentro de 24h.
     if (texp > agora && texp - agora <= DIA) {
@@ -210,7 +299,7 @@ export async function GET(req: NextRequest) {
   if (turno === 'noite') {
     for (const p of prog || []) {
       const uid = (p as any).user_id as string
-      if (comPush.has(uid)) { emailsPulados++; continue }      // já recebeu push, não duplica
+      if (comPush.has(uid) || comWhats.has(uid)) { emailsPulados++; continue }      // já recebeu push/WhatsApp, não duplica
       if (!podeReceber(p)) { emailsPulados++; continue }
       // Quem recebeu um e-mail do ciclo de vida hoje não recebe winback por cima.
       const ev = (p as any).emails_enviados
@@ -225,5 +314,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ turno, enviados, removidos, total: (subs || []).length, emails, emailsFalha, emailsPulados, porTipo: contagem, temColunaEmails })
+  return NextResponse.json({ turno, enviados, removidos, total: (subs || []).length, emails, emailsFalha, emailsPulados, whats, whatsFalha, porTipo: contagem, temColunaEmails })
 }

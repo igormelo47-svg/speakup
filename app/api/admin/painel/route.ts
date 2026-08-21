@@ -79,7 +79,11 @@ export async function GET(req: NextRequest) {
     // Trial de 2 dias, exceto as contas criadas em 18/08/2026 (janela do freemium de 7 dias,
     // migracao_2026-08-18_freemium.sql; desfeito em 19/08, migracao_2026-08-19_trial_2_dias.sql).
     // Cada conta continua medida pelos dias que ela viveu de fato.
-    const diasTrial = nasceu >= Date.parse('2026-08-18T00:00:00-03:00') && nasceu < Date.parse('2026-08-19T00:00:00-03:00') ? 7 : 2
+    // 21/08/2026 à noite em diante: trial de 3 dias (migracao_2026-08-21_trial_3_dias.sql).
+    // Entre 18h e 21h de 21/08 algumas contas podem ter pegado 7 (migração intermediária).
+    const diasTrial = nasceu >= Date.parse('2026-08-21T21:00:00-03:00') ? 3
+      : nasceu >= Date.parse('2026-08-21T18:00:00-03:00') ? 7
+      : nasceu >= Date.parse('2026-08-18T00:00:00-03:00') && nasceu < Date.parse('2026-08-19T00:00:00-03:00') ? 7 : 2
     const fimDoTrial = nasceu + diasTrial * MS_DIA
     // ultima_atividade grava 'YYYY-MM-DD' no app do aluno, mas nem toda linha antiga
     // esta assim -- concatenar 'T12:00:00Z' as cegas gerava Invalid Date, e NaN em

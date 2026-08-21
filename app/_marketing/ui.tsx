@@ -27,10 +27,11 @@ export const PRECO = {
   mensal: 'R$29,90',
   anual: 'R$289,80',
   anualPorMes: 'R$24,15',
-  // Trial de 2 dias de Premium completo, sem cartão. Depois o app PEDE a assinatura para
-  // continuar (paywall duro) — não existe plano grátis. Decisão do dono em 19/08/2026; o
-  // freemium de 7 dias (18/08) ficou no histórico do git, caso um dia volte.
-  diasGratis: 2,
+  // Trial de 3 dias de Premium completo (decisão do dono, 21/08/2026): curto o bastante para
+  // a decisão de assinar vir com a motivação ainda viva, com onboarding de 8 telas + resumo
+  // do plano antes de liberar o app (padrão Lucida). A duração real é decidida no banco:
+  // migracao_2026-08-21_trial_3_dias.sql — rode junto com o deploy.
+  diasGratis: 3,
 }
 
 export const container: React.CSSProperties = { maxWidth: 1040, margin: '0 auto', padding: '0 20px' }

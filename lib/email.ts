@@ -83,6 +83,9 @@ export async function enviarEmailLembrete(params: {
       body: JSON.stringify({
         from: DE,
         to: [params.para],
+        // Resposta vai para o Igor, não para o remetente de envio: o e-mail do dia 3 pede
+        // "responda com uma linha" — e a resposta precisa chegar numa caixa que alguém lê.
+        reply_to: process.env.EMAIL_REPLY_TO || 'igormelo47@gmail.com',
         subject: params.titulo,
         html: montarHtml(params.titulo, params.corpo, cta, href, params.userId),
         text: montarTexto(params.titulo, params.corpo, href, params.userId),
@@ -111,7 +114,7 @@ export async function enviarEmailLembrete(params: {
 const PLANOS = `${BASE}/planos`
 // Duração do trial. Espelha PRECO.diasGratis (app/_marketing/ui.tsx) — constante própria
 // para esta lib de servidor não puxar os componentes React do site.
-const TRIAL_DIAS = 2
+const TRIAL_DIAS = 3
 
 const p = (t: string) => `<p style="margin:0 0 12px;">${t}</p>`
 const li = (t: string) => `<li style="margin:0 0 6px;">${t}</li>`
@@ -124,7 +127,7 @@ export function emailTrialAcabando(nome: string): { titulo: string; corpo: strin
   return {
     titulo: 'Seu teste Premium acaba amanhã',
     corpo:
-      p(`${oi}seus ${TRIAL_DIAS} dias de Premium grátis terminam amanhã. Depois disso o app pede a assinatura para continuar — <strong>nada é cobrado automaticamente</strong>, e seu progresso, sua sequência e sua trilha ficam guardados.`) +
+      p(`${oi}seus ${TRIAL_DIAS} dias de Premium grátis terminam amanhã. Se você começou o teste pela App Store, a assinatura segue automaticamente (cancele nos Ajustes do iPhone se não quiser); se começou pelo site, o app vai pedir a assinatura — <strong>nada é cobrado sem você confirmar</strong>. Seu progresso, sua sequência e sua trilha ficam guardados.`) +
       p('Para seguir no ritmo de agora, o Premium anual sai por <strong>R$289,80/ano — menos de R$0,79 por dia</strong>. Ou R$29,90 no mensal, cancele quando quiser.'),
     cta: 'Continuar no Premium',
     href: PLANOS,
@@ -153,6 +156,40 @@ export function emailPosTrial(nome: string, numero: 1 | 2): { titulo: string; co
       p(`Se quiser destravar o professor sem limite de mensagens, lições sem limite e voz neural o dia todo, o Premium anual sai por <strong>R$289,80 (≈ R$0,79/dia)</strong> ou R$29,90/mês.`),
     cta: 'Assinar o Premium',
     href: PLANOS,
+  }
+}
+
+// (c) DIA 2 — o e-mail mais importante do ciclo. O painel de 21/08 mostrou 1 em 32 voltando
+// num segundo dia: quem some, some aqui. Por isso ele não fala do app, fala DO ALUNO: a
+// trava que ele mesmo cometeu ontem (perfil_ia.topicos_fracos) e a lição que ficou pronta.
+// Assunto curto, sem "Vonai" — parece recado, não newsletter.
+export function emailDia2(nome: string, fraco: string, hora: string): { titulo: string; corpo: string; cta: string; href: string } {
+  const oi = nome ? `${nome}, ` : ''
+  const trava = fraco ? `Ontem você tropeçou em <strong>${fraco}</strong>. É uma das travas mais comuns do brasileiro — e some com 2 dias de prática, não com 2 meses.` : 'Ontem você deu o primeiro passo. O segundo é o que separa quem aprende de quem só começou.'
+  return {
+    titulo: fraco ? `Dia 2: a trava de ontem (${fraco})` : 'Dia 2: sua lição já está pronta',
+    corpo:
+      p(`${oi}${trava}`) +
+      p(`Deixei a lição de hoje preparada no seu nível. São <strong>2 minutos</strong> — dá para fazer agora, antes das ${hora}, e manter a sequência viva.`) +
+      p('Quem faz 3 dias seguidos tem o dobro de chance de continuar. Hoje é o dia 2.'),
+    cta: 'Fazer a lição de hoje (2 min)',
+    href: `${BASE}/app`,
+  }
+}
+
+// (d) DIA 3 — só para quem NÃO voltou desde o cadastro. Sem culpa, sem "sentimos sua
+// falta": uma lição mais curta e mais fácil que a anterior (Duolingo faz isso com quem
+// retorna) e um pedido honesto de resposta — cada resposta vale mais que qualquer métrica.
+export function emailDia3(nome: string): { titulo: string; corpo: string; cta: string; href: string } {
+  const oi = nome ? `${nome}, ` : ''
+  return {
+    titulo: '5 minutos hoje?',
+    corpo:
+      p(`${oi}você fez o teste e parou. Acontece — a maioria para no primeiro dia. Mas quem faz 3 dias seguidos tem <strong>2× mais chance</strong> de continuar, e eu quero você nesse grupo.`) +
+      p('Preparei uma lição de <strong>2 minutos, mais fácil que a anterior</strong>, para você voltar sem esforço.') +
+      p('Se o problema foi outro — tempo, o app, a lição — responda este e-mail com uma linha. Eu leio pessoalmente e estou mudando o Vonai com base nisso.<br>— Igor'),
+    cta: 'Voltar em 2 minutos',
+    href: `${BASE}/app`,
   }
 }
 

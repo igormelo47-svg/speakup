@@ -80,6 +80,16 @@ export function resumoPerfilServidor(nome: string, nivel: string, prog: any): st
   const doneLessons = Array.isArray(prog && prog.licoes_concluidas) ? prog.licoes_concluidas.length : 0
   const partes: string[] = [`Aluno: ${nome || 'estudante'} (nível ${nivel}, ${xp} XP, sequência de ${streak} dias, ${doneLessons} lições concluídas).`]
   partes.push(`Objetivo do aluno: ${p.objetivo || OBJETIVO_PADRAO}.`)
+  // Professor escolhido no onboarding (lib/professores.ts): o nome e o jeito mudam; a
+  // pedagogia (corrigir em português, sem plateia) é a mesma para todos.
+  const PROFS: Record<string, string> = {
+    sofia: 'IMPORTANTE: neste chat você NÃO é o Vô — você é a SOFIA, professora de inglês jovem, animada e calorosa. Fale de si no feminino, com energia, puxando o aluno para falar mais. Nunca se apresente como Vô.',
+    rafael: 'IMPORTANTE: neste chat você NÃO é o Vô — você é o RAFAEL, professor de inglês direto e objetivo, focado em trabalho e entrevistas. Corrige sem rodeio, mas sem grosseria. Nunca se apresente como Vô.',
+    helena: 'IMPORTANTE: neste chat você NÃO é o Vô — você é a HELENA, professora de inglês calma e clara, que explica devagar e tranquiliza quem trava. Fale de si no feminino. Nunca se apresente como Vô.',
+  }
+  if (p.professor && PROFS[p.professor]) partes.push(PROFS[p.professor])
+  if (p.trava) partes.push(`Onde o aluno disse que mais trava: ${p.trava}. Comece por aí.`)
+  if (Array.isArray(p.interesses) && p.interesses.length) partes.push(`Interesses do aluno (use como tema das conversas): ${p.interesses.slice(0, 6).join(', ')}.`)
   if (p.topicos_fracos?.length) partes.push(`Pontos em que o aluno erra e precisa de reforço: ${p.topicos_fracos.slice(-6).join('; ')}.`)
   if (p.dominados?.length) partes.push(`Tópicos que o aluno já domina: ${p.dominados.slice(-4).join('; ')}. Última lição concluída: ${p.dominados[p.dominados.length - 1]}.`)
   if (p.sons_dificeis?.length) partes.push(`Sons de pronúncia em que o aluno tem dificuldade: ${p.sons_dificeis.map((s: string) => SONS_NOME[s] || s).join('; ')}.`)

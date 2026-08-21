@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { VOZES_PERMITIDAS } from '../../../lib/professores'
 import { createClient } from '@supabase/supabase-js'
 
 // Voz neural para o app (Professor IA, Simulador, lições, dicionário).
@@ -40,12 +41,19 @@ export async function POST(req: NextRequest) {
 
   let text = ''
   let lang = 'en'
+  let voz = 'nova'
+  let velocidade = 1.0
   try {
     const body = await req.json()
     text = String(body?.text || '').trim()
     // 'pt' = voz do Vô (mascote) em português. Antes o Vô usava o sintetizador do aparelho
     // (robótico/lento no Android e no Windows) — a queixa "voz feia e artificial" no onboarding.
     if (body?.lang === 'pt') lang = 'pt'
+    // Professor escolhido no onboarding (lib/professores.ts): voz validada contra a lista,
+    // velocidade presa entre 0,8 e 1,25. Nunca repassa texto livre do cliente para a OpenAI.
+    if (typeof body?.voz === 'string' && VOZES_PERMITIDAS.has(body.voz)) voz = body.voz
+    const v = Number(body?.velocidade)
+    if (Number.isFinite(v)) velocidade = Math.min(1.25, Math.max(0.8, v))
   } catch {}
   if (!text || text.length > 290) return NextResponse.json({ error: 'texto inválido' }, { status: 400 })
 
@@ -81,8 +89,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(
         lang === 'pt'
           // Vô em português: voz quente e natural, ritmo de conversa (não de locutor).
-          ? { model: 'gpt-4o-mini-tts', voice: 'nova', input: text, response_format: 'mp3', speed: 1.0, instructions: 'Fale em português do Brasil, com sotaque brasileiro natural. Tom caloroso, simpático e encorajador, como um professor particular conversando. Ritmo normal de fala, sem pausas longas.' }
-          : { model: 'gpt-4o-mini-tts', voice: 'nova', input: text, response_format: 'mp3', speed: 0.95 }
+          ? { model: 'gpt-4o-mini-tts', voice: voz, input: text, response_format: 'mp3', speed: velocidade, instructions: 'Fale em português do Brasil, com sotaque brasileiro natural. Tom caloroso, simpático e encorajador, como um professor particular conversando. Ritmo normal de fala, sem pausas longas.' }
+          : { model: 'gpt-4o-mini-tts', voice: voz, input: text, response_format: 'mp3', speed: Math.round(velocidade * 0.95 * 100) / 100 }
       ),
     })
   } catch {
