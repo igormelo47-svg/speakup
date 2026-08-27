@@ -3981,14 +3981,30 @@ export default function AppPage() {
   // Compra pelo Google Play dentro do TWA (Digital Goods API + Payment Request). O Google
   // devolve o purchaseToken; /api/play/verificar confirma na API do Play, libera o Premium
   // e faz o acknowledge. O trial de 3 dias vem da oferta configurada no Play Console.
-  async function comprarPlay(plano: 'mensal' | 'anual'): Promise<boolean> {
+  // Devolve 'ok' (comprou), 'cancelou' (desistiu — não é erro) ou 'indisponivel' (o Play não
+  // consegue vender: produto ainda não criado na Play Console, conta de comerciante não
+  // verificada, aparelho sem Digital Goods API). O terceiro caso é o perigoso: o pacote com
+  // Play Billing pode chegar à loja ANTES dos produtos existirem, e aí o aluno do Android
+  // ficava preso na última tela do onboarding, sem acesso nenhum ao app. Agora esse caso
+  // devolve 'indisponivel' e quem chamou cai no caminho antigo (trial sem cartão + Kiwify).
+  async function comprarPlay(plano: 'mensal' | 'anual'): Promise<'ok' | 'cancelou' | 'indisponivel'> {
     const sku = plano === 'anual' ? 'vonai_premium_anual' : 'vonai_premium_mensal'
+    // Fase 1 — descobrir se dá para vender. Falha aqui NUNCA é erro do aluno: nada foi
+    // cobrado, ninguém tocou em nada. Some silenciosamente e segue pelo outro caminho.
+    let details: any[] | null = null
     try {
       const svc = await (window as any).getDigitalGoodsService('https://play.google.com/billing')
-      if (!svc) throw new Error('Play Billing indisponível neste aparelho.')
-      const details = await svc.getDetails([sku])
-      if (!details || !details.length) throw new Error('Produto não encontrado na Play Store. Tente de novo em instantes.')
-      const total = details[0].price || { currency: 'BRL', value: '0' }
+      if (!svc) { console.warn('[Play] Digital Goods indisponível — caindo no fluxo web'); return 'indisponivel' }
+      details = await svc.getDetails([sku])
+      if (!details || !details.length) { console.warn('[Play] produto', sku, 'não existe na Play Console — caindo no fluxo web'); return 'indisponivel' }
+    } catch (e) {
+      console.warn('[Play] billing indisponível — caindo no fluxo web', e)
+      return 'indisponivel'
+    }
+    // Fase 2 — a compra de verdade. Daqui para baixo o aluno viu a folha do Google, então
+    // qualquer falha precisa ser dita a ele.
+    try {
+      const total = details![0].price || { currency: 'BRL', value: '0' }
       const pr = new (window as any).PaymentRequest(
         [{ supportedMethods: 'https://play.google.com/billing', data: { sku, obfuscatedAccountId: userId || undefined } }],
         { total: { label: 'Total', amount: { currency: total.currency, value: total.value } } },
@@ -4006,12 +4022,12 @@ export default function AppPage() {
       setIsPremium(true)
       if (j.premiumAte) { const t = new Date(j.premiumAte).getTime(); if (t > Date.now()) setTrialExpira(t) }
       setPagante(true)
-      return true
+      return 'ok'
     } catch (e: any) {
-      if (e?.name === 'AbortError' || /cancel/i.test(String(e?.message || ''))) return false // desistiu: não é erro
+      if (e?.name === 'AbortError' || /cancel/i.test(String(e?.message || ''))) return 'cancelou' // desistiu: não é erro
       console.error('[Play] compra falhou', e)
       alert(`Não foi possível concluir a compra.\n\n${e?.message || 'Tente de novo em instantes.'}`)
-      return false
+      return 'cancelou'
     }
   }
   // Quem entrou pela Play e já comprou noutro aparelho: reconsulta as compras da conta Google.
@@ -4035,7 +4051,14 @@ export default function AppPage() {
     try { ;(window as any).dataLayer?.push({ event: 'inicio_checkout', plano, value: plano === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId || undefined }) } catch (e) {}
     const nat = (typeof window !== 'undefined') ? (window as any).VonaiNative : null
     if (nat && nat.platform === 'ios' && typeof nat.subscribe === 'function') { try { nat.subscribe(plano) } catch (e) {} ; return }
-    if (isPlayTWA) { comprarPlay(plano); return }
+    if (isPlayTWA) {
+      // Se o Play não puder vender, cai no checkout web em vez de deixar o aluno sem saída
+      // no paywall. (Dentro do app da Play isso é aceitável justamente porque a compra
+      // nativa não está disponível — não há como ferir a política contornando algo que
+      // ainda não existe.)
+      comprarPlay(plano).then(r => { if (r === 'indisponivel') abrirCheckoutWeb(plano) })
+      return
+    }
     if (isIOSNative) {
       // Ponte de pagamento da Apple não montou (RevenueCat fora do ar / chave ausente):
       // NUNCA cair no checkout externo dentro do app iOS — quebra a compra e viola a
@@ -4043,6 +4066,12 @@ export default function AppPage() {
       alert('Não foi possível carregar o pagamento agora. Feche e abra o app de novo, por favor. 🙏')
       return
     }
+    abrirCheckoutWeb(plano)
+  }
+
+  // Checkout web (Kiwify). Separado de abrirAssinatura para o caminho "Play Billing
+  // indisponível" poder reaproveitá-lo sem duplicar prefill de e-mail, s1 e polling.
+  function abrirCheckoutWeb(plano: 'mensal' | 'anual') {
     // Prefill do e-mail: o webhook libera o Premium casando pelo e-mail do checkout —
     // vir preenchido evita o aluno pagar com outro e-mail e ficar bloqueado pagando.
     // s1 = id do aluno: o webhook passa a casar o pagamento pelo id também, não só pelo e-mail
@@ -4455,10 +4484,14 @@ export default function AppPage() {
     }
     if (isPlayTWA) {
       // Android pela Play: cartão na entrada, 3 dias grátis pela oferta do Play Console,
-      // cobrança automática no dia 3. Sem compra, sem acesso — igual ao iPhone.
-      const ok = await comprarPlay('mensal')
+      // cobrança automática no dia 3 — igual ao iPhone. MAS só quando o Play consegue
+      // vender. Se os produtos ainda não existem na Play Console (ou a conta de comerciante
+      // não foi verificada), 'indisponivel' faz o aluno seguir pelo trial sem cartão em vez
+      // de ficar preso nesta tela. Preso é o pior desfecho possível: ele não paga E não usa.
+      const r = await comprarPlay('mensal')
       setOnbIniciando(false)
-      if (!ok) return
+      if (r === 'cancelou') return
+      // 'ok' → já é Premium; 'indisponivel' → segue no trial normal. Os dois entram no app.
     }
     setOnbIniciando(false)
     concluirOnboarding(onb.testar ? { estilo: 'tarefas', irNivelamento: true } : { nivel: onb.nivel || undefined, estilo: 'tarefas', destino: 'treino' })

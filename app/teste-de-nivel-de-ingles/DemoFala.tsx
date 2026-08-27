@@ -181,18 +181,19 @@ export default function DemoFala({ nivel, onUsou }: { nivel: string; onUsou?: ()
             <div style={{ fontSize: 12, fontWeight: 800, color: '#7C8AA0', letterSpacing: 0.5, marginBottom: 8 }}>
               O QUE O PROFESSOR OUVIU
             </div>
-            <div style={{ fontSize: 18, lineHeight: 1.6, marginBottom: 12 }}>
+            <div style={{ fontSize: 18, lineHeight: 1.7, marginBottom: 12, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
               {resultado.palavras.map((w, k) => (
                 <span key={k} style={{
                   color: w.ok ? '#16212C' : VERMELHO,
                   fontWeight: w.ok ? 500 : 800,
                   textDecoration: w.ok ? 'none' : 'underline wavy',
                   textUnderlineOffset: 4,
-                  marginRight: 6,
+                  marginRight: 7,
+                  display: 'inline-block',
                 }}>{w.p}</span>
               ))}
             </div>
-            <div style={{ fontSize: 13.5, color: '#5B6B82', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13.5, color: '#5B6B82', lineHeight: 1.6, overflowWrap: 'anywhere' }}>
               Transcrição do seu áudio: <b style={{ color: '#102A4C' }}>“{resultado.ouvido}”</b>
             </div>
           </div>
@@ -205,7 +206,9 @@ export default function DemoFala({ nivel, onUsou }: { nivel: string; onUsou?: ()
             <div style={{ fontSize: 15.5, fontWeight: 800, color: resultado.nota >= 85 ? VERDE : '#8A6100', marginBottom: 4 }}>
               {resultado.nota >= 85
                 ? `${resultado.nota}% — entenderam você.`
-                : `${resultado.nota}% — parte da frase se perdeu.`}
+                : resultado.nota === 0
+                  ? 'Nada da frase chegou.'
+                  : `${resultado.nota}% — parte da frase se perdeu.`}
             </div>
             <div style={{ fontSize: 14, color: '#5B6B82', lineHeight: 1.6 }}>
               {resultado.faltaram.length > 0
