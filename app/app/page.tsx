@@ -2457,6 +2457,18 @@ export default function AppPage() {
   // App iOS (Capacitor): compra via Apple; sem mencionar pagamento externo (regra 3.1.1)
   const [isIOSNative, setIsIOSNative] = useState(false)
   useEffect(() => { if ((window as any).Capacitor?.isNativePlatform?.()) setIsIOSNative(true) }, [])
+  // App da Play Store (TWA): o Chrome expõe a Digital Goods API e o referrer vem do pacote
+  // Android. Só aí a compra passa pelo Google Play Billing (política da Play para
+  // assinaturas digitais dentro do app). No site puro continua a Kiwify.
+  const [isPlayTWA, setIsPlayTWA] = useState(false)
+  useEffect(() => {
+    try {
+      const dg = 'getDigitalGoodsService' in window
+      const ref = String(document.referrer || '')
+      const twa = ref.startsWith('android-app://') || /\bvonai_twa=1\b/.test(location.search) || sessionStorage.getItem('speakup_twa') === '1'
+      if (dg && twa) { setIsPlayTWA(true); try { sessionStorage.setItem('speakup_twa', '1') } catch (e) {} }
+    } catch (e) {}
+  }, [])
 
   const tocarSom = (tipo: 'acerto' | 'erro') => {
     try {
@@ -3966,12 +3978,64 @@ export default function AppPage() {
   }, [userId])
   // Abre a assinatura: dentro do app iOS usa o pagamento NATIVO da Apple (via RevenueCat);
   // na web/Android abre o checkout do Kiwify. Contrato: window.VonaiNative.subscribe('mensal'|'anual').
+  // Compra pelo Google Play dentro do TWA (Digital Goods API + Payment Request). O Google
+  // devolve o purchaseToken; /api/play/verificar confirma na API do Play, libera o Premium
+  // e faz o acknowledge. O trial de 3 dias vem da oferta configurada no Play Console.
+  async function comprarPlay(plano: 'mensal' | 'anual'): Promise<boolean> {
+    const sku = plano === 'anual' ? 'vonai_premium_anual' : 'vonai_premium_mensal'
+    try {
+      const svc = await (window as any).getDigitalGoodsService('https://play.google.com/billing')
+      if (!svc) throw new Error('Play Billing indisponível neste aparelho.')
+      const details = await svc.getDetails([sku])
+      if (!details || !details.length) throw new Error('Produto não encontrado na Play Store. Tente de novo em instantes.')
+      const total = details[0].price || { currency: 'BRL', value: '0' }
+      const pr = new (window as any).PaymentRequest(
+        [{ supportedMethods: 'https://play.google.com/billing', data: { sku, obfuscatedAccountId: userId || undefined } }],
+        { total: { label: 'Total', amount: { currency: total.currency, value: total.value } } },
+      )
+      const resp = await pr.show()
+      const purchaseToken = resp?.details?.purchaseToken || resp?.details?.token
+      if (!purchaseToken) { await resp.complete('fail'); throw new Error('O Google não devolveu o comprovante da compra.') }
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      const r = await fetch('/api/play/verificar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ purchaseToken, plano }) })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || !j?.ok) { await resp.complete('fail'); throw new Error(j?.motivo === 'assinatura_inativa' ? 'A Play Store ainda não confirmou a assinatura. Tente "Restaurar" em instantes.' : 'Não foi possível confirmar a compra no servidor. Se o valor foi cobrado, toque em "Já assinei".') }
+      await resp.complete('success')
+      try { (window as any).dataLayer?.push({ event: j.emTrial ? 'trial_iniciado_play' : 'assinatura_paga', value: j.emTrial ? 0 : (plano === 'anual' ? 289.9 : 29.9), currency: 'BRL', user_id: userId, transaction_id: `play_${String(purchaseToken).slice(-24)}` }) } catch (e) {}
+      setIsPremium(true)
+      if (j.premiumAte) { const t = new Date(j.premiumAte).getTime(); if (t > Date.now()) setTrialExpira(t) }
+      setPagante(true)
+      return true
+    } catch (e: any) {
+      if (e?.name === 'AbortError' || /cancel/i.test(String(e?.message || ''))) return false // desistiu: não é erro
+      console.error('[Play] compra falhou', e)
+      alert(`Não foi possível concluir a compra.\n\n${e?.message || 'Tente de novo em instantes.'}`)
+      return false
+    }
+  }
+  // Quem entrou pela Play e já comprou noutro aparelho: reconsulta as compras da conta Google.
+  async function restaurarPlay() {
+    try {
+      const svc = await (window as any).getDigitalGoodsService('https://play.google.com/billing')
+      const compras = await svc.listPurchases()
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      let ok = false
+      for (const c of compras || []) {
+        const r = await fetch('/api/play/verificar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ purchaseToken: c.purchaseToken, plano: /anual/.test(c.itemId) ? 'anual' : 'mensal' }) })
+        if (r.ok) ok = true
+      }
+      if (ok) window.location.reload(); else alert('Nenhuma assinatura ativa encontrada nesta conta Google.')
+    } catch (e: any) { alert('Não foi possível restaurar: ' + (e?.message || e)) }
+  }
   function abrirAssinatura(plano: 'mensal' | 'anual') {
     // Medição: sem este evento, o funil entre criar conta e pagar é invisível na web
     // (o Google Ads só enxergava inicio_teste, dias antes da decisão).
     try { ;(window as any).dataLayer?.push({ event: 'inicio_checkout', plano, value: plano === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId || undefined }) } catch (e) {}
     const nat = (typeof window !== 'undefined') ? (window as any).VonaiNative : null
     if (nat && nat.platform === 'ios' && typeof nat.subscribe === 'function') { try { nat.subscribe(plano) } catch (e) {} ; return }
+    if (isPlayTWA) { comprarPlay(plano); return }
     if (isIOSNative) {
       // Ponte de pagamento da Apple não montou (RevenueCat fora do ar / chave ausente):
       // NUNCA cair no checkout externo dentro do app iOS — quebra a compra e viola a
@@ -4389,6 +4453,13 @@ export default function AppPage() {
         return
       }
     }
+    if (isPlayTWA) {
+      // Android pela Play: cartão na entrada, 3 dias grátis pela oferta do Play Console,
+      // cobrança automática no dia 3. Sem compra, sem acesso — igual ao iPhone.
+      const ok = await comprarPlay('mensal')
+      setOnbIniciando(false)
+      if (!ok) return
+    }
     setOnbIniciando(false)
     concluirOnboarding(onb.testar ? { estilo: 'tarefas', irNivelamento: true } : { nivel: onb.nivel || undefined, estilo: 'tarefas', destino: 'treino' })
   }
@@ -4747,6 +4818,7 @@ export default function AppPage() {
               Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
               <a href="/termos" style={{ color: blue }}>Termos de Uso</a> · <a href="/privacidade" style={{ color: blue }}>Política de Privacidade</a>
             </div>
+            {isPlayTWA && <button onClick={restaurarPlay} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Restaurar compras do Google Play</button>}
             {isIOSNative
               ? <button onClick={() => (window as any).VonaiNative?.restore?.()} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Restaurar compras</button>
               : <button onClick={conferirPagamento} disabled={conferindoPagamento} style={{ width: '100%', padding: 12, marginTop: 16, background: '#fff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: conferindoPagamento ? 0.6 : 1 }}>{conferindoPagamento ? 'Conferindo…' : 'Já assinei — atualizar'}</button>}
@@ -5697,6 +5769,18 @@ export default function AppPage() {
         // professor E faz o aluno investir antes do paywall. A última tela devolve tudo que
         // ele respondeu como "seu plano" e pede os 3 dias grátis. Não há botão de pular.
         const total = 8
+        // PULAR (27/08): sempre visível a partir da 2ª tela. O padrão Lucida assume alguém
+        // que já pagou para estar ali; nosso tráfego é frio. Quem pula cai direto no treino
+        // com os defaults, e as preferências continuam editáveis dentro do app.
+        const pular = () => {
+          try { track('onb_pulou', { tela: onbStep }) } catch (e) {}
+          concluirOnboarding({ nivel: onb.nivel || undefined, estilo: 'tarefas', destino: 'treino' })
+        }
+        const linkPular = onbStep > 0 && onbStep < 7 ? (
+          <button onClick={pular} style={{ ...onbBack, display: 'block', margin: '14px auto 0', opacity: 0.75 }}>
+            Pular e começar a falar →
+          </button>
+        ) : null
         const prof = professorDe(onb.professor)
         const topo = (titulo: string, sub?: string) => (
           <div style={{ marginBottom: 18 }}>
@@ -5742,6 +5826,7 @@ export default function AppPage() {
               {topo('Onde você mais trava hoje?', 'Isso define por onde o seu professor vai começar.')}
               {TRAVAS.map(([e, t]) => opcao(onb.trava === t, () => { setOnb({ ...onb, trava: t }); setTimeout(avancar, 180) }, <><span style={{ fontSize: 24, marginRight: 12 }}>{e}</span>{t}</>, t))}
               {voltar}
+              {linkPular}
             </>)}
 
             {onbStep === 2 && (<>
@@ -5749,6 +5834,7 @@ export default function AppPage() {
               {NIVEIS.map(([n, d]) => opcao(onb.nivel === n, () => { setOnb({ ...onb, nivel: n, testar: false }); setTimeout(avancar, 180) }, <><span style={{ fontSize: 16, fontWeight: 800, marginRight: 12, minWidth: 28, color: '#2fd27a' }}>{n}</span><span style={{ fontSize: 14, fontWeight: 600, textAlign: 'left' }}>{d}</span></>, n))}
               {opcao(!!onb.testar, () => { setOnb({ ...onb, nivel: '', testar: true }); setTimeout(avancar, 180) }, <><span style={{ fontSize: 24, marginRight: 12 }}>📊</span>Não sei — me testa em 2 minutos</>, 'testar')}
               {voltar}
+              {linkPular}
             </>)}
 
             {onbStep === 3 && (<>
@@ -5760,12 +5846,14 @@ export default function AppPage() {
               </div>
               {continuar(onb.interesses.length >= 3, avancar, onb.interesses.length >= 3 ? 'Continuar' : `Escolha mais ${3 - onb.interesses.length}`)}
               {voltar}
+              {linkPular}
             </>)}
 
             {onbStep === 4 && (<>
               {topo('Quanto tempo por dia?', 'Dá pra mudar depois. O que importa é todo dia.')}
               {MINUTOS.map(([m, r, d]) => opcao(onb.minutos === m, () => { setOnb({ ...onb, minutos: m as number }); setOnbMeta((m as number) * 5); setTimeout(avancar, 180) }, <><span style={{ fontSize: 18, fontWeight: 800, marginRight: 12, minWidth: 64, color: '#2fd27a' }}>{m} min</span><span style={{ textAlign: 'left' }}><span style={{ display: 'block', fontSize: 14 }}>{r}</span><span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 500 }}>{d}</span></span></>, String(m)))}
               {voltar}
+              {linkPular}
             </>)}
 
             {onbStep === 5 && (<>
@@ -5783,6 +5871,7 @@ export default function AppPage() {
               </div>
               {continuar(!!onb.professor, avancar)}
               {voltar}
+              {linkPular}
             </>)}
 
             {onbStep === 6 && (<>
@@ -5790,6 +5879,7 @@ export default function AppPage() {
               {(Object.keys(VELOCIDADES) as Velocidade[]).map(v => opcao(onb.velocidade === v, () => setOnb({ ...onb, velocidade: v }), <><span style={{ flex: 1, textAlign: 'left' }}><span style={{ display: 'block', fontSize: 15 }}>{VELOCIDADES[v].rotulo}{v === 'normal' && <span style={{ marginLeft: 8, fontSize: 10.5, background: '#2fd27a', color: '#0a2a55', borderRadius: 999, padding: '2px 8px', fontWeight: 800 }}>Recomendado</span>}</span><span style={{ display: 'block', fontSize: 12, color: '#BCD6F2', fontWeight: 500 }}>{VELOCIDADES[v].desc}</span></span><span onClick={e => { e.stopPropagation(); setOnb({ ...onb, velocidade: v }); ouvirAmostra(prof, v) }} style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔊</span></>, v))}
               {continuar(true, avancar)}
               {voltar}
+              {linkPular}
             </>)}
 
             {onbStep === 7 && (<>
@@ -5823,9 +5913,11 @@ export default function AppPage() {
                 <div style={{ fontSize: 11.5, color: '#5c6b7a', marginTop: 10, lineHeight: 1.4 }}>Avisamos 1 dia antes. Cancele em 1 toque, sem multa. Ou escolha o anual: {PRECO.anual}/ano ({PRECO.anualPorMes}/mês).</div>
               </div>
               <button onClick={iniciarTrialOnboarding} disabled={onbIniciando} style={{ width: '100%', padding: 16, background: '#2fd27a', color: '#0a2a55', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: onbIniciando ? 0.6 : 1 }}>{onbIniciando ? 'Preparando…' : `Começar ${TRIAL_DIAS} dias grátis`}</button>
-              <div style={{ textAlign: 'center', fontSize: 11.5, color: '#BCD6F2', marginTop: 10 }}>🔒 Cancele a qualquer momento{isIOSNative ? ' · Pagamento seguro pela App Store' : ''}</div>
+              <div style={{ textAlign: 'center', fontSize: 11.5, color: '#BCD6F2', marginTop: 10 }}>🔒 Cancele a qualquer momento{isIOSNative ? ' · Pagamento seguro pela App Store' : isPlayTWA ? ' · Pagamento seguro pelo Google Play' : ''}</div>
               {isIOSNative && <button onClick={() => { try { (window as any).VonaiNative?.restore?.() } catch (e) {} }} style={{ ...onbBack, width: '100%', textAlign: 'center' }}>Já sou assinante — restaurar compras</button>}
+              {isPlayTWA && <button onClick={restaurarPlay} style={{ ...onbBack, width: '100%', textAlign: 'center' }}>Já sou assinante — restaurar compras</button>}
               {voltar}
+              {linkPular}
             </>)}
           </div>
         </div>

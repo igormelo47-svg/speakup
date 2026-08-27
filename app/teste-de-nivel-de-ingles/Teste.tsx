@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PERGUNTAS, classificar } from '../../lib/teste-nivel'
-import { PlayBadge, AppStoreBadge } from '../_marketing/lojas'
 import { PRECO } from '../_marketing/ui'
+import DemoFala from './DemoFala'
 
 // Teste de nivelamento público, sem cadastro. A decisão de deixar responder ANTES de
 // pedir e-mail é deliberada: o anúncio promete "teste de nível grátis em 2 minutos" e
@@ -13,6 +13,15 @@ import { PRECO } from '../_marketing/ui'
 // saber o que fazer com o nível que acabou de descobrir.
 //
 // As perguntas e as faixas de classificação vivem em lib/teste-nivel.ts, com testes.
+//
+// 27/08/2026 — REESCRITA DO RESULTADO. Medição de 18–27/08: 95 pessoas terminaram o teste
+// vindas do Meta e 11 criaram conta (11,6%). A tela de resultado tinha QUATRO saídas
+// competindo — criar conta, baixar na loja, "prefere não criar conta agora?" e o gabarito —
+// e três delas levavam para longe do cadastro. Além disso a pessoa nunca experimentava o
+// produto: o anúncio promete falar inglês, o teste mede gramática e o resultado entrega um
+// rótulo. Agora a ordem é: nível → FALAR uma frase e ouvir a correção (DemoFala, sem conta)
+// → criar conta. Os selos de loja saíram daqui (mandavam o clique pago para fora da web) e
+// o formulário de e-mail desceu para depois do gabarito, como rede e não como alternativa.
 
 const AZUL = '#1E63C7'
 const ESCURO = '#103D77'
@@ -148,54 +157,26 @@ export default function Teste() {
           <div style={{ fontSize: 14.5, color: '#5B6B82', lineHeight: 1.6 }}>{r.proximo}</div>
         </div>
 
+        {/* A FALA VEM ANTES DO PEDIDO. Este é o único ponto do funil em que a pessoa
+            experimenta o que o anúncio prometeu, e ela chega nele já tendo investido dois
+            minutos. Não bloqueia nada: se o microfone for negado ou a rota estiver
+            desligada, o componente some e o botão abaixo continua no lugar. */}
+        <DemoFala nivel={r.nivel} onUsou={() => evento('demo_fala_usou', { nivel: r.nivel })} />
+
         <div style={{ background: `linear-gradient(160deg, #2E72D6, ${ESCURO})`, borderRadius: 16, padding: '22px 20px', color: '#fff', textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Quer a trilha montada a partir do {r.nivel}?</div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Quer corrigir isso todo dia, a partir do {r.nivel}?</div>
           <div style={{ fontSize: 14.5, color: '#D6E6FA', lineHeight: 1.6, marginBottom: 18 }}>
-            No app, o professor de IA começa exatamente daqui, conversa com você e corrige sua pronúncia na hora. {PRECO.diasGratis} dias grátis, sem cartão.
+            O professor de IA começa exatamente daqui, conversa com você e corrige sua pronúncia frase por frase — como agora, mas sem limite. {PRECO.diasGratis} dias grátis, sem cartão.
           </div>
           {/* O nível vai na URL para o cadastro guardar e o app começar a trilha dali.
               Sem isso a promessa "comece do seu nível" morre no formulário. */}
-          <Link href={`/cadastro?nivel=${r.nivel}`} style={{ ...botao, display: 'inline-block' }} onClick={() => evento('teste_nivel_cta', { nivel: r.nivel })}>Começar do {r.nivel} grátis →</Link>
-          {/* O tráfego pago daqui é 100% celular e este era o ÚNICO destino do site sem
-              convite para baixar o app — quem preferia a loja não tinha caminho. */}
-          <div style={{ fontSize: 13, color: '#BCD6F2', margin: '16px 0 10px' }}>ou baixe o app e comece por lá:</div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <PlayBadge />
-            <AppStoreBadge />
-          </div>
-        </div>
-
-        {/* Fica DEPOIS do botão de criar conta de propósito: quem vai criar conta agora já
-            clicou, e este bloco é a rede para quem não vai — sem ele essa pessoa some. */}
-        <div style={{ border: '1px solid #E8ECF2', borderRadius: 16, padding: '18px 18px 16px', marginTop: 18, background: '#F9FBFE' }}>
-          {envioEmail === 'pronto' ? (
-            <div style={{ fontSize: 15, color: '#1B7A4B', fontWeight: 700 }}>
-              Pronto ✅ Guardamos seu nível {r.nivel}. Você recebe o plano dos 7 primeiros dias no e-mail.
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 15.5, fontWeight: 700, color: '#102A4C', marginBottom: 4 }}>Prefere não criar conta agora?</div>
-              <div style={{ fontSize: 14, color: '#5B6B82', lineHeight: 1.6, marginBottom: 12 }}>
-                Deixe seu e-mail e mandamos seu resultado com o plano dos 7 primeiros dias a partir do {r.nivel}. Sem cartão, e você sai da lista quando quiser.
-              </div>
-              <form
-                onSubmit={(e) => { e.preventDefault(); guardarEmail(r.nivel) }}
-                style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
-              >
-                <input
-                  type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com" autoComplete="email"
-                  style={{ flex: '1 1 200px', minWidth: 0, fontSize: 16, padding: '12px 14px', borderRadius: 12, border: '1px solid #D8E0EC', color: '#102A4C' }}
-                />
-                <button type="submit" disabled={envioEmail === 'enviando'} style={{ background: AZUL, color: '#fff', fontWeight: 700, fontSize: 15, padding: '12px 22px', borderRadius: 12, border: 'none', cursor: envioEmail === 'enviando' ? 'default' : 'pointer', opacity: envioEmail === 'enviando' ? 0.6 : 1 }}>
-                  {envioEmail === 'enviando' ? 'Enviando…' : 'Receber por e-mail'}
-                </button>
-              </form>
-              {envioEmail === 'erro' && (
-                <div style={{ fontSize: 13.5, color: '#B54A3A', marginTop: 8 }}>Não deu para guardar agora. Confira o e-mail e tente de novo.</div>
-              )}
-            </>
-          )}
+          <Link href={`/cadastro?nivel=${r.nivel}`} style={{ ...botao, display: 'inline-block' }} onClick={() => evento('teste_nivel_cta', { nivel: r.nivel })}>Continuar falando — {PRECO.diasGratis} dias grátis →</Link>
+          <div style={{ fontSize: 12.5, color: '#BCD6F2', marginTop: 12 }}>Leva 20 segundos. Sem cartão.</div>
+          {/* Os selos das lojas SAÍRAM daqui em 27/08. O tráfego desta página é pago e
+              100% celular: mandar esse clique para a loja tira a pessoa da web (onde a
+              conta nasce), joga o Android num app com 12 instalações e o iPhone numa
+              folha de pagamento que pede cartão — o oposto do "sem cartão" prometido
+              logo acima. Quem prefere a loja acha os selos no rodapé do site. */}
         </div>
 
         {/* Gabarito depois do CTA: quem quer estudar o erro rola mais, quem quer o app já clicou */}
@@ -217,6 +198,43 @@ export default function Teste() {
             <button onClick={refazer} style={{ marginTop: 16, background: 'none', border: `1px solid ${AZUL}`, color: AZUL, fontWeight: 600, fontSize: 14.5, padding: '10px 22px', borderRadius: 24, cursor: 'pointer' }}>Refazer o teste</button>
           </div>
         </details>
+        {/* ÚLTIMO bloco da página, depois até do gabarito (mudou em 27/08). Antes ele
+            ficava logo abaixo do botão de criar conta, com o título "Prefere não criar
+            conta agora?" — ou seja, oferecia a saída no mesmo instante em que pedia a
+            entrada, e com o mesmo peso visual. Continua existindo como rede para quem
+            rolou a página inteira e mesmo assim não vai se cadastrar, mas agora só
+            encontra quem já recusou tudo o que veio antes. */}
+        <div style={{ border: '1px solid #E8ECF2', borderRadius: 16, padding: '18px 18px 16px', marginTop: 18, background: '#F9FBFE' }}>
+          {envioEmail === 'pronto' ? (
+            <div style={{ fontSize: 15, color: '#1B7A4B', fontWeight: 700 }}>
+              Pronto ✅ Guardamos seu nível {r.nivel}. Você recebe o plano dos 7 primeiros dias no e-mail.
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: '#102A4C', marginBottom: 4 }}>Quer receber seu plano por e-mail também?</div>
+              <div style={{ fontSize: 14, color: '#5B6B82', lineHeight: 1.6, marginBottom: 12 }}>
+                Mandamos o plano dos 7 primeiros dias a partir do {r.nivel}. Você sai da lista quando quiser.
+              </div>
+              <form
+                onSubmit={(e) => { e.preventDefault(); guardarEmail(r.nivel) }}
+                style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
+              >
+                <input
+                  type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com" autoComplete="email"
+                  style={{ flex: '1 1 200px', minWidth: 0, fontSize: 16, padding: '12px 14px', borderRadius: 12, border: '1px solid #D8E0EC', color: '#102A4C' }}
+                />
+                <button type="submit" disabled={envioEmail === 'enviando'} style={{ background: AZUL, color: '#fff', fontWeight: 700, fontSize: 15, padding: '12px 22px', borderRadius: 12, border: 'none', cursor: envioEmail === 'enviando' ? 'default' : 'pointer', opacity: envioEmail === 'enviando' ? 0.6 : 1 }}>
+                  {envioEmail === 'enviando' ? 'Enviando…' : 'Receber por e-mail'}
+                </button>
+              </form>
+              {envioEmail === 'erro' && (
+                <div style={{ fontSize: 13.5, color: '#B54A3A', marginTop: 8 }}>Não deu para guardar agora. Confira o e-mail e tente de novo.</div>
+              )}
+            </>
+          )}
+        </div>
+
       </div>
     )
   }

@@ -11,7 +11,6 @@ import { PRECO } from '../_marketing/ui'
 export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'login' | 'cadastro' }) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
-  const [nome, setNome] = useState('')
   const [modo, setModo] = useState<string>(modoInicial) // login | cadastro | recuperar
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
@@ -19,10 +18,23 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const router = useRouter()
   const [indicado, setIndicado] = useState(false)
+  // O botão "Continuar com Google" só aparece quando NEXT_PUBLIC_GOOGLE_LOGIN=1 na Vercel,
+  // e isso só deve ser ligado DEPOIS de habilitar o provider Google no painel do Supabase
+  // (Authentication → Providers → Google) e adicionar https://vonai.com.br/app às Redirect
+  // URLs. Enquanto o provider está desligado, o botão devolvia "Login com Google ainda não
+  // está disponível" — um erro no primeiro elemento da tela, na hora exata da conversão.
+  // Botão ausente é infinitamente melhor que botão quebrado; ligar a env é um toque.
+  const googleLigado = process.env.NEXT_PUBLIC_GOOGLE_LOGIN === '1'
   // Nível vindo do teste público (?nivel=B2). Guardado em estado para o formulário DIZER
   // "seu plano B2 está pronto": quem acabou de descobrir o nível caía num cadastro genérico
   // e a continuidade morria exatamente no momento de maior motivação.
   const [nivelTeste, setNivelTeste] = useState<string | null>(null)
+
+  // Marca a CHEGADA nesta tela, separando os dois degraus que antes se confundiam:
+  // resultado do teste → tela de cadastro → conta criada.
+  useEffect(() => {
+    try { ;(window as any).dataLayer?.push({ event: modoInicial === 'cadastro' ? 'cadastro_visto' : 'login_visto' }) } catch (e) {}
+  }, [modoInicial])
 
   // Link de indicação (?ref=<id do amigo>): guarda o código para creditar o bônus após o cadastro.
   useEffect(() => {
@@ -50,7 +62,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   // conhecidos; o resto vira uma frase genérica em português — nunca o texto cru.
   function traduzErro(msg: string): string {
     const m = (msg || '').toLowerCase()
-    if (m.includes('password') && (m.includes('at least') || m.includes('short'))) return 'A senha é curta demais — use pelo menos 8 caracteres.'
+    if (m.includes('password') && (m.includes('at least') || m.includes('short'))) return 'A senha é curta demais — use pelo menos 6 caracteres.'
     if (m.includes('already registered') || m.includes('already exists')) return 'Já existe uma conta com esse e-mail. Toque em "Entrar" aqui embaixo.'
     if (m.includes('invalid') && m.includes('email')) return 'Esse e-mail não parece válido. Confira se digitou certo.'
     if (m.includes('validate email')) return 'Esse e-mail não parece válido. Confira se digitou certo.'
@@ -93,19 +105,29 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     // 2º dia — e é no 2º dia que o funil morre. O Supabase manda um link por e-mail;
     // um clique e a pessoa está dentro. shouldCreateUser: false — criar conta continua
     // no fluxo de cadastro, que captura o nome e monta o trial direito.
-    if (modo === 'magic') {
+    // 'magic' entra por dois caminhos e a diferença é uma flag só: no LOGIN o e-mail
+    // precisa existir (shouldCreateUser: false, senão um erro de digitação cria conta
+    // fantasma); no CADASTRO ('magic_novo') o link CRIA a conta, e o trigger
+    // handle_new_user monta o profile com o trial igual ao fluxo com senha.
+    if (modo === 'magic' || modo === 'magic_novo') {
+      const criando = modo === 'magic_novo'
       if (!email) { setErro('Digite seu e-mail.'); setLoading(false); return }
       const redirectApp = typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: redirectApp, shouldCreateUser: false },
+        options: { emailRedirectTo: redirectApp, shouldCreateUser: criando },
       })
       if (error) {
-        setErro(/not found|signups/i.test(error.message) ? 'Não achamos conta com esse e-mail. Confira ou crie uma conta grátis.' : traduzErro(error.message))
+        setErro(/not found|signups/i.test(error.message) && !criando ? 'Não achamos conta com esse e-mail. Confira ou crie uma conta grátis.' : traduzErro(error.message))
         setLoading(false); return
       }
-      try { track('login_magic_pedido') } catch (e) {}
-      setAviso('Link enviado! Abra seu e-mail e clique para entrar — sem senha. (Vale alguns minutos; confira o spam.)')
+      try { track(criando ? 'cadastro_magic_pedido' : 'login_magic_pedido') } catch (e) {}
+      if (criando) {
+        try { ;(window as any).dataLayer?.push({ event: 'cadastro_enviado', value: VALOR.cadastro, currency: MOEDA, metodo: 'magic' }) } catch (e) {}
+      }
+      setAviso(criando
+        ? 'Pronto! Abra seu e-mail e toque no link — a conta já entra com o Premium liberado. (Confira o spam.)'
+        : 'Link enviado! Abra seu e-mail e clique para entrar — sem senha. (Vale alguns minutos; confira o spam.)')
       setLoading(false)
       return
     }
@@ -123,9 +145,10 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
 
     if (modo === 'cadastro') {
       const redirectApp = typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined
-      // Nome é opcional: um campo a menos no celular. Vazio → parte antes do @ (o mesmo
-      // fallback que o trigger handle_new_user já faz com coalesce/split_part).
-      const nomeFinal = nome.trim() || email.split('@')[0]
+      // Sem campo de nome (removido em 27/08): usa a parte antes do @, o mesmo fallback
+      // que o trigger handle_new_user já aplica com coalesce/split_part. O professor
+      // pergunta o nome de verdade na primeira conversa.
+      const nomeFinal = email.split('@')[0]
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -165,8 +188,8 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     setLoading(false)
   }
 
-  const titulo = modo === 'login' ? 'Entre na sua conta' : modo === 'cadastro' ? 'Crie sua conta grátis' : modo === 'magic' ? 'Entrar sem senha' : 'Recuperar senha'
-  const botao = loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : modo === 'cadastro' ? (nivelTeste ? `Criar conta e começar do ${nivelTeste} →` : 'Criar conta grátis') : modo === 'magic' ? 'Me enviar o link de acesso ✨' : 'Enviar link de recuperação'
+  const titulo = modo === 'login' ? 'Entre na sua conta' : modo === 'cadastro' ? 'Crie sua conta grátis' : modo === 'magic_novo' ? 'Criar conta sem senha' : modo === 'magic' ? 'Entrar sem senha' : 'Recuperar senha'
+  const botao = loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : modo === 'cadastro' ? (nivelTeste ? `Criar conta e começar do ${nivelTeste} →` : 'Criar conta grátis') : modo === 'magic_novo' ? 'Criar minha conta ✨' : modo === 'magic' ? 'Me enviar o link de acesso ✨' : 'Enviar link de recuperação'
 
   const inputStyle = {
     width: '100%', padding: '12px 14px', border: '1px solid #D8E1EC', borderRadius: 12,
@@ -201,8 +224,9 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
           </p>
         )}
 
-        {/* Google em cima do formulário: no login e no cadastro (não em recuperar/magic). */}
-        {(modo === 'login' || modo === 'cadastro') && (
+        {/* Google em cima do formulário: no login e no cadastro (não em recuperar/magic),
+            e SÓ quando o provider está de fato habilitado — ver googleLigado acima. */}
+        {googleLigado && (modo === 'login' || modo === 'cadastro') && (
           <>
             <button type="button" onClick={handleGoogle} disabled={loadingGoogle || loading}
               style={{ width: '100%', padding: 12, background: '#fff', color: '#16212C', border: '1px solid #D8E1EC', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loadingGoogle ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: loadingGoogle ? 0.7 : 1 }}>
@@ -226,36 +250,41 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
             campo, e required/minLength barram envio vazio ANTES de ir ao Supabase
             (que responderia em inglês). O botão lá embaixo é type="submit". */}
         <form onSubmit={e => { e.preventDefault(); handleSubmit() }}>
-        {modo === 'cadastro' && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle}>Nome <span style={{ fontWeight: 400, color: '#8896A6' }}>(opcional)</span></label>
-            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Como o professor deve te chamar"
-              autoComplete="name" style={inputStyle} />
-          </div>
-        )}
+        {/* O campo NOME saiu em 27/08. Era opcional e ainda assim era o PRIMEIRO campo da
+            tela, num formulário onde cada campo custa conversão: o fallback já existia
+            (nomeFinal abaixo e o split_part do trigger handle_new_user). O professor
+            pergunta o nome na primeira conversa, onde a resposta significa alguma coisa. */}
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>E-mail</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com"
             autoComplete="email" required style={inputStyle} />
         </div>
-        {modo !== 'recuperar' && modo !== 'magic' && (
+        {modo !== 'recuperar' && modo !== 'magic' && modo !== 'magic_novo' && (
           <div style={{ marginBottom: 8 }}>
             <label style={labelStyle}>Senha</label>
             {/* new-password no cadastro faz iPhone/Android OFERECEREM uma senha forte e
                 salvarem no gerenciador; current-password no login faz o autofill
                 preencher. Sem o atributo, nenhum dos dois acontecia. minLength só no
                 cadastro: conta antiga pode ter senha mais curta e precisa logar. */}
-            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres"
+            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 6 caracteres"
               autoComplete={modo === 'cadastro' ? 'new-password' : 'current-password'}
-              required minLength={modo === 'cadastro' ? 8 : undefined} style={inputStyle} />
+              required minLength={modo === 'cadastro' ? 6 : undefined} style={inputStyle} />
           </div>
         )}
-        {modo === 'magic' && (
+        {(modo === 'magic' || modo === 'magic_novo') && (
           <p style={{ fontSize: 12.5, color: '#5B6B82', margin: '0 0 14px', lineHeight: 1.5 }}>
             Você recebe um link por e-mail — um clique e está dentro, sem digitar senha.
           </p>
         )}
 
+        {modo === 'cadastro' && (
+          <p style={{ textAlign: 'center', margin: '2px 0 14px' }}>
+            <span onClick={() => { setModo('magic_novo'); setErro(''); setAviso('') }}
+              style={{ color: '#185FA5', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+              ✨ Criar conta sem senha
+            </span>
+          </p>
+        )}
         {modo === 'login' && (
           <p style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 16px' }}>
             <span onClick={() => { setModo('magic'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontSize: 12.5, fontWeight: 700 }}>✨ Entrar sem senha</span>
@@ -273,9 +302,9 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         </button>
         </form>
 
-        {(modo === 'recuperar' || modo === 'magic') ? (
+        {(modo === 'recuperar' || modo === 'magic' || modo === 'magic_novo') ? (
           <p style={{ textAlign: 'center', fontSize: 13, color: '#5B6B82', marginTop: 16, marginBottom: 0 }}>
-            <span onClick={() => { setModo('login'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 600 }}>← Voltar para o login</span>
+            <span onClick={() => { setModo(modo === 'magic_novo' ? 'cadastro' : 'login'); setErro(''); setAviso('') }} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 600 }}>{modo === 'magic_novo' ? '← Voltar e usar senha' : '← Voltar para o login'}</span>
           </p>
         ) : (
           <p style={{ textAlign: 'center', fontSize: 13.5, color: '#5B6B82', marginTop: 16, marginBottom: 0 }}>
