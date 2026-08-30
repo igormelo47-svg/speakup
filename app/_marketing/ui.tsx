@@ -121,7 +121,7 @@ export function StickyCta({ texto = 'Testar grátis →', href = '/cadastro' }: 
       <div className="vn-sticky-cta">
         <div style={{ fontSize: 12.5, color: '#5B6B82', lineHeight: 1.3 }}>
           <div style={{ fontWeight: 700, color: '#102A4C' }}>⭐ 5,0 na App Store</div>
-          {PRECO.diasGratis} dias grátis · sem cartão
+          {PRECO.diasGratis} dias grátis · cancele em 1 toque
         </div>
         {href === '/baixar'
           ? <LinkDownloadMedido texto={texto} style={{ ...cta, fontSize: 14.5, padding: '11px 20px', whiteSpace: 'nowrap' }} />

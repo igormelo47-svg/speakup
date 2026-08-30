@@ -1,0 +1,44 @@
+{
+  "packageId": "app.vercel.speakup_dusky.twa",
+  "host": "speakup-dusky.vercel.app",
+  "name": "Vonai — Aprenda inglês com IA",
+  "launcherName": "Vonai",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#103D77",
+  "themeColorDark": "#000000",
+  "navigationColor": "#103D77",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#185FA5",
+  "enableNotifications": true,
+  "startUrl": "/app",
+  "iconUrl": "https://speakup-dusky.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://speakup-dusky.vercel.app/icon-maskable-512.png",
+  "webManifestUrl": "https://speakup-dusky.vercel.app/manifest.json",
+  "appVersionName": "1.2.0",
+  "appVersionCode": 11,
+  "minSdkVersion": 23,
+  "shortcuts": [],
+  "signingKey": {
+    "path": "C:\\Users\\imobi\\Downloads\\Vonai - Google Play package\\signing.keystore",
+    "alias": "MY-KEY-A"
+  },
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "generatorApp": "bubblewrap-cli"
+}

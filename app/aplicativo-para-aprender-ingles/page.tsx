@@ -13,6 +13,19 @@ export const metadata = {
   description:
     'Procurando um aplicativo para aprender inglês de verdade? No Vonai você aprende falando: professor de IA 24h que corrige sua pronúncia, +300 lições do zero ao avançado e conversas de situações reais. Nota 5,0 na App Store. Teste grátis, sem cartão.',
   alternates: { canonical: '/aplicativo-para-aprender-ingles' },
+  // openGraph próprio: sem isto o Next mantém o do layout, e TODA página
+  // compartilhada no WhatsApp mostrava o mesmo título genérico.
+  openGraph: {
+    title: `Aplicativo para Aprender Inglês Falando — Vonai | ${PRECO.diasGratis} dias grátis`,
+    description: 'Procurando um aplicativo para aprender inglês de verdade? No Vonai você aprende falando: professor de IA 24h que corrige sua pronúncia, +300 lições do zero ao avançado e conversas de situações reais. Nota 5,0 na App Store. Teste grátis, sem cartão.',
+    url: '/aplicativo-para-aprender-ingles',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `Aplicativo para Aprender Inglês Falando — Vonai | ${PRECO.diasGratis} dias grátis`,
+    description: 'Procurando um aplicativo para aprender inglês de verdade? No Vonai você aprende falando: professor de IA 24h que corrige sua pronúncia, +300 lições do zero ao avançado e conversas de situações reais. Nota 5,0 na App Store. Teste grátis, sem cartão.',
+  },
 }
 
 const FAQ = [

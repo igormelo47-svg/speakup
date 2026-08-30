@@ -49,6 +49,19 @@ export const metadata = {
   title: `${TOTAL} Erros de Inglês que Todo Brasileiro Comete (e como corrigir) | Vonai`,
   description: `Os ${TOTAL} erros de inglês mais comuns entre brasileiros: falsos cognatos como actually e pretend, estruturas traduzidas do português e os sons que entregam o sotaque. Com a forma certa e a explicação de cada um.`,
   alternates: { canonical: '/erros-de-ingles-do-brasileiro' },
+  // openGraph próprio: sem isto o Next mantém o do layout, e TODA página
+  // compartilhada no WhatsApp mostrava o mesmo título genérico.
+  openGraph: {
+    title: `${TOTAL} Erros de Inglês que Todo Brasileiro Comete (e como corrigir) | Vonai`,
+    description: `Os ${TOTAL} erros de inglês mais comuns entre brasileiros: falsos cognatos como actually e pretend, estruturas traduzidas do português e os sons que entregam o sotaque. Com a forma certa e a explicação de cada um.`,
+    url: '/erros-de-ingles-do-brasileiro',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${TOTAL} Erros de Inglês que Todo Brasileiro Comete (e como corrigir) | Vonai`,
+    description: `Os ${TOTAL} erros de inglês mais comuns entre brasileiros: falsos cognatos como actually e pretend, estruturas traduzidas do português e os sons que entregam o sotaque. Com a forma certa e a explicação de cada um.`,
+  },
 }
 
 const FAQ: Pergunta[] = [

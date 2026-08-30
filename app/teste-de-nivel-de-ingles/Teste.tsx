@@ -219,9 +219,11 @@ export default function Teste() {
                 onSubmit={(e) => { e.preventDefault(); guardarEmail(r.nivel) }}
                 style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
               >
+                {/* aria-label porque o campo não tem <label> visível: placeholder some ao
+                    digitar e não conta como nome acessível para leitor de tela. */}
                 <input
                   type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com" autoComplete="email"
+                  placeholder="seu@email.com" autoComplete="email" aria-label="Seu e-mail para receber o plano"
                   style={{ flex: '1 1 200px', minWidth: 0, fontSize: 16, padding: '12px 14px', borderRadius: 12, border: '1px solid #D8E0EC', color: '#102A4C' }}
                 />
                 <button type="submit" disabled={envioEmail === 'enviando'} style={{ background: AZUL, color: '#fff', fontWeight: 700, fontSize: 15, padding: '12px 22px', borderRadius: 12, border: 'none', cursor: envioEmail === 'enviando' ? 'default' : 'pointer', opacity: envioEmail === 'enviando' ? 0.6 : 1 }}>
@@ -229,7 +231,7 @@ export default function Teste() {
                 </button>
               </form>
               {envioEmail === 'erro' && (
-                <div style={{ fontSize: 13.5, color: '#B54A3A', marginTop: 8 }}>Não deu para guardar agora. Confira o e-mail e tente de novo.</div>
+                <div role="alert" style={{ fontSize: 13.5, color: '#B54A3A', marginTop: 8 }}>Não deu para guardar agora. Confira o e-mail e tente de novo.</div>
               )}
             </>
           )}

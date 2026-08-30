@@ -7,6 +7,19 @@ export const metadata = {
   title: 'Vonai — Aprenda inglês conversando com IA',
   description: 'Um professor de inglês com IA que lembra de você, monta seu plano diário e te leva à fluência. Comece grátis.',
   alternates: { canonical: '/' },
+  // openGraph próprio: sem isto o Next mantém o do layout, e TODA página
+  // compartilhada no WhatsApp mostrava o mesmo título genérico.
+  openGraph: {
+    title: 'Vonai — Aprenda inglês conversando com IA',
+    description: 'Um professor de inglês com IA que lembra de você, monta seu plano diário e te leva à fluência. Comece grátis.',
+    url: '/',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Vonai — Aprenda inglês conversando com IA',
+    description: 'Um professor de inglês com IA que lembra de você, monta seu plano diário e te leva à fluência. Comece grátis.',
+  },
 }
 
 const AZUL = '#1E63C7'
@@ -14,7 +27,7 @@ const ESCURO = '#103D77'
 
 const FAQ = [
   { q: 'Onde eu baixo o aplicativo?', a: `O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — busque "Vonai" ou acesse vonai.com.br/baixar, que leva direto à loja do seu celular. Baixar é grátis e você começa com ${PRECO.diasGratis} dias de Premium de brinde. Se preferir, também funciona direto no navegador.` },
-  { q: 'O Vonai é grátis?', a: `Você começa com ${PRECO.diasGratis} dias de Premium grátis, sem cartão de crédito. Depois dos ${PRECO.diasGratis} dias, assine para continuar (${PRECO.mensal}/mês ou ${PRECO.anual}/ano) — nada é cobrado automaticamente e seu progresso fica guardado.` },
+  { q: 'O Vonai é grátis?', a: `Você começa com ${PRECO.diasGratis} dias de Premium completo sem pagar nada. Pedimos o cartão para começar, e a assinatura só é cobrada no ${PRECO.diasGratis + 1}º dia (${PRECO.mensal}/mês ou ${PRECO.anual}/ano). Cancele antes disso em um toque e não paga nada — seu progresso fica guardado de qualquer jeito.` },
   { q: 'Funciona para quem está começando do zero?', a: 'Sim. A trilha vai do A1 (primeiras palavras) ao C2 (nível quase nativo), e um teste rápido de nivelamento posiciona você no ponto certo. As explicações são todas em português.' },
   { q: 'Como a IA corrige minha pronúncia?', a: 'Você lê frases em voz alta e o app compara o que você falou com o esperado, mostrando palavra por palavra o que ficou bom — com dicas específicas para os sons difíceis para brasileiros, como o "th" e o "-ed".' },
   { q: 'Em que o Vonai é diferente de Duolingo ou Babbel?', a: 'O Vonai é um professor de IA que lembra de você: seus erros, seu objetivo e sua pronúncia alimentam as próximas aulas. E é feito para brasileiros — as armadilhas do português (falsos cognatos, "I have 25 years") são parte do treino diário.' },
@@ -82,7 +95,7 @@ export default function Home() {
                 <img src="/qr-baixar.png" alt="QR code para baixar o app Vonai" width={104} height={104} />
               </div>
             </div>
-            <div style={{ fontSize: 14, color: '#B5D4F4', marginBottom: 22 }}>Baixar é grátis — e os {PRECO.diasGratis} primeiros dias são Premium, sem cartão. <span className="vn-qr-dica">Aponte a câmera do celular pro código ✨</span></div>
+            <div style={{ fontSize: 14, color: '#B5D4F4', marginBottom: 22 }}>Baixar é grátis — e os {PRECO.diasGratis} primeiros dias são Premium. Cancele em 1 toque. <span className="vn-qr-dica">Aponte a câmera do celular pro código ✨</span></div>
             {/* O caminho do navegador entrega valor ANTES de pedir e-mail: o teste mostra o
                 nível em 2 min e o cadastro chega com "seu plano B2 está pronto". Cadastro
                 seco era onde a continuidade morria (retorno D1 ~4 pessoas na base toda). */}
@@ -193,7 +206,7 @@ export default function Home() {
       <div style={{ background: '#F6F8FB', marginTop: 48 }}>
         <div style={{ ...container, padding: '48px 20px 56px' }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Planos simples, sem pegadinha</h2>
-          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>Todo mundo começa com {PRECO.diasGratis} dias de Premium grátis — sem cartão de crédito. Depois, assine para continuar; nada é cobrado automaticamente.</p>
+          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>Todo mundo começa com {PRECO.diasGratis} dias de Premium completo, sem pagar nada. A cobrança entra só no {PRECO.diasGratis + 1}º dia — cancele antes e não paga nada.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, maxWidth: 720, margin: '0 auto' }}>
             {/* Teste grátis — não é plano: é o Premium completo por PRECO.diasGratis dias. A
                 duração sai da MESMA constante de /planos — página prometendo um número
@@ -201,8 +214,8 @@ export default function Home() {
             <div style={{ background: '#fff', border: '1px solid #E8ECF2', borderRadius: 20, padding: 26 }}>
               <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Teste grátis</div>
               <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 2 }}>R$0</div>
-              <div style={{ fontSize: 13, color: '#7C8AA0', marginBottom: 18 }}>por {PRECO.diasGratis} dias · sem cartão</div>
-              {['Premium completo, sem cartão', 'Professor de IA, lições e conversas liberados', 'Nada é cobrado ao fim do teste', 'Seu progresso fica guardado'].map((t, i) => (
+              <div style={{ fontSize: 13, color: '#7C8AA0', marginBottom: 18 }}>por {PRECO.diasGratis} dias · cancele em 1 toque</div>
+              {['Premium completo desde o 1º dia', 'Professor de IA, lições e conversas liberados', 'Cancele antes do fim do teste e não paga nada', 'Seu progresso fica guardado'].map((t, i) => (
                 <div key={i} style={{ fontSize: 14, color: '#5B6B82', marginBottom: 10, display: 'flex', gap: 8 }}><span style={{ color: '#16A34A' }}>✓</span>{t}</div>
               ))}
               <Link href="/cadastro" style={{ display: 'block', textAlign: 'center', marginTop: 18, border: `1px solid ${AZUL}`, color: AZUL, fontWeight: 700, fontSize: 15, padding: '12px 20px', borderRadius: 30, textDecoration: 'none' }}>Começar meus {PRECO.diasGratis} dias →</Link>
@@ -219,7 +232,7 @@ export default function Home() {
               <Link href="/cadastro" style={{ ...cta, display: 'block', textAlign: 'center', marginTop: 18, fontSize: 15, padding: '13px 20px' }}>Testar grátis por {PRECO.diasGratis} dias →</Link>
             </div>
           </div>
-          <p style={{ textAlign: 'center', fontSize: 12.5, color: '#7C8AA0', marginTop: 22 }}>Renovação automática · Pix, cartão ou boleto · Cancele quando quiser, sem multa</p>
+          <p style={{ textAlign: 'center', fontSize: 12.5, color: '#7C8AA0', marginTop: 22 }}>Renovação automática · Cartão de crédito · Cancele quando quiser, sem multa</p>
           <p style={{ textAlign: 'center', fontSize: 14, marginTop: 14 }}><Link href="/planos" style={{ color: AZUL, fontWeight: 600 }}>Ver a comparação completa dos planos →</Link></p>
         </div>
       </div>

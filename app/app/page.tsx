@@ -2620,6 +2620,16 @@ export default function AppPage() {
   const [revResult, setRevResult] = useState(false)
   const licaoErrosRef = useRef(0)
   const licaoComboRef = useRef(0)
+  // Marcadores da sessão de treino, zerados a cada iniciarTreino. Ficam AQUI, no topo,
+  // porque mais abaixo o componente tem returns antecipados (erro de carregamento, paywall)
+  // e um hook declarado depois deles muda a contagem de hooks entre renders — o React
+  // derruba a tela com "Rendered more hooks than during the previous render".
+  //  falaJaFeitaRef       — a fala já aconteceu nesta sessão; a chamada do FIM da lição
+  //                         vira no-op, cobrindo as quatro chamadas de iniciarFala no JSX.
+  //  sessaoAbriuNaFalaRef — a sessão COMEÇOU pela fala (estreia), então ao terminar de
+  //                         falar o aluno segue para a lição em vez da tela de fim.
+  const falaJaFeitaRef = useRef(false)
+  const sessaoAbriuNaFalaRef = useRef(false)
   const [whatsapp, setWhatsapp] = useState('')
   const [whatsappInput, setWhatsappInput] = useState('')
   const [pronCat, setPronCat] = useState<string | null>(null)
@@ -4071,7 +4081,33 @@ export default function AppPage() {
 
   // Checkout web (Kiwify). Separado de abrirAssinatura para o caminho "Play Billing
   // indisponível" poder reaproveitá-lo sem duplicar prefill de e-mail, s1 e polling.
-  function abrirCheckoutWeb(plano: 'mensal' | 'anual') {
+  // Desde 30/08/2026 o checkout web vai pelo STRIPE, com CARTÃO NA ENTRADA e cobrança
+  // automática no fim do teste. É a mudança que faz o app ser assinado: antes o aluno usava
+  // 3 dias, o app trancava e ele precisava voltar sozinho para pagar — 149 contas geraram
+  // zero assinantes. Se o Stripe não estiver configurado ou falhar, cai no Kiwify em vez de
+  // deixar o aluno sem saída no paywall.
+  async function abrirCheckoutWeb(plano: 'mensal' | 'anual') {
+    try { localStorage.setItem('speakup_plano_checkout', plano) } catch (e) {}
+    setAguardandoPagamento(true)
+    try {
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (token) {
+        const r = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ plano }),
+        })
+        const j = await r.json().catch(() => ({}))
+        if (r.ok && j?.url) { window.location.href = j.url; return }
+        console.error('[checkout] Stripe indisponível, caindo no Kiwify:', j?.motivo || r.status)
+      }
+    } catch (e) { console.error('[checkout] erro ao falar com o Stripe', e) }
+    abrirCheckoutKiwify(plano)
+  }
+
+  // Caminho antigo: trial sem cartão + link da Kiwify. Só roda se o Stripe não responder.
+  function abrirCheckoutKiwify(plano: 'mensal' | 'anual') {
     // Prefill do e-mail: o webhook libera o Premium casando pelo e-mail do checkout —
     // vir preenchido evita o aluno pagar com outro e-mail e ficar bloqueado pagando.
     // s1 = id do aluno: o webhook passa a casar o pagamento pelo id também, não só pelo e-mail
@@ -4087,6 +4123,23 @@ export default function AppPage() {
     const w = window.open(url, '_blank')
     if (!w) window.location.href = url // popup bloqueado (TWA/standalone): segue na própria aba
   }
+
+  // Volta do checkout do Stripe: ele traz de volta em /app?pago=1. O webhook costuma
+  // liberar o Premium antes da página carregar, mas se demorar o aluno cairia no paywall
+  // logo depois de pagar — o pior momento possível. Liga a espera e deixa o polling abaixo
+  // confirmar. Hook no topo do componente, junto dos outros: declarar depois de um return
+  // antecipado derruba a tela com "Rendered more hooks than during the previous render".
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search)
+      if (q.get('pago') === '1') {
+        setAguardandoPagamento(true)
+        q.delete('pago'); q.delete('sessao')
+        const qs = q.toString()
+        window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : ''))
+      }
+    } catch (e) {}
+  }, [])
 
   // Volta do checkout Kiwify: confere sozinho se o pagamento liberou (o webhook marca
   // is_premium em segundos — antes o aluno precisava achar e tocar num botão de recarregar).
@@ -4888,6 +4941,7 @@ export default function AppPage() {
   // Frases da lição que valem prática falada (curtas e limpas).
   const frasesFala = paresLimpos(currentLesson?.examples || []).slice(0, 2)
   const iniciarFala = () => {
+    if (falaJaFeitaRef.current) { setView('sessaoFim'); setTab('lessons'); return }
     if (!frasesFala.length) { setView('sessaoFim'); setTab('lessons'); return }
     setFalaIdx(0); setFalaScores([]); setPronScore(null); setPronHeard(''); setPronTip('')
     setView('fala'); setTab('lessons')
@@ -4896,15 +4950,38 @@ export default function AppPage() {
   const finalizarFala = () => {
     try { localStorage.setItem('speakup_fala_dia', hojeStr) } catch (e) {}
     setFalaDiaData(hojeStr)
+    falaJaFeitaRef.current = true
     try { track('treino_fala_concluida') } catch (e) {}
+    if (sessaoAbriuNaFalaRef.current) {
+      // Estreia: falou primeiro, agora vai para a lição. O aluno já experimentou o produto
+      // antes de qualquer exercício — é o mesmo princípio da demo de fala da página pública.
+      sessaoAbriuNaFalaRef.current = false
+      try { track('estreia_falou_antes_da_licao') } catch (e) {}
+      abrirLicaoTreino(lessonIdx)
+      return
+    }
     setView('sessaoFim')
   }
   const encerrarTreino = () => { setTreinoAtivo(false); treinoAquecRef.current = null; treinoLicaoRef.current = null }
   const iniciarTreino = () => {
     try { track('treino_iniciar') } catch (e) {}
     setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null
+    falaJaFeitaRef.current = false; sessaoAbriuNaFalaRef.current = false
     const arr = lessons[level] || []
     const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
+    // ESTREIA: primeira sessão da vida do aluno começa FALANDO, não respondendo.
+    // Lê as frases direto de arr[idx] em vez de frasesFala, porque frasesFala deriva de
+    // currentLesson/lessonIdx e ainda carrega o valor anterior neste mesmo tick.
+    if (licoesConcluidas.length === 0 && idx >= 0 && !metaFeitaHoje) {
+      const frasesEstreia = paresLimpos((arr[idx] as any)?.examples || []).slice(0, 2)
+      if (frasesEstreia.length) {
+        sessaoAbriuNaFalaRef.current = true
+        setLessonIdx(idx)
+        setPronScore(null); setPronHeard(''); setPronTip('')
+        setView('fala'); setTab('lessons')
+        return
+      }
+    }
     // Aquecimento: erros reais e revisões vencidas abrem a sessão (retrieval antes do novo).
     if (errosQs.length > 0 || revisoesDevidas.length > 0) {
       setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao'); return
@@ -7163,9 +7240,16 @@ export default function AppPage() {
               return (
                 <div style={{ animation: 'su_fade 0.3s ease' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: purple, fontWeight: 700, background: purpleLight, padding: '4px 12px', borderRadius: 20 }}><Ic e="🎙️" /> Agora fale você</span>
+                    <span style={{ fontSize: 12, color: purple, fontWeight: 700, background: purpleLight, padding: '4px 12px', borderRadius: 20 }}><Ic e="🎙️" /> {sessaoAbriuNaFalaRef.current ? 'Comece falando' : 'Agora fale você'}</span>
                     <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Frase {falaIdx + 1} de {frasesFala.length}</span>
                   </div>
+                  {/* Estreia: a fala vem ANTES da lição, então a tela precisa dizer por quê —
+                      sem isso parece que o app pulou uma etapa. */}
+                  {sessaoAbriuNaFalaRef.current && (
+                    <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', lineHeight: 1.55, marginBottom: 12 }}>
+                      Antes de qualquer exercício: fale esta frase em voz alta. É assim que a gente descobre onde a sua fala trava — e é isso que você veio fazer aqui.
+                    </div>
+                  )}
                   <div style={{ background: 'var(--color-background-secondary)', borderRadius: 6, height: 6, marginBottom: 16, overflow: 'hidden' }}><div style={{ background: purple, height: '100%', width: `${falaIdx / frasesFala.length * 100}%`, borderRadius: 6, transition: 'width 0.3s' }} /></div>
                   <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Ouça a frase da lição e leia em voz alta. O Vô avalia sua pronúncia. 👂</div>
                   <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 18, marginBottom: 14, textAlign: 'center' }}>

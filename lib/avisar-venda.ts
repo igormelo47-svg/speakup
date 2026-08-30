@@ -14,7 +14,7 @@ const INTERNAS = [
 
 export async function avisarVenda(dados: {
   email: string
-  origem: 'Kiwify' | 'Apple' | 'Google Play'
+  origem: 'Kiwify' | 'Apple' | 'Google Play' | 'Stripe'
   tipo: string
   valor: number
 }) {

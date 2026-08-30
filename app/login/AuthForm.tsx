@@ -197,7 +197,11 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     // com 15px a tela de cadastro "pulava" bem na hora de digitar (mesma correção
     // já aplicada aos inputs do chat, ver layout.tsx).
     fontSize: 16, boxSizing: 'border-box' as const, background: '#F7FAFD', color: '#16212C',
-    outline: 'none', fontFamily: 'inherit',
+    // outline: 'none' saiu em 30/08. Ele apagava o anel de foco do teclado justamente
+    // nos dois campos mais importantes do produto — quem navega por Tab ou usa leitor de
+    // tela ficava sem saber onde estava. O anel do próprio navegador basta e não muda
+    // nada para quem usa o mouse (o :focus-visible só aparece na navegação por teclado).
+    fontFamily: 'inherit',
   }
   const labelStyle = { fontSize: 12.5, color: '#5B6B82', fontWeight: 600 as const, display: 'block', marginBottom: 6 }
 
@@ -255,18 +259,18 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
             (nomeFinal abaixo e o split_part do trigger handle_new_user). O professor
             pergunta o nome na primeira conversa, onde a resposta significa alguma coisa. */}
         <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>E-mail</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com"
+          <label htmlFor="auth-email" style={labelStyle}>E-mail</label>
+          <input id="auth-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com"
             autoComplete="email" required style={inputStyle} />
         </div>
         {modo !== 'recuperar' && modo !== 'magic' && modo !== 'magic_novo' && (
           <div style={{ marginBottom: 8 }}>
-            <label style={labelStyle}>Senha</label>
+            <label htmlFor="auth-senha" style={labelStyle}>Senha</label>
             {/* new-password no cadastro faz iPhone/Android OFERECEREM uma senha forte e
                 salvarem no gerenciador; current-password no login faz o autofill
                 preencher. Sem o atributo, nenhum dos dois acontecia. minLength só no
                 cadastro: conta antiga pode ter senha mais curta e precisa logar. */}
-            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 6 caracteres"
+            <input id="auth-senha" type="password" value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 6 caracteres"
               autoComplete={modo === 'cadastro' ? 'new-password' : 'current-password'}
               required minLength={modo === 'cadastro' ? 6 : undefined} style={inputStyle} />
           </div>
@@ -293,8 +297,10 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         )}
         {modo !== 'login' && <div style={{ marginBottom: 12 }} />}
 
-        {erro && <p style={{ color: '#A32D2D', fontSize: 13, marginBottom: 12, background: '#FBEBEB', padding: '10px 12px', borderRadius: 10 }}>{erro}</p>}
-        {aviso && <p style={{ color: '#166534', fontSize: 13, marginBottom: 12, background: '#E3F3EA', padding: '10px 12px', borderRadius: 10 }}>{aviso}</p>}
+        {/* role="alert" faz o leitor de tela LER a mensagem quando ela aparece. Sem isso,
+            quem não enxerga digita a senha errada e não recebe retorno nenhum. */}
+        {erro && <p role="alert" style={{ color: '#A32D2D', fontSize: 13, marginBottom: 12, background: '#FBEBEB', padding: '10px 12px', borderRadius: 10 }}>{erro}</p>}
+        {aviso && <p role="status" style={{ color: '#166534', fontSize: 13, marginBottom: 12, background: '#E3F3EA', padding: '10px 12px', borderRadius: 10 }}>{aviso}</p>}
 
         <button type="submit" disabled={loading}
           style={{ width: '100%', padding: 14, background: loading ? '#7FA6CB' : 'linear-gradient(135deg, #2E72D6, #185FA5)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'default' : 'pointer', boxShadow: '0 4px 12px rgba(24,95,165,0.35)', fontFamily: 'inherit' }}>

@@ -11,6 +11,19 @@ export const metadata = {
   title: 'Professor de Inglês com IA 24h — Converse e seja corrigido na hora | Vonai',
   description: 'Um professor de inglês com IA que conversa com você a qualquer hora, corrige sua pronúncia na hora e explica o erro em português. Sem hora marcada, sem plateia, sem vergonha de errar. Teste grátis.',
   alternates: { canonical: '/professor-de-ingles-com-ia' },
+  // openGraph próprio: sem isto o Next mantém o do layout, e TODA página
+  // compartilhada no WhatsApp mostrava o mesmo título genérico.
+  openGraph: {
+    title: 'Professor de Inglês com IA 24h — Converse e seja corrigido na hora | Vonai',
+    description: 'Um professor de inglês com IA que conversa com você a qualquer hora, corrige sua pronúncia na hora e explica o erro em português. Sem hora marcada, sem plateia, sem vergonha de errar. Teste grátis.',
+    url: '/professor-de-ingles-com-ia',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Professor de Inglês com IA 24h — Converse e seja corrigido na hora | Vonai',
+    description: 'Um professor de inglês com IA que conversa com você a qualquer hora, corrige sua pronúncia na hora e explica o erro em português. Sem hora marcada, sem plateia, sem vergonha de errar. Teste grátis.',
+  },
 }
 
 const FAQ: Pergunta[] = [

@@ -1,0 +1,27 @@
+# ATENCAO: o repositorio speakup e PUBLICO.
+# A chave de assinatura e a senha dela nunca podem entrar aqui — quem tiver a chave
+# consegue publicar um app se passando pelo Vonai, e nao existe como revogar isso
+# sem perder o app.
+*.keystore
+*.jks
+signing-key-info.txt
+
+# Saida do build (grande e regeravel)
+app-release-bundle.aab
+app-release-signed.apk
+*.aab
+*.apk
+
+# Projeto Android gerado pelo Bubblewrap: sai inteiro do twa-manifest.json,
+# nao faz sentido versionar.
+app/
+gradle/
+gradlew
+gradlew.bat
+build.gradle
+settings.gradle
+gradle.properties
+local.properties
+.gradle/
+build/
+store_icon.png

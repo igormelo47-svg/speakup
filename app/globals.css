@@ -118,3 +118,20 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
    430px centralizada, e barra de rolagem horizontal é sempre bug, nunca recurso. */
 body { overflow-x: hidden; }
 * { min-width: 0; }
+
+/* ---------------------------------------------------------------------------
+   Movimento reduzido (30/08/2026).
+   O app tem mais de dez animações (su_bob, su_pulse, su_bounce, su_girar…) e
+   nenhuma respeitava a preferência do sistema. Para quem tem enxaqueca vestibular
+   ou sensibilidade a movimento, isso vai de incômodo a impeditivo — e é uma opção
+   que a pessoa já ligou no aparelho dela. Aqui o movimento praticamente para; nada
+   some da tela, e o estado final de cada animação continua valendo.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

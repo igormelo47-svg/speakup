@@ -14,6 +14,19 @@ export const metadata = {
   title: 'Teste de Nível de Inglês Grátis Online — 2 minutos | Vonai',
   description: 'Faça o teste de nível de inglês grátis, sem cadastro: 12 perguntas em 2 minutos e você descobre se está no A1, A2, B1, B2, C1 ou C2 — com gabarito comentado em português.',
   alternates: { canonical: '/teste-de-nivel-de-ingles' },
+  // openGraph próprio: sem isto o Next mantém o do layout, e TODA página
+  // compartilhada no WhatsApp mostrava o mesmo título genérico.
+  openGraph: {
+    title: 'Teste de Nível de Inglês Grátis Online — 2 minutos | Vonai',
+    description: 'Faça o teste de nível de inglês grátis, sem cadastro: 12 perguntas em 2 minutos e você descobre se está no A1, A2, B1, B2, C1 ou C2 — com gabarito comentado em português.',
+    url: '/teste-de-nivel-de-ingles',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Teste de Nível de Inglês Grátis Online — 2 minutos | Vonai',
+    description: 'Faça o teste de nível de inglês grátis, sem cadastro: 12 perguntas em 2 minutos e você descobre se está no A1, A2, B1, B2, C1 ou C2 — com gabarito comentado em português.',
+  },
 }
 
 const NIVEIS = [
