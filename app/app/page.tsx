@@ -682,7 +682,7 @@ const catColor: { [k: string]: string } = { basic: '#2E72D6', travel: '#16a34a',
 // local = mensagem escrita pelo PRÓPRIO app (saudação, erro, aviso de limite). Não é fala
 // do professor e por isso fica fora do histórico enviado à IA.
 interface Msg { role: string; text: string; correcao?: Correcao | null; sugestoes?: string[]; local?: boolean }
-type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'traduzir' | 'ditado' | 'finish' | 'fala' | 'sessaoFim'
+type ViewType = 'levels' | 'list' | 'explanation' | 'quiz' | 'build' | 'traduzir' | 'ditado' | 'finish' | 'fala' | 'sessaoFim' | 'estreia'
 const nPal = (s: string) => (s || '').trim().split(/\s+/).filter(Boolean).length
 // Quebra um exemplo em pares (en,pt) limpos e alinhados. Se a frase for composta
 // ("Já comi. Não estou com fome."), separa em orações — mas só aproveita quando EN e PT
@@ -2630,6 +2630,23 @@ export default function AppPage() {
   //                         falar o aluno segue para a lição em vez da tela de fim.
   const falaJaFeitaRef = useRef(false)
   const sessaoAbriuNaFalaRef = useRef(false)
+  // ---- ESTREIA FALADA (03/09/2026) ----
+  // A primeira sessão da vida do aluno deixou de ser um exercício e virou uma CONVERSA:
+  // o professor fala, pergunta em inglês, o aluno responde EM VOZ ALTA e recebe UM achado
+  // verdadeiro sobre o inglês dele. O porquê inteiro está em app/api/estreia/route.ts.
+  // Antes disto, os 90 primeiros segundos eram ler duas frases prontas e receber uma nota —
+  // exatamente o que o concorrente grátis faz melhor. Fases da tela:
+  //   'abrindo'    → gerando/falando a abertura do professor
+  //   'pergunta'   → pergunta no ar, esperando o aluno tocar no microfone
+  //   'gravando'   → microfone aberto
+  //   'analisando' → transcrição pronta, IA procurando o achado
+  //   'achado'     → resultado na tela
+  const [estFase, setEstFase] = useState<'abrindo' | 'pergunta' | 'gravando' | 'analisando' | 'achado'>('abrindo')
+  const [estAbertura, setEstAbertura] = useState('')
+  const [estPergunta, setEstPergunta] = useState('')
+  const [estDito, setEstDito] = useState('')
+  const [estAchado, setEstAchado] = useState<any>(null)
+  const estRecRef = useRef<MediaRecorder | null>(null)
   const [whatsapp, setWhatsapp] = useState('')
   const [whatsappInput, setWhatsappInput] = useState('')
   const [pronCat, setPronCat] = useState<string | null>(null)
@@ -4962,6 +4979,130 @@ export default function AppPage() {
     }
     setView('sessaoFim')
   }
+  // ---- ESTREIA FALADA: fluxo ----
+  // Regra de ouro deste bloco: NUNCA deixar o aluno preso. Toda falha (sem IA, sem
+  // microfone, sem Whisper, sem rede) cai na estreia antiga — ler duas frases da lição.
+  // Aluno travado na primeira tela é o pior desfecho possível: ele não paga E não usa.
+  function estreiaFallback() {
+    try { track('estreia_fallback') } catch (e) {}
+    setPronScore(null); setPronHeard(''); setPronTip('')
+    sessaoAbriuNaFalaRef.current = true
+    setView('fala'); setTab('lessons')
+  }
+
+  async function estreiaToken(): Promise<string | null> {
+    try { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token || null } catch (e) { return null }
+  }
+
+  // Passo 1 — o professor abre a conversa. A abertura usa a trava e os interesses que o
+  // aluno acabou de responder no onboarding: é o que faz a tela parecer feita para ele.
+  async function iniciarEstreia() {
+    setEstFase('abrindo'); setEstAbertura(''); setEstPergunta(''); setEstDito(''); setEstAchado(null)
+    try { track('estreia_conversa_abriu') } catch (e) {}
+    const token = await estreiaToken()
+    if (!token) { estreiaFallback(); return }
+    try {
+      const r = await fetch('/api/estreia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ etapa: 'abrir', nivel: level, trava: perfilIa.trava || '', interesses: perfilIa.interesses || [] }),
+      })
+      if (!r.ok) { estreiaFallback(); return }
+      const d = await r.json()
+      if (!d?.abertura_pt || !d?.pergunta_en) { estreiaFallback(); return }
+      setEstAbertura(d.abertura_pt); setEstPergunta(d.pergunta_en)
+      setEstFase('pergunta')
+      // Fala a abertura em português na voz do professor escolhido e, alguns segundos
+      // depois, a pergunta em inglês. Ouvir a pergunta antes de responder tira o medo.
+      try { falarPt(d.abertura_pt) } catch (e) {}
+      try { prefetchTTS(d.pergunta_en, true) } catch (e) {}
+      setTimeout(() => { try { speakEN(d.pergunta_en, 90777) } catch (e) {} }, 3200)
+    } catch (e) { estreiaFallback() }
+  }
+
+  // Passo 2 — o aluno fala. Gravador próprio: o de pronúncia compara com uma frase-alvo,
+  // e aqui não existe alvo nenhum — a resposta é livre, do jeito que sair.
+  async function gravarEstreia() {
+    if (estFase === 'gravando') { try { estRecRef.current?.stop() } catch (e) {} return }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
+      const chunks: BlobPart[] = []
+      rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data) }
+      rec.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        estRecRef.current = null
+        const blob = new Blob(chunks, { type: mime || 'audio/webm' })
+        if (blob.size < 1000) { setEstFase('pergunta'); return }
+        setEstFase('analisando')
+        const token = await estreiaToken()
+        if (!token) { estreiaFallback(); return }
+        try {
+          const r = await fetch('/api/stt', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-audio-type': blob.type }, body: blob })
+          if (!r.ok) throw new Error('stt ' + r.status)
+          const d = await r.json()
+          const texto = String(d.text || '').trim()
+          setEstDito(texto)
+          if (!texto) { setEstFase('pergunta'); return }
+          await analisarEstreia(texto, token)
+        } catch (e) { estreiaFallback() }
+      }
+      estRecRef.current = rec
+      setEstFase('gravando')
+      rec.start()
+      try { track('estreia_microfone_abriu') } catch (e) {}
+      // Trava de segurança: para sozinho em 20s (resposta livre é mais longa que uma frase).
+      setTimeout(() => { try { if (estRecRef.current === rec && rec.state === 'recording') rec.stop() } catch (e) {} }, 20000)
+    } catch (e) {
+      alert('Preciso da permissão do microfone para te ouvir falar. 🎤')
+      setEstFase('pergunta')
+    }
+  }
+
+  // Passo 3 — o achado. E, principalmente: o tópico do erro entra em topicos_fracos, que é
+  // de onde saem a lição de amanhã, a revisão e o texto do lembrete. Sem isto o achado seria
+  // só um momento bonito; com isto ele vira o motivo concreto de voltar no dia 2.
+  async function analisarEstreia(texto: string, token: string) {
+    try {
+      const r = await fetch('/api/estreia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ etapa: 'analisar', nivel: level, texto, pergunta: estPergunta, trava: perfilIa.trava || '', interesses: perfilIa.interesses || [] }),
+      })
+      if (!r.ok) { estreiaFallback(); return }
+      const d = await r.json()
+      if (!d?.achado) { estreiaFallback(); return }
+      setEstAchado(d)
+      setEstFase('achado')
+      try { track('estreia_achado', { topico: d.topico }) } catch (e) {}
+      const guardar = d.topico && d.topico !== 'sem_erro' && d.topico !== 'fluencia'
+      const fracos = guardar
+        ? Array.from(new Set([...(perfilIa.topicos_fracos || []), d.topico])).slice(-12)
+        : (perfilIa.topicos_fracos || [])
+      salvarPerfil({
+        ...perfilIa,
+        topicos_fracos: fracos,
+        objetivo: perfilIa.objetivo || OBJETIVO_PADRAO,
+        primeira_fala: hojeStr,
+        resumo_ultima_sessao: `Primeira fala: disse "${texto.slice(0, 90)}". Achado: ${String(d.achado).slice(0, 120)}`,
+        atualizado_em: hojeStr,
+      })
+      try { falarPt(String(d.elogio || '') + ' ' + String(d.achado || '')) } catch (e) {}
+    } catch (e) { estreiaFallback() }
+  }
+
+  // Passo 4 — da conversa para a lição. O aluno já experimentou o produto; agora o
+  // exercício faz sentido, porque é sobre o erro que ELE acabou de cometer.
+  function concluirEstreia() {
+    try { track('estreia_concluida') } catch (e) {}
+    try { localStorage.setItem('speakup_fala_dia', hojeStr) } catch (e) {}
+    setFalaDiaData(hojeStr)
+    falaJaFeitaRef.current = true
+    sessaoAbriuNaFalaRef.current = false
+    abrirLicaoTreino(lessonIdx)
+  }
+
   const encerrarTreino = () => { setTreinoAtivo(false); treinoAquecRef.current = null; treinoLicaoRef.current = null }
   const iniciarTreino = () => {
     try { track('treino_iniciar') } catch (e) {}
@@ -4972,13 +5113,18 @@ export default function AppPage() {
     // ESTREIA: primeira sessão da vida do aluno começa FALANDO, não respondendo.
     // Lê as frases direto de arr[idx] em vez de frasesFala, porque frasesFala deriva de
     // currentLesson/lessonIdx e ainda carrega o valor anterior neste mesmo tick.
+    // ESTREIA: a primeira sessão da vida do aluno é uma CONVERSA, não um exercício.
+    // O professor pergunta, o aluno responde em voz alta e recebe um achado sobre o
+    // inglês dele. Se qualquer peça faltar (IA, Whisper, microfone), iniciarEstreia cai
+    // sozinho na estreia antiga — ler duas frases da lição. Ver estreiaFallback().
     if (licoesConcluidas.length === 0 && idx >= 0 && !metaFeitaHoje) {
       const frasesEstreia = paresLimpos((arr[idx] as any)?.examples || []).slice(0, 2)
       if (frasesEstreia.length) {
         sessaoAbriuNaFalaRef.current = true
         setLessonIdx(idx)
         setPronScore(null); setPronHeard(''); setPronTip('')
-        setView('fala'); setTab('lessons')
+        setView('estreia'); setTab('lessons')
+        iniciarEstreia()
         return
       }
     }
@@ -7226,6 +7372,103 @@ export default function AppPage() {
 
             {/* Passo de FALA do treino encadeado: o aluno lê em voz alta as frases da
                 lição que acabou de aprender — produção oral fecha o ciclo aprender→falar. */}
+            {/* ESTREIA FALADA — a primeira tela da vida do aluno. Uma conversa: o professor
+                pergunta, ele responde em voz alta, e recebe UM achado sobre o inglês dele.
+                Não há nota, não há porcentagem, não há semáforo — de propósito. */}
+            {view === 'estreia' && (
+              <div style={{ animation: 'su_fade 0.3s ease' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <span style={{ fontSize: 12, color: purple, fontWeight: 700, background: purpleLight, padding: '4px 12px', borderRadius: 20 }}><Ic e="🎙️" /> Sua primeira conversa</span>
+                </div>
+
+                {estFase === 'abrindo' && (
+                  <div style={{ textAlign: 'center', padding: '40px 8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}><Mascote size={72} prof /></div>
+                    <div style={{ fontSize: 15, color: 'var(--color-text-secondary)' }}>Preparando a sua conversa…</div>
+                  </div>
+                )}
+
+                {estFase !== 'abrindo' && (
+                  <>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 14 }}>
+                      <Mascote size={44} prof />
+                      <div style={{ flex: 1, background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, borderTopLeftRadius: 4, padding: '12px 14px', fontSize: 14.5, color: 'var(--color-text-primary)', lineHeight: 1.5, textAlign: 'left' }}>{estAbertura}</div>
+                    </div>
+
+                    <div style={{ background: 'var(--color-background-primary)', border: `1.5px solid ${purple}`, borderRadius: 14, padding: 18, marginBottom: 14, textAlign: 'center' }}>
+                      <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Responda em inglês</div>
+                      <div style={{ fontSize: 21, fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.35 }}>{estPergunta}</div>
+                      <button onClick={() => speakEN(estPergunta, 90777)} style={{ marginTop: 12, background: purpleLight, color: purple, border: 'none', borderRadius: 20, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}><Ic e="🔊" /> Ouvir de novo</button>
+                    </div>
+                  </>
+                )}
+
+                {(estFase === 'pergunta' || estFase === 'gravando') && (
+                  <>
+                    <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', lineHeight: 1.55, marginBottom: 12, textAlign: 'center' }}>
+                      Fale do jeito que sair. Errado, devagar, com sotaque — tanto faz. É justamente do erro que eu preciso para te mostrar uma coisa.
+                    </div>
+                    <button onClick={gravarEstreia} style={{ width: '100%', padding: 16, background: estFase === 'gravando' ? '#b91c1c' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10, animation: estFase === 'gravando' ? 'su_pulse 1.2s infinite' : undefined }}>
+                      {estFase === 'gravando' ? <><Ic e="⏹️" /> Estou te ouvindo — toque para parar</> : <><Ic e="🎙️" /> Responder falando</>}
+                    </button>
+                    <button onClick={estreiaFallback} style={{ width: '100%', padding: 12, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Não consigo falar agora — quero repetir uma frase</button>
+                  </>
+                )}
+
+                {estFase === 'analisando' && (
+                  <div style={{ textAlign: 'center', padding: '24px 8px' }}>
+                    {estDito && <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', fontStyle: 'italic', marginBottom: 12 }}>Você disse: “{estDito}”</div>}
+                    <div style={{ fontSize: 15, color: 'var(--color-text-primary)', fontWeight: 600 }}>Ouvindo com atenção…</div>
+                    <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6 }}>Procurando o que mais importa na sua fala.</div>
+                  </div>
+                )}
+
+                {estFase === 'achado' && estAchado && (
+                  <div style={{ animation: 'su_fade 0.35s ease' }}>
+                    {estDito && <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', fontStyle: 'italic', marginBottom: 12, textAlign: 'center' }}>Você disse: “{estDito}”</div>}
+
+                    {estAchado.elogio && (
+                      <div style={{ background: greenLight, borderRadius: 12, padding: '12px 14px', marginBottom: 10, fontSize: 14, color: '#166534', lineHeight: 1.5, textAlign: 'left' }}>
+                        <Ic e="✅" /> {estAchado.elogio}
+                      </div>
+                    )}
+
+                    <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 16, marginBottom: 12, textAlign: 'left' }}>
+                      <div style={{ fontSize: 11.5, color: purple, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>O que eu ouvi</div>
+                      <div style={{ fontSize: 15.5, color: 'var(--color-text-primary)', lineHeight: 1.5, fontWeight: 600 }}>{estAchado.achado}</div>
+
+                      {estAchado.errado && estAchado.certo && (
+                        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ background: '#fcecec', borderRadius: 10, padding: '10px 12px', fontSize: 15, color: '#b91c1c', textDecoration: 'line-through' }}>{estAchado.errado}</div>
+                          <div style={{ background: greenLight, borderRadius: 10, padding: '10px 12px', fontSize: 16, color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                            <span>{estAchado.certo}</span>
+                            <button onClick={() => speakEN(estAchado.certo, 90778)} style={{ background: 'rgba(22,101,52,0.12)', color: '#166534', border: 'none', borderRadius: 16, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}><Ic e="🔊" /> Ouvir</button>
+                          </div>
+                        </div>
+                      )}
+
+                      {estAchado.certo && !estAchado.errado && (
+                        <div style={{ marginTop: 14, background: greenLight, borderRadius: 10, padding: '10px 12px', fontSize: 16, color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <span>{estAchado.certo}</span>
+                          <button onClick={() => speakEN(estAchado.certo, 90778)} style={{ background: 'rgba(22,101,52,0.12)', color: '#166534', border: 'none', borderRadius: 16, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}><Ic e="🔊" /> Ouvir</button>
+                        </div>
+                      )}
+
+                      {estAchado.porque && (
+                        <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', lineHeight: 1.55, marginTop: 12 }}><Ic e="💡" /> {estAchado.porque}</div>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 14, textAlign: 'center' }}>
+                      Guardei isso. A lição de agora e o seu plano de amanhã já saem daqui.
+                    </div>
+
+                    <button onClick={concluirEstreia} style={{ width: '100%', padding: 15, background: '#16A34A', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>Treinar isso agora <Ic e="→" /></button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {view === 'fala' && (() => {
               const frase = frasesFala[falaIdx]
               if (!frase) { return null }

@@ -32,6 +32,48 @@ export const PRECO = {
   // do plano antes de liberar o app (padrão Lucida). A duração real é decidida no banco:
   // migracao_2026-08-21_trial_3_dias.sql — rode junto com o deploy.
   diasGratis: 3,
+  // Cartão pedido na entrada do teste. Só pode virar `true` quando o Stripe estiver de fato
+  // configurado em produção — conta, os 2 preços, portal, webhook e as 5 envs na Vercel
+  // (ver STRIPE.md). Enquanto for `false`, TODA página pública diz "sem cartão", que é o que
+  // o cadastro realmente faz hoje. Promessa à frente do mecanismo é reclamação na loja.
+  cartaoNaEntrada: false,
+}
+
+// Frases do teste grátis derivadas do flag acima. Existem para que home, /planos e as
+// landings nunca mais possam discordar entre si sobre a única coisa que o visitante
+// precisa saber antes de clicar: se vai ter que dar o cartão ou não. Mudou o flag,
+// mudou o site inteiro.
+const _comCartao = PRECO.cartaoNaEntrada
+export const TRIAL = {
+  // Selo curto, para badge/rodapé de card.
+  selo: _comCartao
+    ? `Nada cobrado nos ${PRECO.diasGratis} dias`
+    : `${PRECO.diasGratis} dias grátis, sem cartão`,
+  // Linha fina abaixo dos planos.
+  linhaFina: _comCartao
+    ? 'Renovação automática · Cartão de crédito · Cancele quando quiser, sem multa'
+    : 'Sem cartão para testar · Cancele quando quiser, sem multa',
+  // Parágrafo de abertura da seção de planos.
+  resumo: _comCartao
+    ? `Todo mundo começa com ${PRECO.diasGratis} dias de Premium completo, sem pagar nada. A cobrança entra só no ${PRECO.diasGratis + 1}º dia — cancele antes e não paga nada.`
+    : `Todo mundo começa com ${PRECO.diasGratis} dias de Premium completo, sem pagar nada e sem cadastrar cartão. Depois dos ${PRECO.diasGratis} dias você decide se assina — nada é cobrado automaticamente.`,
+  // Subtítulo do hero de /planos.
+  heroSub: _comCartao
+    ? `Comece com ${PRECO.diasGratis} dias de Premium completo sem pagar nada. A assinatura entra no ${PRECO.diasGratis + 1}º dia por ${PRECO.mensal} por mês (anual: ${PRECO.anual}). Cancele antes em 1 toque e não paga nada.`
+    : `Comece com ${PRECO.diasGratis} dias de Premium completo sem pagar nada e sem cartão. Se quiser continuar, o Premium custa ${PRECO.mensal} por mês (anual: ${PRECO.anual}). Sem fidelidade.`,
+  // Respostas de FAQ.
+  faqEhGratis: _comCartao
+    ? `Você começa com ${PRECO.diasGratis} dias de Premium completo sem pagar nada. Pedimos o cartão para começar, e a assinatura só é cobrada no ${PRECO.diasGratis + 1}º dia (${PRECO.mensal}/mês ou ${PRECO.anual}/ano). Cancele antes disso em um toque e não paga nada — seu progresso fica guardado de qualquer jeito.`
+    : `Você começa com ${PRECO.diasGratis} dias de Premium completo sem pagar nada e sem cadastrar cartão. Depois, para continuar, o Premium custa ${PRECO.mensal}/mês (ou ${PRECO.anual}/ano) — nada é cobrado automaticamente e seu progresso fica guardado de qualquer jeito.`,
+  faqPrecisaCartao: _comCartao
+    ? `Sim, o cartão entra na hora de começar — mas nada é cobrado nos ${PRECO.diasGratis} dias. Ele fica guardado com segurança no Stripe (o Vonai nunca vê o número) e serve para a assinatura continuar sozinha se você gostar. Cancele em um toque antes do ${PRECO.diasGratis + 1}º dia e não paga nada.`
+    : `Não. Os ${PRECO.diasGratis} dias de Premium são liberados só com e-mail — nenhum cartão é pedido para testar. O cartão só aparece se, no fim do teste, você decidir assinar.`,
+  faqFimDoTeste: _comCartao
+    ? `No ${PRECO.diasGratis + 1}º dia a assinatura começa e o cartão é cobrado — avisamos por e-mail um dia antes. Se não for pra você, é só cancelar antes, em um toque, na sua conta: não paga nada e o progresso fica guardado.`
+    : `Nada é cobrado. No fim dos ${PRECO.diasGratis} dias o acesso Premium simplesmente para e você escolhe se quer assinar — avisamos por e-mail um dia antes. Sua conta e todo o progresso continuam guardados.`,
+  faqPagamento: _comCartao
+    ? 'Pelo site: cartão de crédito, processado pelo Stripe — a assinatura renova sozinha e você cancela quando quiser. Pelo iPhone, a cobrança é feita pela própria Apple, com a forma de pagamento cadastrada no seu ID Apple.'
+    : 'Pelo site, quando você decide assinar: cartão de crédito ou Pix, em um checkout seguro (o Vonai nunca vê o número do cartão). Pelo iPhone, a cobrança é feita pela própria Apple, com a forma de pagamento cadastrada no seu ID Apple.',
 }
 
 export const container: React.CSSProperties = { maxWidth: 1040, margin: '0 auto', padding: '0 20px' }

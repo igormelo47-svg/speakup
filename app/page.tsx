@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import NativeEntry from './NativeEntry'
-import { Footer, PlayBadge, AppStoreBadge, StickyCta, PRECO } from './_marketing/ui'
+import { Footer, PlayBadge, AppStoreBadge, StickyCta, PRECO, TRIAL } from './_marketing/ui'
 import BaixarApp from './_marketing/BaixarApp'
 
 export const metadata = {
@@ -27,7 +27,7 @@ const ESCURO = '#103D77'
 
 const FAQ = [
   { q: 'Onde eu baixo o aplicativo?', a: `O Vonai está na Google Play (Android) e na App Store (iPhone/iPad) — busque "Vonai" ou acesse vonai.com.br/baixar, que leva direto à loja do seu celular. Baixar é grátis e você começa com ${PRECO.diasGratis} dias de Premium de brinde. Se preferir, também funciona direto no navegador.` },
-  { q: 'O Vonai é grátis?', a: `Você começa com ${PRECO.diasGratis} dias de Premium completo sem pagar nada. Pedimos o cartão para começar, e a assinatura só é cobrada no ${PRECO.diasGratis + 1}º dia (${PRECO.mensal}/mês ou ${PRECO.anual}/ano). Cancele antes disso em um toque e não paga nada — seu progresso fica guardado de qualquer jeito.` },
+  { q: 'O Vonai é grátis?', a: TRIAL.faqEhGratis },
   { q: 'Funciona para quem está começando do zero?', a: 'Sim. A trilha vai do A1 (primeiras palavras) ao C2 (nível quase nativo), e um teste rápido de nivelamento posiciona você no ponto certo. As explicações são todas em português.' },
   { q: 'Como a IA corrige minha pronúncia?', a: 'Você lê frases em voz alta e o app compara o que você falou com o esperado, mostrando palavra por palavra o que ficou bom — com dicas específicas para os sons difíceis para brasileiros, como o "th" e o "-ed".' },
   { q: 'Em que o Vonai é diferente de Duolingo ou Babbel?', a: 'O Vonai é um professor de IA que lembra de você: seus erros, seu objetivo e sua pronúncia alimentam as próximas aulas. E é feito para brasileiros — as armadilhas do português (falsos cognatos, "I have 25 years") são parte do treino diário.' },
@@ -206,7 +206,7 @@ export default function Home() {
       <div style={{ background: '#F6F8FB', marginTop: 48 }}>
         <div style={{ ...container, padding: '48px 20px 56px' }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>Planos simples, sem pegadinha</h2>
-          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>Todo mundo começa com {PRECO.diasGratis} dias de Premium completo, sem pagar nada. A cobrança entra só no {PRECO.diasGratis + 1}º dia — cancele antes e não paga nada.</p>
+          <p style={{ textAlign: 'center', color: '#5B6B82', fontSize: 16, margin: '0 0 36px' }}>{TRIAL.resumo}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, maxWidth: 720, margin: '0 auto' }}>
             {/* Teste grátis — não é plano: é o Premium completo por PRECO.diasGratis dias. A
                 duração sai da MESMA constante de /planos — página prometendo um número
@@ -232,7 +232,7 @@ export default function Home() {
               <Link href="/cadastro" style={{ ...cta, display: 'block', textAlign: 'center', marginTop: 18, fontSize: 15, padding: '13px 20px' }}>Testar grátis por {PRECO.diasGratis} dias →</Link>
             </div>
           </div>
-          <p style={{ textAlign: 'center', fontSize: 12.5, color: '#7C8AA0', marginTop: 22 }}>Renovação automática · Cartão de crédito · Cancele quando quiser, sem multa</p>
+          <p style={{ textAlign: 'center', fontSize: 12.5, color: '#7C8AA0', marginTop: 22 }}>{TRIAL.linhaFina}</p>
           <p style={{ textAlign: 'center', fontSize: 14, marginTop: 14 }}><Link href="/planos" style={{ color: AZUL, fontWeight: 600 }}>Ver a comparação completa dos planos →</Link></p>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AZUL, ESCURO, LARANJA, PRECO, container, cta, Nav, Footer, Faq, Hero, Selo, StickyCta, CtaFinal, PlayBadge, AppStoreBadge, type Pergunta } from '../_marketing/ui'
+import { AZUL, ESCURO, LARANJA, PRECO, TRIAL, container, cta, Nav, Footer, Faq, Hero, Selo, StickyCta, CtaFinal, PlayBadge, AppStoreBadge, type Pergunta } from '../_marketing/ui'
 
 // Página de preço. Existe por dois motivos:
 // (1) Sitelink — o Google Ads exige páginas do mesmo domínio com conteúdo diferente do
@@ -32,10 +32,10 @@ export const metadata = {
 }
 
 const FAQ: Pergunta[] = [
-  { q: 'Preciso cadastrar cartão para testar?', a: `Sim, o cartão entra na hora de começar — mas nada é cobrado nos ${PRECO.diasGratis} dias. Ele fica guardado com segurança no Stripe (o Vonai nunca vê o número) e serve para a assinatura continuar sozinha se você gostar. Cancele em um toque antes do ${PRECO.diasGratis + 1}º dia e não paga nada.` },
-  { q: 'O que acontece quando acabam os dias grátis?', a: `No ${PRECO.diasGratis + 1}º dia a assinatura começa e o cartão é cobrado — avisamos por e-mail um dia antes. Se não for pra você, é só cancelar antes, em um toque, na sua conta: não paga nada e o progresso fica guardado.` },
+  { q: 'Preciso cadastrar cartão para testar?', a: TRIAL.faqPrecisaCartao },
+  { q: 'O que acontece quando acabam os dias grátis?', a: TRIAL.faqFimDoTeste },
   { q: 'Como cancelo?', a: 'Se você assinou pelo site ou pelo Android, o cancelamento é feito no e-mail de confirmação da compra ou pelo nosso suporte — sem multa e sem fidelidade. Se assinou pelo iPhone, o cancelamento é nos Ajustes do seu ID Apple, em Assinaturas, como em qualquer app da App Store. Você continua com o Premium até o fim do período já pago.' },
-  { q: 'Quais formas de pagamento vocês aceitam?', a: 'Pelo site: cartão de crédito, processado pelo Stripe — a assinatura renova sozinha e você cancela quando quiser. Pelo iPhone, a cobrança é feita pela própria Apple, com a forma de pagamento cadastrada no seu ID Apple.' },
+  { q: 'Quais formas de pagamento vocês aceitam?', a: TRIAL.faqPagamento },
   { q: 'O plano anual vale a pena?', a: `O anual sai por ${PRECO.anual}, o equivalente a ${PRECO.anualPorMes} por mês — cerca de 19% mais barato que o mensal. Faz sentido se você já testou e sabe que vai usar. Se ainda está decidindo, comece no mensal ou nos dias grátis.` },
   { q: 'Existe desconto para estudante ou plano família?', a: 'Ainda não. Hoje existem apenas o mensal e o anual (além dos dias grátis para testar). Quando houver outra opção, ela aparece nesta página.' },
   { q: 'Se eu assinar, o preço pode aumentar?', a: 'Enquanto sua assinatura estiver ativa, você mantém o valor que contratou. Se um dia o preço mudar para novas assinaturas, quem já é assinante não é afetado no ciclo em andamento.' },
@@ -67,9 +67,9 @@ export default function Planos() {
       <Nav />
       <div className="vn-body-pad">
         <Hero
-          badge={<><Selo>💳 Nada cobrado nos {PRECO.diasGratis} dias</Selo><Selo>🚫 Sem fidelidade</Selo></>}
+          badge={<><Selo>💳 {TRIAL.selo}</Selo><Selo>🚫 Sem fidelidade</Selo></>}
           titulo={<>Planos e preços do <span style={{ color: '#FFD98A' }}>Vonai</span></>}
-          sub={<>Comece com {PRECO.diasGratis} dias de Premium completo sem pagar nada. A assinatura entra no {PRECO.diasGratis + 1}º dia por {PRECO.mensal} por mês (anual: {PRECO.anual}). Cancele antes em 1 toque e não paga nada.</>}
+          sub={<>{TRIAL.heroSub}</>}
         >
           <Link href="/cadastro" style={cta}>Começar meus {PRECO.diasGratis} dias grátis →</Link>
         </Hero>
@@ -105,7 +105,7 @@ export default function Planos() {
                 <li>⭐ {PRECO.diasGratis} dias grátis antes de qualquer cobrança</li>
               </ul>
               <Link href="/cadastro" style={{ ...cta, display: 'block', textAlign: 'center', marginTop: 24 }}>Testar Premium grátis →</Link>
-              <div style={{ fontSize: 12.5, color: '#B5D4F4', textAlign: 'center', marginTop: 12 }}>Nada é cobrado nos {PRECO.diasGratis} dias · cancele em 1 toque antes disso</div>
+              <div style={{ fontSize: 12.5, color: '#B5D4F4', textAlign: 'center', marginTop: 12 }}>{TRIAL.selo} · cancele em 1 toque</div>
             </div>
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function Planos() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
             {[
               ['🔓', 'Cancele quando quiser', 'Sem multa, sem fidelidade, sem ligar para ninguém. Você continua Premium até o fim do período já pago.'],
-              ['💳', 'Nada é cobrado no teste', `Os ${PRECO.diasGratis} dias são gratuitos de verdade. Avisamos por e-mail um dia antes da 1ª cobrança, e cancelar leva um toque.`],
+              ['💳', 'Nada é cobrado no teste', PRECO.cartaoNaEntrada ? `Os ${PRECO.diasGratis} dias são gratuitos de verdade. Avisamos por e-mail um dia antes da 1ª cobrança, e cancelar leva um toque.` : `Os ${PRECO.diasGratis} dias são gratuitos de verdade e nem cartão pedimos. Nada é cobrado automaticamente quando eles acabam.`],
               ['💾', 'Seu progresso é seu', 'Se o teste acabar ou você parar de pagar, a conta e todo o progresso continuam guardados. Ao assinar, você volta de onde parou.'],
               ['📄', 'Preço na cara', 'O valor está nesta página, nos Termos e na tela de compra do app. Se mudar aqui, mudou em todo lugar.'],
             ].map(([e, t, d]) => (
