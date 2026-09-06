@@ -5076,9 +5076,15 @@ export default function AppPage() {
       setEstAchado(d)
       setEstFase('achado')
       try { track('estreia_achado', { topico: d.topico }) } catch (e) {}
-      const guardar = d.topico && d.topico !== 'sem_erro' && d.topico !== 'fluencia'
+      // O que entra em topicos_fracos é o RÓTULO em português, nunca o slug: este campo
+      // é lido cru pelo card "Treino do SEU erro", pelos dois e-mails de lembrete e pelo
+      // card "Eu lembro de você" do chat. Slug ali vira «a gente ainda tem que apertar:
+      // to_be_idade» — texto de máquina na tela que vende memória. O slug fica só no
+      // evento de analytics acima, que é onde ele serve para alguma coisa.
+      const rotulo = String(d.rotulo || '').trim().slice(0, 48)
+      const guardar = !!rotulo && d.topico !== 'sem_erro' && d.topico !== 'fluencia'
       const fracos = guardar
-        ? Array.from(new Set([...(perfilIa.topicos_fracos || []), d.topico])).slice(-12)
+        ? Array.from(new Set([...(perfilIa.topicos_fracos || []), rotulo])).slice(-12)
         : (perfilIa.topicos_fracos || [])
       salvarPerfil({
         ...perfilIa,

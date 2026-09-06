@@ -44,6 +44,38 @@ const TOPICOS = [
   "respondeu_em_portugues", "sem_erro",
 ] as const
 
+// Nome do erro em PORTUGUÊS, do jeito que o aluno vai ler. Isto existe porque
+// `topicos_fracos` não é campo interno: ele aparece cru em quatro lugares — o card
+// "Treino do SEU erro" (lib/missao.ts), o e-mail de lembrete, o e-mail do dia 2 e o
+// card "Eu lembro de você" no chat (que ainda manda o texto para o professor). Gravar
+// o slug ali faria o app dizer «A gente ainda tem que apertar: to_be_idade» — cara de
+// software quebrado justamente na tela que vende "uma IA que lembra de você".
+// O modelo devolve o rótulo; este mapa é a rede de segurança quando ele não devolve.
+const ROTULOS: Record<string, string> = {
+  to_be_idade: "idade com o verbo to be",
+  to_be_geral: "o verbo to be",
+  presente_simples_s: "o s do presente (he works)",
+  presente_continuo: "o presente contínuo (-ing)",
+  passado_simples: "o passado simples",
+  passado_irregular: "passado dos verbos irregulares",
+  futuro: "falar do futuro",
+  presente_perfeito: "o presente perfeito",
+  artigos: "os artigos a, an e the",
+  plural: "o plural",
+  preposicoes: "as preposições (in, on, at)",
+  ordem_das_palavras: "a ordem das palavras na frase",
+  falso_cognato: "falsos cognatos",
+  vocabulario: "vocabulário",
+  pronuncia_th: "o som do th",
+  pronuncia_ed: "a terminação -ed",
+  pronuncia_r: "o r no fim das palavras",
+  pronuncia_h: "o h aspirado",
+  pronuncia_vogal: "as vogais longas",
+  fluencia: "soltar a fala sem travar",
+  respondeu_em_portugues: "responder em inglês sem travar",
+  sem_erro: "manter o ritmo da conversa",
+}
+
 const SISTEMA_ABRIR = `Você é um professor de inglês brasileiro conversando com um aluno NOVO, no primeiro minuto de uso do app. Ele tem medo de falar.
 
 Devolva SOMENTE um JSON válido, sem markdown, sem cercas de código, no formato:
@@ -59,7 +91,7 @@ const SISTEMA_ANALISAR = `Você é um professor de inglês brasileiro. O aluno a
 Sua tarefa é devolver UM achado: uma coisa verdadeira e específica sobre o inglês DELE. Não é uma nota, não é um relatório, não é uma lista.
 
 Devolva SOMENTE um JSON válido, sem markdown, sem cercas de código, no formato:
-{"elogio":"...","achado":"...","errado":"...","certo":"...","porque":"...","topico":"..."}
+{"elogio":"...","achado":"...","errado":"...","certo":"...","porque":"...","topico":"...","rotulo":"..."}
 
 elogio: UMA frase curta em português apontando algo concreto que ele ACERTOU. Tem que ser verificável na fala dele (uma palavra, uma estrutura, ter respondido em inglês). Nunca elogio genérico do tipo "muito bem".
 achado: UMA frase em português nomeando o erro mais importante da fala dele. Direta, sem rodeio, sem culpa. Se for uma armadilha clássica do português, diga isso ("essa é a armadilha número 1 do brasileiro").
@@ -67,6 +99,7 @@ errado: o trecho EXATO que ele falou, em inglês, com o erro. String curta. Se n
 certo: o mesmo trecho corrigido. String curta. Se não houver erro, string vazia.
 porque: UMA frase em português explicando a regra em linguagem de gente, sem jargão gramatical. Nada de "verbo auxiliar" ou "particípio" com aluno de A1/A2.
 topico: exatamente um destes valores: ${TOPICOS.join(", ")}.
+rotulo: o nome do erro em português, do jeito que um professor falaria, em minúsculas, de 2 a 5 palavras, sem ponto final. Exemplos: "idade com o verbo to be", "passado dos verbos irregulares", "o som do th". Este texto aparece para o aluno dentro de uma frase ("a gente ainda tem que apertar: ..."), então tem que caber ali naturalmente — nada de frase inteira nem de termo técnico.
 
 Regras duras:
 - NUNCA invente um erro que não está na transcrição. Se ele falou certo, use topico "sem_erro", deixe errado/certo vazios e no achado aponte a PRÓXIMA armadilha que ele vai encontrar, com exemplo.
@@ -188,6 +221,12 @@ export async function POST(req: NextRequest) {
     }
 
     const topico = (TOPICOS as readonly string[]).includes(String(j.topico)) ? String(j.topico) : "fluencia"
+    // O rótulo é o que o aluno lê. Nunca deixamos vazio e nunca deixamos passar o slug:
+    // sem rótulo do modelo, cai no mapa; sem entrada no mapa, cai no genérico.
+    const rotuloBruto = so(j.rotulo, 48).replace(/[.\s]+$/, "").toLowerCase()
+    const rotulo = rotuloBruto && !/_/.test(rotuloBruto)
+      ? rotuloBruto
+      : (ROTULOS[topico] || "soltar a fala sem travar")
     return NextResponse.json({
       elogio: so(j.elogio, 220),
       achado: so(j.achado, 260),
@@ -195,6 +234,7 @@ export async function POST(req: NextRequest) {
       certo: so(j.certo, 160),
       porque: so(j.porque, 260),
       topico,
+      rotulo,
     })
   } catch {
     return NextResponse.json({ error: "indisponivel" }, { status: 503 })
