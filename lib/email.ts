@@ -222,3 +222,40 @@ export function emailLeadTeste(nivel: string | null): { titulo: string; corpo: s
     href,
   }
 }
+
+// ---------------------------------------------------------------------------------
+// Envio de HTML livre pelo mesmo canal dos lembretes. Existe porque enviarEmailLembrete
+// só monta e-mail de UM botão, e a pesquisa de 08/09 precisa de cinco (uma opção por
+// resposta) — refazer o layout dentro dela quebraria todos os e-mails do ciclo de vida.
+// Mesmo remetente, mesmo reply_to, mesmo rodapé de descadastro em um clique.
+export async function enviarEmailHtml(params: {
+  para: string
+  userId: string
+  titulo: string
+  html: string
+  texto: string
+}): Promise<ResultadoEmail> {
+  const chave = process.env.RESEND_API_KEY
+  if (!chave) return { ok: false, motivo: 'sem RESEND_API_KEY' }
+  if (!params.para || !params.para.includes('@')) return { ok: false, motivo: 'e-mail invalido' }
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: DE,
+        to: [params.para],
+        reply_to: process.env.EMAIL_REPLY_TO || 'igormelo47@gmail.com',
+        subject: params.titulo,
+        html: params.html,
+        text: params.texto,
+        headers: { 'List-Unsubscribe': `<${linkDescadastro(params.userId)}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+      }),
+    })
+    if (!r.ok) return { ok: false, motivo: `resend ${r.status}: ${(await r.text()).slice(0, 160)}` }
+    const j = await r.json().catch(() => ({}))
+    return { ok: true, id: j?.id }
+  } catch (e: any) {
+    return { ok: false, motivo: String(e?.message || e).slice(0, 160) }
+  }
+}

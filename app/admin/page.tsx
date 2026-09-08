@@ -93,6 +93,34 @@ export default function Admin() {
   const [alvo, setAlvo] = useState<Record<number, string>>({})
   const [liberando, setLiberando] = useState<number | null>(null)
   const [msgPend, setMsgPend] = useState<string>('')
+  // Pesquisa de uma pergunta (/api/pesquisa). O painel diz ONDE a pessoa some; só ela
+  // pode dizer POR QUE. Fica aqui, colado no funil, porque é a resposta do funil.
+  const [pesq, setPesq] = useState<any>(null)
+  const [pesqResp, setPesqResp] = useState<any>(null)
+  const [pesqMsg, setPesqMsg] = useState('')
+  const [pesqOcupado, setPesqOcupado] = useState(false)
+
+  async function pesquisa(acao: 'ver' | 'enviar' | 'ler') {
+    setPesqOcupado(true); setPesqMsg('')
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token || ''
+      const r = await fetch('/api/pesquisa', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) { setPesqMsg(`Não deu: ${j?.error || r.status}`); return }
+      if (acao === 'ler') { setPesqResp(j); return }
+      if (acao === 'ver') { setPesq(j); return }
+      setPesqMsg(`✅ ${j.enviados} enviados${j.falhas ? `, ${j.falhas} falharam` : ''}${j.faltam ? ` — faltam ${j.faltam}, clique de novo` : ' — lista completa'}.`)
+      if (j.erros?.length) setPesqMsg(m => `${m} (${j.erros[0]})`)
+      const r2 = await fetch('/api/pesquisa', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'ver' }) })
+      if (r2.ok) setPesq(await r2.json())
+    } catch { setPesqMsg('Erro de rede.') }
+    finally { setPesqOcupado(false) }
+  }
 
   async function carregarPendentes(token: string) {
     try {
@@ -358,6 +386,62 @@ export default function Admin() {
           </div>
           )
         })()}
+
+        {/* PESQUISA DE UMA PERGUNTA — a única coisa no painel que produz informação nova.
+            Todo o resto acima mede comportamento; isto pergunta o motivo. */}
+        <div style={{ ...card, marginBottom: 16, borderColor: '#F5C77E', background: '#FFFBF3' }}>
+          <div style={{ fontWeight: 800, marginBottom: 4 }}>Perguntar por quê 📨</div>
+          <div style={{ fontSize: 12.5, color: '#5B6B82', marginBottom: 12, lineHeight: 1.6 }}>
+            Manda um e-mail com <strong>uma pergunta e cinco opções clicáveis</strong> para quem criou conta e
+            não voltou. Quem paga, quem ainda usa e quem pediu para sair ficam de fora.
+            Vai em lotes de 40 (limite de tempo da Vercel) — clique de novo até zerar.
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            <button onClick={() => pesquisa('ver')} disabled={pesqOcupado}
+              style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid #D8E1EC', background: '#fff', color: '#102A4C', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>
+              1. Ver quem receberia
+            </button>
+            <button onClick={() => { if (confirm(`Enviar o e-mail agora para ${pesq?.vaoReceber ?? '?'} pessoas (lote de 40)?`)) pesquisa('enviar') }}
+              disabled={pesqOcupado || !pesq || !pesq.vaoReceber}
+              style={{ padding: '9px 14px', borderRadius: 9, border: 'none', background: (!pesq || !pesq.vaoReceber) ? '#C9D6E6' : '#B4780F', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: (!pesq || !pesq.vaoReceber) ? 'default' : 'pointer' }}>
+              2. Enviar lote
+            </button>
+            <button onClick={() => pesquisa('ler')} disabled={pesqOcupado}
+              style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid #D8E1EC', background: '#fff', color: '#102A4C', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>
+              3. Ver respostas
+            </button>
+          </div>
+          {pesq && (
+            <div style={{ fontSize: 13, color: '#5B6B82', lineHeight: 1.7, background: '#fff', border: '1px solid #EEE3CE', borderRadius: 10, padding: '10px 12px' }}>
+              <strong>{pesq.vaoReceber}</strong> pessoas ainda não receberam
+              (<strong>{pesq.usaramUmaVez}</strong> usaram uma vez, <strong>{pesq.nuncaUsaram}</strong> nunca usaram).
+              {pesq.jaReceberam > 0 && <> Já receberam: {pesq.jaReceberam}.</>} Fora da lista: {pesq.pulados}.
+            </div>
+          )}
+          {pesqMsg && <div style={{ fontSize: 13.5, marginTop: 10, fontWeight: 600, color: pesqMsg.startsWith('✅') ? '#166534' : '#B54A3A' }}>{pesqMsg}</div>}
+          {pesqResp && (
+            <div style={{ marginTop: 12, background: '#fff', border: '1px solid #EEE3CE', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#102A4C', marginBottom: 8 }}>{pesqResp.total} resposta(s)</div>
+              {Object.entries(pesqResp.contagem || {}).sort((a: any, b: any) => b[1] - a[1]).map(([rot, n]: any) => (
+                <div key={rot} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 6 }}>
+                  <div style={{ minWidth: 26, fontWeight: 800, color: AZUL, fontSize: 13.5 }}>{n}</div>
+                  <div style={{ fontSize: 13, color: '#5B6B82', lineHeight: 1.5 }}>{rot}</div>
+                </div>
+              ))}
+              {(pesqResp.textos || []).length > 0 && (
+                <div style={{ marginTop: 12, borderTop: '1px solid #EEF1F6', paddingTop: 10 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#102A4C', marginBottom: 6 }}>O que escreveram</div>
+                  {pesqResp.textos.map((t: any, i: number) => (
+                    <div key={i} style={{ fontSize: 13, color: '#102A4C', background: '#F6F8FB', borderRadius: 8, padding: '8px 10px', marginBottom: 6, lineHeight: 1.55 }}>
+                      &ldquo;{t.texto}&rdquo;<div style={{ fontSize: 11, color: '#9AA7B8', marginTop: 3 }}>{t.email || 'sem e-mail'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {pesqResp.total === 0 && <div style={{ fontSize: 13, color: '#9AA7B8' }}>Nenhuma resposta ainda.</div>}
+            </div>
+          )}
+        </div>
 
         {/* Cadastros por dia */}
         <div style={{ ...card, marginBottom: 16 }}>
