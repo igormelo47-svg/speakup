@@ -2361,23 +2361,105 @@ function Skel({ h = 16, w = '100%' as string | number, r = 12, mb = 0 }: { h?: n
 // qualquer tela). Cores vêm de lib/professores.ts. O Vô continua sendo o Mascote.
 function AvatarProf({ id, size = 64 }: { id: ProfessorId; size?: number }) {
   const p = professorDe(id)
-  const fem = id === 'sofia' || id === 'helena'
+  const escuro = '#2A1F1A'
+  // Sombra do cabelo: mesma cor um pouco mais escura, para a franja não sumir no fundo.
+  const sombra = p.cabelo === '#1a1a1a' || p.cabelo === '#14100e' ? '#000' : p.cabelo
+
+  // CABELO, camada de TRÁS (atrás do rosto). É o que dá a silhueta — a única coisa que
+  // realmente distingue uma pessoa da outra num avatar de 72px.
+  const atras = () => {
+    switch (p.estilo) {
+      case 'longo': return (
+        <path d="M24 46 C22 19 78 19 76 46 L78 82 C69 76 67 60 65 46 C56 52 44 52 35 46 C33 60 31 76 22 82 Z" fill={p.cabelo} />
+      )
+      case 'bob': return (
+        <path d="M27 46 C25 20 75 20 73 46 L74 65 C69 61 67 53 66 46 C56 51 44 51 34 46 C33 53 31 61 26 65 Z" fill={p.cabelo} />
+      )
+      case 'coque': return (<>
+        {/* o coque tem de ENCOSTAR no crânio: solto lá em cima ele lê como chapéu */}
+        <circle cx="50" cy="21" r="8.5" fill={p.cabelo} />
+        <path d="M29 47 C27 21 73 21 71 47 C69 39 64 34 58 32 C54 35 46 35 42 32 C36 34 31 39 29 47 Z" fill={p.cabelo} />
+      </>)
+      case 'cacheado': return (<>
+        <circle cx="50" cy="26" r="13" fill={p.cabelo} />
+        <circle cx="34" cy="32" r="10.5" fill={p.cabelo} />
+        <circle cx="66" cy="32" r="10.5" fill={p.cabelo} />
+        <circle cx="29" cy="43" r="8" fill={p.cabelo} />
+        <circle cx="71" cy="43" r="8" fill={p.cabelo} />
+      </>)
+      default: return (
+        <path d="M29 45 C29 22 71 22 71 45 L69 50 C62 39 38 39 31 50 Z" fill={p.cabelo} />
+      )
+    }
+  }
+
+  // CABELO, camada da FRENTE (por cima do rosto): franja / linha do cabelo.
+  const frente = () => {
+    switch (p.estilo) {
+      case 'longo': return <path d="M32 38 C36 23 64 23 68 38 C59 30 41 30 32 38 Z" fill={sombra} />
+      case 'bob': return <path d="M32 38 C36 24 64 24 68 38 C60 31 40 31 32 38 Z" fill={sombra} />
+      case 'coque': return <path d="M33 37 C38 26 62 26 67 37 C59 32 41 32 33 37 Z" fill={sombra} />
+      case 'cacheado': return (<>
+        <circle cx="39" cy="29" r="7" fill={sombra} />
+        <circle cx="50" cy="26.5" r="7.5" fill={sombra} />
+        <circle cx="61" cy="29" r="7" fill={sombra} />
+      </>)
+      default: return <path d="M32 37 C37 26 63 26 68 37 C59 32 41 32 32 37 Z" fill={sombra} />
+    }
+  }
+
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-label={p.nome} style={{ borderRadius: '50%', background: p.cor + '33', flexShrink: 0 }}>
-      <circle cx="50" cy="50" r="50" fill={p.cor} opacity="0.18" />
-      {/* ombros */}
-      <path d="M18 100 C18 76 32 68 50 68 C68 68 82 76 82 100 Z" fill={p.cor} />
-      {/* pescoço */}
-      <rect x="43" y="56" width="14" height="14" rx="4" fill={p.pele} />
-      {/* cabelo (fundo) */}
-      {fem ? <path d="M26 48 C22 22 78 22 74 48 L76 70 C70 66 66 60 64 48 C52 52 44 52 36 48 C34 60 30 66 24 70 Z" fill={p.cabelo} /> : <path d="M28 44 C28 24 72 24 72 44 L70 50 C62 40 38 40 30 50 Z" fill={p.cabelo} />}
-      {/* rosto */}
+    <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={`Avatar de ${p.nome}`}
+      style={{ borderRadius: '50%', background: p.cor + '26', flexShrink: 0, display: 'block' }}>
+      <circle cx="50" cy="50" r="50" fill={p.cor} opacity="0.16" />
+
+      {/* ombros e gola — a gola tira o efeito de "bloco de cor" que os ombros tinham */}
+      <path d="M17 100 C17 77 31 69 50 69 C69 69 83 77 83 100 Z" fill={p.cor} />
+      <path d="M43 69 L50 79 L57 69 L53 68 L50 72 L47 68 Z" fill="#fff" opacity="0.85" />
+
+      {/* pescoço, com sombra do queixo */}
+      <rect x="43.5" y="57" width="13" height="14" rx="4.5" fill={p.pele} />
+      <path d="M43.5 57 h13 v4 C53 64 47 64 43.5 61 Z" fill="#000" opacity="0.12" />
+
+      {atras()}
+
+      {/* orelhas e rosto */}
+      <ellipse cx="30.5" cy="46" rx="3.4" ry="4.6" fill={p.pele} />
+      <ellipse cx="69.5" cy="46" rx="3.4" ry="4.6" fill={p.pele} />
       <ellipse cx="50" cy="44" rx="19" ry="22" fill={p.pele} />
-      {/* franja */}
-      {fem ? <path d="M31 40 C34 26 66 26 69 40 C60 34 40 34 31 40 Z" fill={p.cabelo} /> : <path d="M31 38 C36 27 64 27 69 38 C60 33 40 33 31 38 Z" fill={p.cabelo} />}
-      {/* olhos e sorriso */}
-      <circle cx="42" cy="45" r="2.4" fill="#1a1a1a" /><circle cx="58" cy="45" r="2.4" fill="#1a1a1a" />
-      <path d="M42 54 Q50 60 58 54" stroke="#8a3a2a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+
+      {frente()}
+
+      {/* sobrancelhas: é o traço que mais dá expressão num rosto pequeno */}
+      <path d="M38.5 39.5 Q42.5 37.6 46.5 39.3" stroke={sombra} strokeWidth="1.9" fill="none" strokeLinecap="round" opacity="0.85" />
+      <path d="M53.5 39.3 Q57.5 37.6 61.5 39.5" stroke={sombra} strokeWidth="1.9" fill="none" strokeLinecap="round" opacity="0.85" />
+
+      {/* olhos com brilho — dot preto sozinho deixava o rosto sem vida */}
+      <ellipse cx="42.5" cy="45.5" rx="3" ry="3.4" fill="#fff" />
+      <ellipse cx="57.5" cy="45.5" rx="3" ry="3.4" fill="#fff" />
+      <circle cx="42.8" cy="45.8" r="1.9" fill={escuro} />
+      <circle cx="57.8" cy="45.8" r="1.9" fill={escuro} />
+      <circle cx="42.1" cy="44.9" r="0.75" fill="#fff" />
+      <circle cx="57.1" cy="44.9" r="0.75" fill="#fff" />
+
+      {/* nariz discreto */}
+      <path d="M50 48 v4 q0 1.4 1.8 1.6" stroke="#000" strokeOpacity="0.22" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+
+      {p.barba && (<>
+        <path d="M31.5 45 C31.5 60 39 66.5 50 66.5 C61 66.5 68.5 60 68.5 45 C68.5 53 65.5 59 61 61.5 C57 63.5 43 63.5 39 61.5 C34.5 59 31.5 53 31.5 45 Z" fill={p.cabelo} />
+        <path d="M43 55.5 Q50 52.8 57 55.5 Q50 57.6 43 55.5 Z" fill={p.cabelo} />
+      </>)}
+
+      {/* sorriso */}
+      <path d="M43.5 57.5 Q50 62.5 56.5 57.5" stroke="#7A3B2E" strokeWidth="2.1" fill="none" strokeLinecap="round" />
+
+      {p.oculos && (<>
+        <circle cx="42.5" cy="45.5" r="7" fill="#fff" fillOpacity="0.14" stroke={escuro} strokeWidth="1.7" />
+        <circle cx="57.5" cy="45.5" r="7" fill="#fff" fillOpacity="0.14" stroke={escuro} strokeWidth="1.7" />
+        <path d="M49.5 45.5 h1" stroke={escuro} strokeWidth="1.7" strokeLinecap="round" />
+        <path d="M35.5 44.5 L31.5 45.5" stroke={escuro} strokeWidth="1.7" strokeLinecap="round" />
+        <path d="M64.5 44.5 L68.5 45.5" stroke={escuro} strokeWidth="1.7" strokeLinecap="round" />
+      </>)}
     </svg>
   )
 }
