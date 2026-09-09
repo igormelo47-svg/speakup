@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // DEMO PÚBLICA DE FALA — a pessoa que acabou de descobrir o nível grava UMA frase e vê,
 // na hora, o que o professor entendeu. Sem conta, sem cartão, sem instalar nada.
@@ -84,12 +85,15 @@ export async function POST(req: NextRequest) {
   // Sonda do cliente (checa se a rota existe antes de pedir o microfone) responde ANTES
   // do limite, para não queimar a cota de quem ainda nem falou.
   if (!buf || buf.byteLength < 1000) return NextResponse.json({ error: 'audio_pequeno' }, { status: 400 })
-  if (buf.byteLength > 1_200_000) return NextResponse.json({ error: 'audio_grande' }, { status: 413 })
+  // 1,2 MB de Opus sao VARIOS MINUTOS de audio, e o Whisper cobra por minuto — o teto
+  // antigo estava calculado em cima de clipes de 5s mas permitia ~70x isso. A demo publica
+  // le uma frase: 250 KB ja e folgado para ~30s em qualquer codec que o navegador use.
+  if (buf.byteLength > 250_000) return NextResponse.json({ error: 'audio_grande' }, { status: 413 })
 
   // FAIL-CLOSED: sem conseguir verificar o limite, não gasta. Numa rota pública isso não
   // é preciosismo — é a diferença entre um custo previsível e uma fatura surpresa.
   const admin = createClient(url, service)
-  const ip = (req.headers.get('x-forwarded-for') || 'sem-ip').split(',')[0].trim()
+  const ip = ipCliente(req)
   try {
     const { data: dentro, error } = await admin.rpc('incrementa_ip', {
       p_ip: `demo:${ip || 'sem-ip'}`, p_limite: TENTATIVAS_IP,

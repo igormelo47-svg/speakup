@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VOZES_PERMITIDAS } from '../../../lib/professores'
 import { createClient } from '@supabase/supabase-js'
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // Voz neural para o app (Professor IA, Simulador, lições, dicionário).
 // Usa a OpenAI (gpt-4o-mini-tts) quando OPENAI_API_KEY estiver configurada na Vercel.
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
   // (o app cai na voz do navegador e nada quebra para o aluno).
   const admin = createClient(url, service)
   try {
-    const ip = (req.headers.get('x-forwarded-for') || 'sem-ip').split(',')[0].trim()
+    const ip = ipCliente(req)
     const [{ data: prog }, { data: perfil }] = await Promise.all([
       admin.from('progresso').select('is_premium, premium_expira').eq('user_id', userId).maybeSingle(),
       admin.from('profiles').select('trial_expira').eq('id', userId).maybeSingle(),

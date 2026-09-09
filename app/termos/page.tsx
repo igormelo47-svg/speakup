@@ -18,6 +18,10 @@ export default function Termos() {
       <h2 style={h2}>2. Cadastro e conta</h2>
       <p>Para usar o Vonai é necessário criar uma conta com e-mail e senha. Você é responsável por manter seus dados de acesso em sigilo e por todas as atividades realizadas na sua conta. Os dados informados devem ser verdadeiros.</p>
 
+      <h2 style={h2}>2.1. Idade mínima</h2>
+      <p><strong>O Vonai é destinado a pessoas com 13 anos ou mais.</strong> Entre 13 e 17 anos, o uso depende do consentimento de pelo menos um dos pais ou do responsável legal, que deve conhecer e concordar com estes Termos e com a Política de Privacidade. Menores de 13 anos não devem criar conta nem utilizar o app.</p>
+      <p>Essa exigência não é apenas nossa: o professor de IA e a transcrição de voz do Vonai funcionam sobre serviços de terceiros cujos termos estabelecem a mesma idade mínima. Se identificarmos uma conta de menor de 13 anos, ela será encerrada e os dados, excluídos. Se você é responsável por um adolescente e quer pedir a exclusão da conta dele, escreva para o e-mail de contato da Política de Privacidade.</p>
+
       <h2 style={h2}>3. Planos e pagamento</h2>
       <p>O Vonai é um serviço por assinatura (Premium). Toda conta nova recebe {PRECO.diasGratis} dias de acesso Premium gratuito para teste, sem necessidade de cadastrar cartão e sem cobrança automática ao final: terminado esse período, o uso do app passa a exigir uma assinatura ativa. Sua conta e seu progresso ficam guardados e voltam a ficar disponíveis ao assinar. Os pagamentos do Premium são processados por plataformas parceiras (ex.: Kiwify na web/Android; App Store no iPhone). Valores, formas de cobrança e renovação são informados no momento da contratação. Cancelamentos e reembolsos seguem a legislação aplicável e as regras da plataforma de pagamento.</p>
 

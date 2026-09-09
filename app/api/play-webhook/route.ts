@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { consultarAssinatura, reconhecerAssinatura, playConfigurado } from '../../../lib/play-billing'
 import { premiarIndicador } from '../../../lib/indicacao-premio'
 import { avisarVenda } from '../../../lib/avisar-venda'
+import { segredoConfere } from '../../../lib/segredo'
 
 // Notificações em tempo real do Google Play (RTDN) via Pub/Sub push.
 //
@@ -19,7 +20,7 @@ import { avisarVenda } from '../../../lib/avisar-venda'
 export async function POST(req: NextRequest) {
   const esperado = process.env.PLAY_WEBHOOK_TOKEN || ''
   const token = req.nextUrl.searchParams.get('token') || ''
-  if (!esperado || token !== esperado) return new NextResponse('unauthorized', { status: 401 })
+  if (!segredoConfere(token, esperado)) return new NextResponse('unauthorized', { status: 401 })
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !service) return NextResponse.json({ error: 'missing env' }, { status: 500 })

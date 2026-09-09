@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { PROMPTS, SCENARIO_PROMPTS, FORMATO_SIMULADOR, resumoPerfilServidor } from "./prompts"
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // Mantenha igual ao app (page.tsx). false = cobrança ligada.
 const BETA_GRATIS = false
@@ -62,6 +63,16 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 40) {
     return NextResponse.json({ error: "invalid messages" }, { status: 400 })
   }
+  // O teto de tamanho SO vale se todo content for string. A API da Anthropic tambem aceita
+  // content como array de blocos, e o array era repassado cru: uma mensagem em formato de
+  // array passava contando ZERO caracteres, e cada chamada podia ir a ~200k tokens de
+  // entrada. O role tambem nao era validado -- dava para forjar falas do "professor" no
+  // historico, que e o jailbreak mais simples que existe. Os dois sao barrados aqui.
+  for (const m of messages as any[]) {
+    if (!m || typeof m !== "object") return NextResponse.json({ error: "invalid messages" }, { status: 400 })
+    if (m.role !== "user" && m.role !== "assistant") return NextResponse.json({ error: "invalid role" }, { status: 400 })
+    if (typeof m.content !== "string") return NextResponse.json({ error: "invalid content" }, { status: 400 })
+  }
   const totalChars = messages.reduce(
     (acc: number, m: any) => acc + (typeof m?.content === "string" ? m.content.length : 0), 0)
   if (totalChars > 20000) {
@@ -73,7 +84,7 @@ export async function POST(req: NextRequest) {
   // 3) Trava de uso diário ATÔMICA no servidor + teto por IP. FAIL-CLOSED:
   // se a verificação falhar, bloqueia (proteção de custo vem antes da conveniência).
   try {
-    const ip = (req.headers.get("x-forwarded-for") || "sem-ip").split(",")[0].trim()
+    const ip = ipCliente(req)
     const [{ data: prog }, { data: perfil }] = await Promise.all([
       admin.from("progresso").select("is_premium, premium_expira, perfil_ia, xp, streak, licoes_concluidas").eq("user_id", userId).maybeSingle(),
       admin.from("profiles").select("nome, trial_expira").eq("id", userId).maybeSingle(),

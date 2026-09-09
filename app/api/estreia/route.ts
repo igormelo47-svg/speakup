@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // ---------------------------------------------------------------------------
 // ESTREIA FALADA — a primeira coisa que acontece na vida do aluno dentro do app.
@@ -156,7 +157,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // 3) Paywall + limite diário, iguais ao chat. Fail-closed.
-    const ip = (req.headers.get("x-forwarded-for") || "sem-ip").split(",")[0].trim()
+    const ip = ipCliente(req)
     const [{ data: prog }, { data: perfil }] = await Promise.all([
       admin.from("progresso").select("is_premium, premium_expira").eq("user_id", userId).maybeSingle(),
       admin.from("profiles").select("trial_expira").eq("id", userId).maybeSingle(),

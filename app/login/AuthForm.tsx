@@ -18,6 +18,10 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const router = useRouter()
   const [indicado, setIndicado] = useState(false)
+  // Confirmacao de idade no cadastro. Nao e verificacao forte (o ECA Digital exige isso de
+  // servico DIRECIONADO a menores; o Vonai declara 13+ e nao se dirige a criancas), mas e o
+  // minimo exigivel: os termos da OpenAI, usada no Whisper, estabelecem 13 anos.
+  const [idadeOk, setIdadeOk] = useState(false)
   // O botão "Continuar com Google" só aparece quando NEXT_PUBLIC_GOOGLE_LOGIN=1 na Vercel,
   // e isso só deve ser ligado DEPOIS de habilitar o provider Google no painel do Supabase
   // (Authentication → Providers → Google) e adicionar https://vonai.com.br/app às Redirect
@@ -112,6 +116,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     if (modo === 'magic' || modo === 'magic_novo') {
       const criando = modo === 'magic_novo'
       if (!email) { setErro('Digite seu e-mail.'); setLoading(false); return }
+      if (criando && !idadeOk) { setErro('Confirme que você tem 13 anos ou mais para criar a conta.'); setLoading(false); return }
       const redirectApp = typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -144,6 +149,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
     }
 
     if (modo === 'cadastro') {
+      if (!idadeOk) { setErro('Confirme que você tem 13 anos ou mais para criar a conta.'); setLoading(false); return }
       const redirectApp = typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined
       // Sem campo de nome (removido em 27/08): usa a parte antes do @, o mesmo fallback
       // que o trigger handle_new_user já aplica com coalesce/split_part. O professor
@@ -301,6 +307,14 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
             quem não enxerga digita a senha errada e não recebe retorno nenhum. */}
         {erro && <p role="alert" style={{ color: '#A32D2D', fontSize: 13, marginBottom: 12, background: '#FBEBEB', padding: '10px 12px', borderRadius: 10 }}>{erro}</p>}
         {aviso && <p role="status" style={{ color: '#166534', fontSize: 13, marginBottom: 12, background: '#E3F3EA', padding: '10px 12px', borderRadius: 10 }}>{aviso}</p>}
+
+        {(modo === 'cadastro' || modo === 'magic_novo') && (
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, margin: '2px 0 14px', fontSize: 12.5, color: '#5B6B82', lineHeight: 1.45, cursor: 'pointer' }}>
+            <input type="checkbox" checked={idadeOk} onChange={e => { setIdadeOk(e.target.checked); if (e.target.checked) setErro('') }}
+              style={{ width: 17, height: 17, flexShrink: 0, marginTop: 1, accentColor: '#2E72D6', cursor: 'pointer' }} />
+            <span>Tenho 13 anos ou mais. Se tenho entre 13 e 17, meu responsável concorda com os Termos.</span>
+          </label>
+        )}
 
         <button type="submit" disabled={loading}
           style={{ width: '100%', padding: 14, background: loading ? '#7FA6CB' : 'linear-gradient(135deg, #2E72D6, #185FA5)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'default' : 'pointer', boxShadow: '0 4px 12px rgba(24,95,165,0.35)', fontFamily: 'inherit' }}>

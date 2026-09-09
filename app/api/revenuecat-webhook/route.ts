@@ -4,6 +4,7 @@ import { enviarPurchaseGA4 } from '../../../lib/ga4'
 import { enviarPurchaseMeta } from '../../../lib/meta-capi'
 import { avisarVenda } from '../../../lib/avisar-venda'
 import { premiarIndicador } from '../../../lib/indicacao-premio'
+import { segredoConfere } from '../../../lib/segredo'
 
 // Webhook do RevenueCat (assinaturas via App Store / Google Play).
 // Quando a Apple confirma o pagamento, o RevenueCat chama esta rota e a gente libera o Premium.
@@ -31,7 +32,7 @@ const REVOGA = new Set(['EXPIRATION'])
 export async function POST(req: NextRequest) {
   // Autenticação: header Authorization igual ao segredo configurado no RevenueCat.
   const auth = req.headers.get('authorization') || ''
-  if (!process.env.REVENUECAT_AUTH || auth !== process.env.REVENUECAT_AUTH) {
+  if (!segredoConfere(auth, process.env.REVENUECAT_AUTH)) {
     return new NextResponse('unauthorized', { status: 401 })
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL

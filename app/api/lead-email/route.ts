@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarEmailLembrete, emailLeadTeste } from '../../../lib/email'
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // Guarda o e-mail que a pessoa deixa no RESULTADO do teste de nível. É o único canal de
 // retorno que temos para quem faz o teste e não cria conta na hora — hoje essa pessoa some
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   // Teto por IP, FAIL-CLOSED: sem conseguir verificar o limite, não grava. Contador próprio
   // ("email:") para não dividir a cota com o chat do professor nem com o lead do Meta.
-  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+  const ip = ipCliente(req)
   try {
     const { data: dentroDoLimite, error } = await admin.rpc('incrementa_ip', {
       p_ip: `email:${ip || 'sem-ip'}`, p_limite: LIMITE_IP,

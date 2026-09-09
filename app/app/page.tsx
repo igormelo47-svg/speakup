@@ -2412,6 +2412,9 @@ function nivelDeXp(xp: number) {
 
 export default function AppPage() {
   const XP_PENDING_KEY = 'speakup_xp_pending'
+  // Espelho local de profiles.trial_expira: e a rede de seguranca quando a leitura do
+  // perfil falha. Sem ele, uma falha de rede no 2o dia mostrava paywall dentro do trial.
+  const TRIAL_CACHE_KEY = 'speakup_trial_expira'
   const [tab, setTab] = useState('home')
   const [level, setLevel] = useState('A1')
   const [view, setView] = useState<ViewType>('levels')
@@ -2532,7 +2535,16 @@ export default function AppPage() {
   // Meta diária padrão (a tela de "quanto tempo por dia" saiu do onboarding — 3 telas só). Dá pra mudar depois.
   const [onbMeta, setOnbMeta] = useState(50)
   // Respostas do onboarding de 8 telas (Lucida adaptado). Tudo vai para perfil_ia no fim.
-  const [onb, setOnb] = useState<{ objetivo: string; trava: string; nivel: string; testar: boolean; interesses: string[]; minutos: number; professor: ProfessorId | ''; velocidade: Velocidade }>({ objetivo: '', trava: '', nivel: '', testar: false, interesses: [], minutos: 10, professor: '', velocidade: 'normal' })
+  // nivel: vem pre-preenchido do teste publico (?nivel=B1 -> speakup_nivel). Quem acabou de
+  // responder 12 questoes no site era perguntado DE NOVO na tela 2 — o dado ja estava aqui.
+  const [onb, setOnb] = useState<{ objetivo: string; trava: string; nivel: string; testar: boolean; interesses: string[]; minutos: number; professor: ProfessorId | ''; velocidade: Velocidade }>(() => {
+    let nivelPrevio = ''
+    try {
+      const n = localStorage.getItem('speakup_nivel') || ''
+      if (['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(n)) nivelPrevio = n
+    } catch (e) {}
+    return { objetivo: '', trava: '', nivel: nivelPrevio, testar: false, interesses: [], minutos: 10, professor: '', velocidade: 'normal' }
+  })
   const [onbIniciando, setOnbIniciando] = useState(false)
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Olá! Sou seu professor de inglês com IA. Pode me perguntar sobre gramática, vocabulário ou praticar conversação. Como posso ajudar?', local: true }])
   const [chatInput, setChatInput] = useState('')
@@ -2645,6 +2657,10 @@ export default function AppPage() {
   const [estAbertura, setEstAbertura] = useState('')
   const [estPergunta, setEstPergunta] = useState('')
   const [estDito, setEstDito] = useState('')
+  // Mensagem visível na tela da estreia. Os casos de falha (áudio curto, transcrição vazia,
+  // microfone negado) voltavam ao estado anterior em SILÊNCIO: a pessoa falava, soltava o
+  // botão e nada acontecia — indistinguível de app quebrado, na primeira tela da vida dela.
+  const [estAviso, setEstAviso] = useState('')
   const [estAchado, setEstAchado] = useState<any>(null)
   const estRecRef = useRef<MediaRecorder | null>(null)
   const [whatsapp, setWhatsapp] = useState('')
@@ -2697,7 +2713,10 @@ export default function AppPage() {
   }, [])
   const xpSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Segurança: se trocar de aba enquanto grava, encerra o microfone (não fica ligado em 2º plano).
-  useEffect(() => { pararMic() }, [tab])
+  // O `return` é obrigatório: sem limpeza no desmonte, sair pelo botão Sair deixava o
+  // onend recriando o reconhecimento indefinidamente e o indicador de gravação do celular
+  // aceso depois que a pessoa já tinha saído do app.
+  useEffect(() => { pararMic(); return () => { pararMic() } }, [tab])
   const lastSyncedXpRef = useRef<number | null>(null)
   const semNumRef = useRef<number | null>(null)
   const semBaseRef = useRef(0)
@@ -2745,17 +2764,23 @@ export default function AppPage() {
   const profHoje = (() => { const p = profDiaData.split(':'); return p[0] === hojeStr ? (parseInt(p[1]) || 0) : 0 })()
   const profBloqueado = !isPremium && profHoje >= PROF_LIMIT
   const [xpInicioDia, setXpInicioDia] = useState(0)
+  // xpInicioDia comeca em 0 e so recebe valor no efeito abaixo — ou seja, no commit em que
+  // o progresso hidrata ele AINDA vale 0, e `xp - xpInicioDia` dava o XP acumulado da vida
+  // inteira. Qualquer aluno com XP "batia a meta do dia" so por abrir o app, todo dia.
+  // Esta flag marca quando a base do dia e confiavel; os premios so olham depois dela.
+  const [baseDiaPronta, setBaseDiaPronta] = useState(false)
   useEffect(() => {
     if (!xpHydrated) return // só define a base do dia depois do XP carregar do banco
     try {
       const raw = localStorage.getItem('speakup_xpdia')
       if (raw) {
         const [dia, base] = raw.split('|')
-        if (dia === hojeStr) { setXpInicioDia(parseInt(base) || 0); return }
+        if (dia === hojeStr) { setXpInicioDia(parseInt(base) || 0); setBaseDiaPronta(true); return }
       }
       localStorage.setItem('speakup_xpdia', hojeStr + '|' + xp)
       setXpInicioDia(xp)
-    } catch (e) {}
+      setBaseDiaPronta(true)
+    } catch (e) { setBaseDiaPronta(true) }
     // hojeStr na dependência: quem atravessa a meia-noite com o app aberto ganha base nova
     // (antes o XP de "hoje" aparecia inflado com o de ontem até o próximo reload).
   }, [xpHydrated, hojeStr])
@@ -2849,12 +2874,13 @@ export default function AppPage() {
   // em que ela é batida (1x por dia) reforça exatamente o hábito que sustenta a retenção.
   useEffect(() => {
     if (!xpHydrated) return
+    if (!baseDiaPronta) return // sem a base do dia, xpHoje seria o XP da vida inteira
     const meta = perfilIa.meta_diaria || 50
     if (Math.max(0, xp - xpInicioDia) < meta) return
     try { if (localStorage.getItem('speakup_meta_dia') === hojeStr) return; localStorage.setItem('speakup_meta_dia', hojeStr) } catch (e) { return }
     ganharMoedas(10)
     setConqNova({ e: '🎯', nome: 'Meta de hoje batida! +10 🪙' })
-  }, [xpHydrated, xp])
+  }, [xpHydrated, baseDiaPronta, xp, xpInicioDia, perfilIa.meta_diaria])
 
   // Desafio dos 3 primeiros dias: o funil mostrou que quase ninguém volta no dia
   // seguinte (~4 de 51). O card de "missão de amanhã" promete a recompensa; este efeito
@@ -3013,9 +3039,19 @@ export default function AppPage() {
         guardarPendente(patch)
         return
       }
-      // Deu certo: se havia coisa pendente, ela já foi junto? Não necessariamente —
-      // o reenvio tem função própria. Aqui só limpamos o aviso se não sobrou nada.
-      try { if (!localStorage.getItem(CHAVE_FILA)) setProgressoPendente(false) } catch (e) {}
+      // Gravação nova venceu: qualquer chave que a fila ainda carregue e que ACABOU de ser
+      // gravada com valor mais recente tem de sair da fila. Sem isto, o reenvio (que roda a
+      // cada volta para a aba) regravava o estado ANTIGO por cima do novo — o aluno perdia
+      // XP e lições no reload seguinte. O patch atual é sempre mais recente que a fila.
+      try {
+        const raw = localStorage.getItem(CHAVE_FILA)
+        if (raw) {
+          const fila = JSON.parse(raw) || {}
+          for (const k of Object.keys(patch)) delete fila[k]
+          if (Object.keys(fila).length) { localStorage.setItem(CHAVE_FILA, JSON.stringify(fila)); setProgressoPendente(true) }
+          else { localStorage.removeItem(CHAVE_FILA); setProgressoPendente(false) }
+        } else setProgressoPendente(false)
+      } catch (e) {}
     } catch (e) {
       console.error('[Progresso] erro de rede ao gravar', e)
       guardarPendente(patch)
@@ -3211,7 +3247,7 @@ export default function AppPage() {
         try {
           const { data: s } = await supabase.auth.getSession()
           const token = s.session?.access_token
-          const r = await fetch('/api/stt', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-audio-type': blob.type }, body: blob })
+          const r = await fetchComPrazo('/api/stt', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-audio-type': blob.type }, body: blob }, 20000)
           if (!r.ok) throw new Error('stt ' + r.status)
           const data = await r.json()
           const texto = data.text || ''
@@ -3378,11 +3414,30 @@ export default function AppPage() {
       // Trial de TRIAL_DIAS dias: enquanto profiles.trial_expira estiver no futuro, o aluno usa o app como Premium.
       let emTrial = false
       let trialExpiraMs = 0
+      // O supabase-js NAO lanca excecao: ignorar `error` aqui fazia qualquer falha de rede
+      // virar emTrial=false -> setIsPremium(false) -> paywall duro no 2o dia, ainda DENTRO do
+      // teste gratis. Agora o erro e tratado e, na duvida, o cache local de trial decide.
+      let trialLeituraFalhou = false
       try {
-        const { data: profRows } = await supabase.from('profiles').select('trial_expira').eq('id', user.id).limit(1)
+        const { data: profRows, error: profErr } = await supabase.from('profiles').select('trial_expira').eq('id', user.id).limit(1)
+        if (profErr) throw profErr
         const texp = profRows?.[0]?.trial_expira
-        if (texp) { const t = new Date(texp).getTime(); emTrial = t > Date.now(); trialExpiraMs = t; setTrialExpira(t) }
-      } catch (e) {}
+        if (texp) {
+          const t = new Date(texp).getTime()
+          emTrial = t > Date.now(); trialExpiraMs = t; setTrialExpira(t)
+          try { localStorage.setItem(TRIAL_CACHE_KEY, String(t)) } catch (e) {}
+        }
+      } catch (e) {
+        trialLeituraFalhou = true
+        console.error('[Trial] leitura de profiles.trial_expira falhou — usando cache local', e)
+        try {
+          const cache = parseInt(localStorage.getItem(TRIAL_CACHE_KEY) || '0') || 0
+          if (cache) { emTrial = cache > Date.now(); trialExpiraMs = cache; setTrialExpira(cache) }
+          // Sem cache nenhum e leitura falhando: NAO trancar. Cobrar de quem talvez esteja em
+          // trial e o pior erro possivel; liberar por engano custa algumas chamadas de IA.
+          else emTrial = true
+        } catch (e2) { emTrial = true }
+      }
       let pendingXp = 0
       try {
         const rawPending = localStorage.getItem(XP_PENDING_KEY)
@@ -3490,6 +3545,11 @@ export default function AppPage() {
         // estado local e a primeira gravação sobrescreveria o progresso real do aluno no banco.
         console.log('[XP][Read] Sem progresso e sem cache — modo erro (gravações bloqueadas)', progReadError)
         setErroCarregamento(true)
+        // Hidratar TAMBEM no modo erro. Sem isto o `return` pulava o setXpHydrated(true) la
+        // embaixo, e como o render testa `!xpHydrated` antes de `erroCarregamento`, a tela de
+        // erro (com "Tentar de novo") nunca aparecia: o aluno ficava no esqueleto cinza para
+        // sempre, sem mensagem e sem saida. As gravacoes seguem bloqueadas por erroCarregamento.
+        setXpHydrated(true)
         return
       } else {
         // progresso.user_id tem FK -> profiles.id. Sem um profile, criar o progresso (e gravar XP) falha
@@ -4994,15 +5054,25 @@ export default function AppPage() {
     try { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token || null } catch (e) { return null }
   }
 
+  // fetch com prazo. Sem isto, "Preparando a sua conversa…" e "Ouvindo com atenção…"
+  // ficavam na tela para SEMPRE quando a IA ou a rede penduravam — na primeira tela da
+  // vida do aluno, que é o pior lugar possível para um beco sem saída.
+  async function fetchComPrazo(url: string, init: RequestInit, ms = 12000): Promise<Response> {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), ms)
+    try { return await fetch(url, { ...init, signal: ctrl.signal }) }
+    finally { clearTimeout(t) }
+  }
+
   // Passo 1 — o professor abre a conversa. A abertura usa a trava e os interesses que o
   // aluno acabou de responder no onboarding: é o que faz a tela parecer feita para ele.
   async function iniciarEstreia() {
-    setEstFase('abrindo'); setEstAbertura(''); setEstPergunta(''); setEstDito(''); setEstAchado(null)
+    setEstFase('abrindo'); setEstAbertura(''); setEstPergunta(''); setEstDito(''); setEstAchado(null); setEstAviso('')
     try { track('estreia_conversa_abriu') } catch (e) {}
     const token = await estreiaToken()
     if (!token) { estreiaFallback(); return }
     try {
-      const r = await fetch('/api/estreia', {
+      const r = await fetchComPrazo('/api/estreia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ etapa: 'abrir', nivel: level, trava: perfilIa.trava || '', interesses: perfilIa.interesses || [] }),
@@ -5024,6 +5094,7 @@ export default function AppPage() {
   // e aqui não existe alvo nenhum — a resposta é livre, do jeito que sair.
   async function gravarEstreia() {
     if (estFase === 'gravando') { try { estRecRef.current?.stop() } catch (e) {} return }
+    setEstAviso('')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''
@@ -5034,17 +5105,19 @@ export default function AppPage() {
         stream.getTracks().forEach(t => t.stop())
         estRecRef.current = null
         const blob = new Blob(chunks, { type: mime || 'audio/webm' })
-        if (blob.size < 1000) { setEstFase('pergunta'); return }
+        // Antes: voltava para 'pergunta' em silencio. A pessoa falava, soltava e nao
+        // acontecia nada — parecia app quebrado. Agora ela sabe o que houve e o que fazer.
+        if (blob.size < 1000) { setEstAviso('Não consegui te ouvir. Segure o botão enquanto fala e solte no fim. 🎤'); setEstFase('pergunta'); return }
         setEstFase('analisando')
         const token = await estreiaToken()
         if (!token) { estreiaFallback(); return }
         try {
-          const r = await fetch('/api/stt', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-audio-type': blob.type }, body: blob })
+          const r = await fetchComPrazo('/api/stt', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-audio-type': blob.type }, body: blob }, 20000)
           if (!r.ok) throw new Error('stt ' + r.status)
           const d = await r.json()
           const texto = String(d.text || '').trim()
           setEstDito(texto)
-          if (!texto) { setEstFase('pergunta'); return }
+          if (!texto) { setEstAviso('Saiu bem baixinho e eu não entendi. Tenta de novo, um pouco mais perto do microfone. 🎤'); setEstFase('pergunta'); return }
           await analisarEstreia(texto, token)
         } catch (e) { estreiaFallback() }
       }
@@ -5055,7 +5128,9 @@ export default function AppPage() {
       // Trava de segurança: para sozinho em 20s (resposta livre é mais longa que uma frase).
       setTimeout(() => { try { if (estRecRef.current === rec && rec.state === 'recording') rec.stop() } catch (e) {} }, 20000)
     } catch (e) {
-      alert('Preciso da permissão do microfone para te ouvir falar. 🎤')
+      // alert() bloqueia a tela e sai sem deixar rastro; a mensagem agora fica visivel
+      // junto da pergunta, e o aluno pode seguir sem microfone pelo botao de pular.
+      setEstAviso('Preciso da permissão do microfone para te ouvir. Libere nas configurações do navegador — ou siga sem falar por agora.')
       setEstFase('pergunta')
     }
   }
@@ -5065,7 +5140,7 @@ export default function AppPage() {
   // só um momento bonito; com isto ele vira o motivo concreto de voltar no dia 2.
   async function analisarEstreia(texto: string, token: string) {
     try {
-      const r = await fetch('/api/estreia', {
+      const r = await fetchComPrazo('/api/estreia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ etapa: 'analisar', nivel: level, texto, pergunta: estPergunta, trava: perfilIa.trava || '', interesses: perfilIa.interesses || [] }),
@@ -5223,7 +5298,7 @@ export default function AppPage() {
     ]
     let msg = ''
     if (isNovo) msg = `Oi, ${userName}! Eu sou o Vô, seu professor. Preparei seu primeiro treino — 5 minutinhos e começamos juntos. 👋`
-    else if (treinouHoje) msg = `Boa, ${userName}! Você já fez seu treino de hoje. 🎉 Quer treinar mais um pouco ou prefere explorar?`
+    else if (treinouHoje) msg = `Boa, ${userName}! Treino de hoje feito. 🎉 Quem faz três seguidas aprende o dobro — bora a próxima?`
     else if (fraco) msg = `${saudacao}, ${userName}. Preparei seu treino de hoje reforçando "${fraco}", que te deu trabalho da última vez.`
     else if (proxL) msg = `${saudacao}, ${userName}. Seu treino de hoje está pronto: "${proxL.title}" + uma conversa rápida. Bora?`
     else msg = `${saudacao}, ${userName}. Seu treino de hoje está pronto — 5 minutos e você mantém o ritmo. 🔥`
@@ -5339,7 +5414,7 @@ export default function AppPage() {
               </button>
             </>) : (
               <button onClick={iniciarTreino} style={{ width: '100%', padding: '14px', background: '#fff', color: '#103d77', border: 'none', borderRadius: 14, fontSize: 14.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#2e72d6' }}><Ic e="▶️" s={13} c="#fff" /></span> Treinar mais um pouco
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#2e72d6' }}><Ic e="▶️" s={13} c="#fff" /></span> Próxima lição
               </button>
             )}
           </div>
@@ -6038,9 +6113,9 @@ export default function AppPage() {
           try { track('onb_pulou', { tela: onbStep }) } catch (e) {}
           concluirOnboarding({ nivel: onb.nivel || undefined, estilo: 'tarefas', destino: 'treino' })
         }
-        const linkPular = onbStep > 0 && onbStep < 7 ? (
+        const linkPular = onbStep > 0 && onbStep <= 7 ? (
           <button onClick={pular} style={{ ...onbBack, display: 'block', margin: '14px auto 0', opacity: 0.75 }}>
-            Pular e começar a falar →
+            {onbStep === 7 ? 'Agora não — quero experimentar antes →' : 'Pular e começar a falar →'}
           </button>
         ) : null
         const prof = professorDe(onb.professor)
@@ -6694,7 +6769,10 @@ export default function AppPage() {
                     const arr = lessons[lv] || []
                     const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
                     setNivEscolher(false)
-                    if (idx >= 0) { setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null; abrirLicaoTreino(idx) } else setTab('lessons')
+                    // Passa pelo iniciarTreino (via efeito, para ele enxergar o nivel recem-escolhido)
+                    // em vez de abrir a licao direto: era isto que pulava a ESTREIA FALADA para
+                    // quem escolhe o nivel na mao -- justamente o iniciante vindo do anuncio.
+                    setTreinoAposOnboarding(true)
                   }} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: 14, marginBottom: 10, borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                     <span style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 12, background: cor + '18', color: cor, fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{lv}</span>
                     <span style={{ flex: 1 }}>
@@ -6801,7 +6879,7 @@ export default function AppPage() {
                 <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 18, lineHeight: 1.5, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>Vamos te colocar no ponto certo para evoluir mais rápido. Você pode mudar de nível quando quiser na aba Lições.</div>
                 {/* Ativação D0: o teste de nível termina DENTRO da primeira lição, não na
                     tela de navegação — 42% dos alunos sumiam entre o onboarding e a 1ª questão. */}
-                <button onClick={() => { const arr = lessons[nivResult] || []; const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l))); if (idx >= 0) { setTreinoAtivo(true); setFalaIdx(0); setFalaScores([]); treinoAquecRef.current = null; treinoLicaoRef.current = null; abrirLicaoTreino(idx) } else setTab('lessons') }} style={{ width: '100%', padding: 15, marginTop: 24, background: lc, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: `0 6px 18px ${lc}44` }}>Começar minha primeira lição <Ic e="→" /></button>
+                <button onClick={() => { setTreinoAposOnboarding(true) }} style={{ width: '100%', padding: 15, marginTop: 24, background: lc, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: `0 6px 18px ${lc}44` }}>Começar minha primeira lição <Ic e="→" /></button>
                 <button onClick={() => iniciarNivelamento()} style={{ width: '100%', padding: 13, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>Refazer teste</button>
                 <button onClick={() => { setNivResult(null); setNivEscolher(true) }} style={{ width: '100%', padding: 12, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Prefiro escolher outro nível na mão</button>
               </div>
@@ -7414,6 +7492,9 @@ export default function AppPage() {
                     <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', lineHeight: 1.55, marginBottom: 12, textAlign: 'center' }}>
                       Fale do jeito que sair. Errado, devagar, com sotaque — tanto faz. É justamente do erro que eu preciso para te mostrar uma coisa.
                     </div>
+                    {estAviso && (
+                      <div role="status" style={{ fontSize: 13.5, lineHeight: 1.5, color: '#7A4A08', background: '#FDF2DC', border: '1px solid #F0DDB4', borderRadius: 10, padding: '10px 12px', marginBottom: 12, textAlign: 'center' }}>{estAviso}</div>
+                    )}
                     <button onClick={gravarEstreia} style={{ width: '100%', padding: 16, background: estFase === 'gravando' ? '#b91c1c' : purple, color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10, animation: estFase === 'gravando' ? 'su_pulse 1.2s infinite' : undefined }}>
                       {estFase === 'gravando' ? <><Ic e="⏹️" /> Estou te ouvindo — toque para parar</> : <><Ic e="🎙️" /> Responder falando</>}
                     </button>
@@ -7548,7 +7629,7 @@ export default function AppPage() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Mascote size={80} humor="comemora" prof /></div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 4 }}>Treino de hoje concluído! 🎉</div>
-                  <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginBottom: 18 }}>{streak > 1 ? `🔥 ${streak} dias seguidos — o Vô tá orgulhoso.` : 'Primeiro passo dado — volte amanhã pra manter o ritmo. 🔥'}</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginBottom: 18 }}>{streak > 1 ? `🔥 ${streak} dias seguidos — o Vô tá orgulhoso.` : (licoesHoje >= 3 ? 'Três lições hoje — esse é o ritmo que faz diferença. 🔥' : 'Boa! Bora emendar na próxima enquanto está quente.')}</div>
                   <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: '6px 16px', marginBottom: 12, textAlign: 'left', animation: 'su_risefade 0.5s ease 0.15s both' }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--color-text-secondary)', letterSpacing: 0.4, padding: '10px 0 2px' }}>O QUE VOCÊ FEZ AGORA</div>
                     {aquec && aquec.total > 0 && linha('🧠', 'Aquecimento (revisão)', `${aquec.acertos}/${aquec.total} certas`)}
@@ -7664,7 +7745,25 @@ export default function AppPage() {
                   {streak > 0 && (
                     <button onClick={compartilharProgresso} style={{ width: '100%', padding: 13, background: 'none', color: blue, border: `1.5px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10, animation: 'su_risefade 0.5s ease 0.45s both' }}>Compartilhar meu progresso <Ic e="📤" /></button>
                   )}
-                  <button onClick={() => { try { track('treino_concluido', { fala: falaMedia, aquecimento: aquec ? aquec.acertos : null }) } catch (e) {} ; encerrarTreino(); setTab('home'); setView('levels') }} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', animation: 'su_risefade 0.5s ease 0.5s both' }}>Concluir treino <Ic e="✓" /></button>
+                  {/* A sessao NAO termina na primeira licao. Ate a 3a, o botao primario emenda
+                      na proxima; sair vira acao secundaria. Antes daqui saia "volte amanha" com
+                      um unico botao de encerrar -- e o painel mostrava 25 alunos na 1a licao e 3
+                      na 3a. Nao era desistencia, era obediencia. */}
+                  {(() => {
+                    const arrProx = lessons[level] || []
+                    const idxProx = arrProx.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
+                    // licoesHoje, nao licoesConcluidas: a segunda e o total da VIDA, entao um
+                    // aluno veterano nunca receberia o convite. O limite de 3 e por sessao.
+                    const podeEmendar = idxProx >= 0 && !metaFeitaHoje && licoesHoje < 3
+                    const sair = () => { try { track('treino_concluido', { fala: falaMedia, aquecimento: aquec ? aquec.acertos : null }) } catch (e) {} ; encerrarTreino(); setTab('home'); setView('levels') }
+                    if (!podeEmendar) return (
+                      <button onClick={sair} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', animation: 'su_risefade 0.5s ease 0.5s both' }}>Concluir treino <Ic e="✓" /></button>
+                    )
+                    return (<>
+                      <button onClick={() => { try { track('treino_emendou', { feitas: licoesConcluidas.length }) } catch (e) {} ; treinoAquecRef.current = null; treinoLicaoRef.current = null; abrirLicaoTreino(idxProx) }} style={{ width: '100%', padding: 15, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', animation: 'su_risefade 0.5s ease 0.5s both' }}>Próxima lição <Ic e="→" /></button>
+                      <button onClick={sair} style={{ width: '100%', padding: 12, marginTop: 8, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Parar por hoje</button>
+                    </>)
+                  })()}
                 </div>
               )
             })()}
@@ -8222,6 +8321,10 @@ export default function AppPage() {
       {/* Barra clássica de app (padrão Instagram/WhatsApp): branca, largura total,
           fio superior. Ao regerar os pacotes nativos, pintar a barra do sistema de
           branco (navigationBarColor/backgroundColor) pra emendar de vez. */}
+      {/* Durante o treino a barra some. Ela ficava visível dentro da lição e da estreia, e
+          CADA toque nela chamava encerrarTreino() — dava para perder a sessão guiada por
+          acidente, encostando num ícone. Sessão guiada não compete com navegação. */}
+      {!treinoAtivo && (
       <div style={{ background: 'var(--color-background-primary)', borderTop: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', padding: '8px 6px calc(8px + max(0px, env(safe-area-inset-bottom) - 24px))', flexShrink: 0 }}>
         {/* Rótulos curtos: com 6 abas numa tela de 360px, "Listening"/"Dicionário"/
             "Professor" não cabem e a última saía cortada ("Pr..."). minWidth:0 deixa o
@@ -8242,6 +8345,7 @@ export default function AppPage() {
           )
         })}
       </div>
+      )}
     </div>
     </div>
   )

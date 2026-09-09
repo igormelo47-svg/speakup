@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // Transcrição de fala (STT) para o treino de pronúncia. Usa o Whisper da OpenAI quando
 // OPENAI_API_KEY estiver configurada na Vercel — reconhecimento muito melhor que o do
@@ -41,13 +42,13 @@ export async function POST(req: NextRequest) {
   // Vazio/minúsculo = sonda do cliente testando se a rota está configurada → 400 (configurada, áudio inválido).
   // A sonda responde ANTES da checagem de limite para não queimar cota do aluno.
   if (!buf || buf.byteLength < 1000) return NextResponse.json({ error: 'audio_pequeno' }, { status: 400 })
-  if (buf.byteLength > 1_500_000) return NextResponse.json({ error: 'audio_grande' }, { status: 413 })
+  if (buf.byteLength > 600_000) return NextResponse.json({ error: 'audio_grande' }, { status: 413 })
 
   // Limite diário ATÔMICO + teto por IP. Fail-closed: sem verificação, sem gasto
   // (o app cai no reconhecimento do navegador e o treino continua).
   const admin = createClient(url, service)
   try {
-    const ip = (req.headers.get('x-forwarded-for') || 'sem-ip').split(',')[0].trim()
+    const ip = ipCliente(req)
     const [{ data: prog }, { data: perfil }] = await Promise.all([
       admin.from('progresso').select('is_premium, premium_expira').eq('user_id', userId).maybeSingle(),
       admin.from('profiles').select('trial_expira').eq('id', userId).maybeSingle(),

@@ -72,14 +72,37 @@ export const PROMPTS: Record<string, string> = {
 const SONS_NOME: Record<string, string> = { th: 'o som do TH', h: 'o H aspirado', r: 'o R do inglês', ed: 'a terminação -ED', vogais: 'as vogais curtas x longas', tonica: 'a sílaba tônica' }
 const OBJETIVO_PADRAO = 'destravar a conversação do dia a dia'
 
-// Resumo do perfil do aluno construído NO SERVIDOR a partir do banco (nada vem do cliente).
+// Resumo do perfil do aluno construído NO SERVIDOR a partir do banco.
+//
+// ATENÇÃO: "do banco" NÃO quer dizer "confiável". As chaves de perfil_ia são gravadas
+// pelo próprio cliente com a chave anon (salvarProgresso -> upsert em progresso), então
+// qualquer aluno pode escrever o que quiser em objetivo/trava/interesses pelo console do
+// navegador — e isso entrava aqui, sem corte, DENTRO do system prompt, com autoridade de
+// sistema. Uma string longa nesses campos também multiplicava o custo de toda chamada de
+// chat da conta. Tudo que vem de perfil_ia passa por `txt()` antes de entrar.
+const LIM_CAMPO = 160
+
+// Trunca, tira quebras de linha (que ajudam a forjar uma nova "seção" do prompt) e
+// remove os delimitadores mais usados para simular instrução de sistema.
+function txt(v: any, lim = LIM_CAMPO): string {
+  if (typeof v !== 'string') return ''
+  return v
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[<>{}]/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, lim)
+}
+const lista = (v: any, n: number, lim = 60): string[] =>
+  Array.isArray(v) ? v.slice(-n).map((x: any) => txt(x, lim)).filter(Boolean) : []
+
 export function resumoPerfilServidor(nome: string, nivel: string, prog: any): string {
   const p = (prog && prog.perfil_ia) || {}
   const xp = (prog && prog.xp) || 0
   const streak = (prog && prog.streak) || 0
   const doneLessons = Array.isArray(prog && prog.licoes_concluidas) ? prog.licoes_concluidas.length : 0
-  const partes: string[] = [`Aluno: ${nome || 'estudante'} (nível ${nivel}, ${xp} XP, sequência de ${streak} dias, ${doneLessons} lições concluídas).`]
-  partes.push(`Objetivo do aluno: ${p.objetivo || OBJETIVO_PADRAO}.`)
+  const partes: string[] = [`Aluno: ${txt(nome, 40) || 'estudante'} (nível ${nivel}, ${xp} XP, sequência de ${streak} dias, ${doneLessons} lições concluídas).`]
+  partes.push(`Objetivo do aluno: ${txt(p.objetivo) || OBJETIVO_PADRAO}.`)
   // Professor escolhido no onboarding (lib/professores.ts): o nome e o jeito mudam; a
   // pedagogia (corrigir em português, sem plateia) é a mesma para todos.
   const PROFS: Record<string, string> = {
@@ -88,11 +111,11 @@ export function resumoPerfilServidor(nome: string, nivel: string, prog: any): st
     helena: 'IMPORTANTE: neste chat você NÃO é o Vô — você é a HELENA, professora de inglês calma e clara, que explica devagar e tranquiliza quem trava. Fale de si no feminino. Nunca se apresente como Vô.',
   }
   if (p.professor && PROFS[p.professor]) partes.push(PROFS[p.professor])
-  if (p.trava) partes.push(`Onde o aluno disse que mais trava: ${p.trava}. Comece por aí.`)
-  if (Array.isArray(p.interesses) && p.interesses.length) partes.push(`Interesses do aluno (use como tema das conversas): ${p.interesses.slice(0, 6).join(', ')}.`)
-  if (p.topicos_fracos?.length) partes.push(`Pontos em que o aluno erra e precisa de reforço: ${p.topicos_fracos.slice(-6).join('; ')}.`)
-  if (p.dominados?.length) partes.push(`Tópicos que o aluno já domina: ${p.dominados.slice(-4).join('; ')}. Última lição concluída: ${p.dominados[p.dominados.length - 1]}.`)
-  if (p.sons_dificeis?.length) partes.push(`Sons de pronúncia em que o aluno tem dificuldade: ${p.sons_dificeis.map((s: string) => SONS_NOME[s] || s).join('; ')}.`)
+  if (txt(p.trava)) partes.push(`Onde o aluno disse que mais trava: ${txt(p.trava)}. Comece por aí.`)
+  if (lista(p.interesses, 6).length) partes.push(`Interesses do aluno (use como tema das conversas): ${lista(p.interesses, 6).join(', ')}.`)
+  if (lista(p.topicos_fracos, 6).length) partes.push(`Pontos em que o aluno erra e precisa de reforço: ${lista(p.topicos_fracos, 6).join('; ')}.`)
+  if (lista(p.dominados, 4).length) { const d = lista(p.dominados, 4); partes.push(`Tópicos que o aluno já domina: ${d.join('; ')}. Última lição concluída: ${d[d.length - 1]}.`) }
+  if (lista(p.sons_dificeis, 8, 24).length) partes.push(`Sons de pronúncia em que o aluno tem dificuldade: ${lista(p.sons_dificeis, 8, 24).map((x: string) => SONS_NOME[x] || x).join('; ')}.`)
   partes.push('Use esse histórico para personalizar: cite a lição ou o erro específico do aluno quando fizer sentido, elogie o progresso real e foque nos pontos fracos. Não invente dados que não estão aqui.')
   partes.push('O aluno é brasileiro: fique de olho nos erros clássicos de brasileiro (traduzir "ter anos" como "have years" em vez de "be ... years old", esquecer o "s" da 3ª pessoa, confundir make/do, in/on/at, falsos cognatos como pretend/actually/push) e corrija com carinho quando aparecerem.')
   return partes.join(' ')

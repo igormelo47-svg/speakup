@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarLeadMeta } from '../../../lib/meta-capi'
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // Lead (teste de nível concluído) pelo SERVIDOR, para o Meta receber o evento mesmo quando
 // o navegador não consegue mandar — bloqueador de anúncio, iPhone com rastreamento restrito,
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!ID_VALIDO.test(eventId)) return ok({ sent: false, reason: 'event_id inválido' })
   const nivel = /^[A-C][12]$/.test(String(body?.nivel || '')) ? String(body.nivel) : null
 
-  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+  const ip = ipCliente(req)
   const userAgent = req.headers.get('user-agent')
 
   // Teto por IP, FAIL-CLOSED: sem conseguir verificar, não manda evento. Sinal errado para

@@ -6,6 +6,7 @@ import { enviarPurchaseMeta } from '../../../lib/meta-capi'
 import { avisarVenda } from '../../../lib/avisar-venda'
 import { premiarIndicador } from '../../../lib/indicacao-premio'
 import { avisarWebhookRecusado } from '../../../lib/avisar-webhook-recusado'
+import { segredoConfere } from '../../../lib/segredo'
 
 // Webhook da Kiwify: libera/revoga o Premium conforme os eventos de pagamento.
 // Configure na Kiwify a URL: https://vonai.com.br/api/kiwify-webhook?token=SEU_TOKEN
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
   // forte — só vale para aquele corpo exato, então um log de URL vazado não dá acesso.
   const token = req.nextUrl.searchParams.get('token')
   const assinatura = req.nextUrl.searchParams.get('signature') || ''
-  const okToken = !!segredo && token === segredo
+  const okToken = segredoConfere(token, segredo)
   let okSig = false
   try {
     const esperada = crypto.createHmac('sha1', segredo).update(raw).digest('hex')

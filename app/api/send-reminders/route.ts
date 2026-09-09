@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { enviarEmailLembrete, emailTrialAcabando, emailPosTrial, emailDia2, emailDia3 } from '../../../lib/email'
 import { enviarWhatsapp, whatsappConfigurado } from '../../../lib/whatsapp'
 import { missaoPara } from '../../../lib/missao'
+import { segredoConfere } from '../../../lib/segredo'
 
 // Teto do winback: depois de 30 dias sem uso a pessoa não é "aluno sumido", é alguém que
 // desistiu — continuar chamando a cada 3 dias para sempre é o caminho da marcação de spam.
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   const turno = req.nextUrl.searchParams.get('turno') === 'manha' ? 'manha' : 'noite'
   // Protegido: o Vercel Cron envia "Authorization: Bearer <CRON_SECRET>".
   const auth = req.headers.get('authorization')
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!segredoConfere(auth, process.env.CRON_SECRET ? `Bearer ${process.env.CRON_SECRET}` : '')) {
     return new NextResponse('unauthorized', { status: 401 })
   }
   const priv = process.env.VAPID_PRIVATE_KEY

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ipCliente } from '../../../lib/ip-cliente'
 
 // Proxy de imagens da Pixabay (a chave fica no servidor). Sem login — mas com teto por IP,
 // senão qualquer site usa o vonai.com.br como proxy grátis e estoura o rate limit da chave
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   if (sbUrl && service) {
     try {
       const admin = createClient(sbUrl, service)
-      const ip = (req.headers.get('x-forwarded-for') || 'sem-ip').split(',')[0].trim()
+      const ip = ipCliente(req)
       const { data: ok, error } = await admin.rpc('incrementa_ip', { p_ip: ip, p_limite: 300 })
       if (error || ok === false) return NextResponse.json({ url: null })
     } catch {
