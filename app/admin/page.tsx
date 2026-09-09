@@ -99,28 +99,55 @@ export default function Admin() {
   const [pesqResp, setPesqResp] = useState<any>(null)
   const [pesqMsg, setPesqMsg] = useState('')
   const [pesqOcupado, setPesqOcupado] = useState(false)
+  // Recorte da pesquisa. Padrão: só quem veio de anúncio — é a coorte que o dinheiro
+  // comprou. O orgânico tem muita gente convidada a olhar o app, que responderia outra coisa.
+  const [pesqSoAnuncio, setPesqSoAnuncio] = useState(true)
+
+  // Uma chamada só, com o erro SEMPRE visível. A versão anterior obrigava a clicar em
+  // "Ver quem receberia" antes de "Enviar lote" — e se a primeira falhasse, ela não
+  // mostrava nada e o segundo botão ficava cinza para sempre, sem explicar por quê.
+  // Falha silenciosa é o defeito que eu estava consertando no app; não podia repetir aqui.
+  async function chamarPesquisa(acao: 'ver' | 'enviar' | 'ler') {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token || ''
+    if (!token) throw new Error('sessão expirada — saia e entre de novo')
+    const r = await fetch('/api/pesquisa', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao, somenteAnuncio: pesqSoAnuncio }),
+    })
+    const txt = await r.text()
+    let j: any = {}
+    try { j = JSON.parse(txt) } catch { j = { error: txt.slice(0, 120) } }
+    if (!r.ok) throw new Error(`HTTP ${r.status} — ${j?.error || 'sem detalhe'}`)
+    return j
+  }
 
   async function pesquisa(acao: 'ver' | 'enviar' | 'ler') {
     setPesqOcupado(true); setPesqMsg('')
     try {
-      const { data } = await supabase.auth.getSession()
-      const token = data.session?.access_token || ''
-      const r = await fetch('/api/pesquisa', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acao }),
-      })
-      const j = await r.json().catch(() => ({}))
-      if (!r.ok) { setPesqMsg(`Não deu: ${j?.error || r.status}`); return }
-      if (acao === 'ler') { setPesqResp(j); return }
-      if (acao === 'ver') { setPesq(j); return }
+      if (acao === 'ler') { setPesqResp(await chamarPesquisa('ler')); return }
+      if (acao === 'ver') { setPesq(await chamarPesquisa('ver')); return }
+      // Enviar não depende mais do botão 1: se a lista ainda não foi carregada, carrega aqui.
+      const antes = pesq || await chamarPesquisa('ver')
+      setPesq(antes)
+      if (!antes?.vaoReceber) { setPesqMsg('Ninguém pendente — todo mundo da lista já recebeu.'); return }
+      if (!confirm(`Enviar o e-mail agora para até 40 das ${antes.vaoReceber} pessoas pendentes?`)) return
+      const j = await chamarPesquisa('enviar')
       setPesqMsg(`✅ ${j.enviados} enviados${j.falhas ? `, ${j.falhas} falharam` : ''}${j.faltam ? ` — faltam ${j.faltam}, clique de novo` : ' — lista completa'}.`)
-      if (j.erros?.length) setPesqMsg(m => `${m} (${j.erros[0]})`)
-      const r2 = await fetch('/api/pesquisa', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'ver' }) })
-      if (r2.ok) setPesq(await r2.json())
-    } catch { setPesqMsg('Erro de rede.') }
-    finally { setPesqOcupado(false) }
+      if (j.erros?.length) setPesqMsg(m => `${m} · 1º erro: ${j.erros[0]}`)
+      try { setPesq(await chamarPesquisa('ver')) } catch {}
+    } catch (e: any) {
+      setPesqMsg(`❌ ${e?.message || 'erro desconhecido'}`)
+    } finally { setPesqOcupado(false) }
   }
+
+  // Carrega a contagem sozinho quando o painel abre: o bloco já nasce mostrando quantas
+  // pessoas estão pendentes, e o botão de enviar já nasce clicável.
+  useEffect(() => {
+    if (estado !== 'ok') return
+    ;(async () => { try { setPesq(await chamarPesquisa('ver')) } catch (e: any) { setPesqMsg(`❌ ${e?.message || 'erro'}`) } })()
+  }, [estado, pesqSoAnuncio])
 
   async function carregarPendentes(token: string) {
     try {
@@ -396,19 +423,24 @@ export default function Admin() {
             não voltou. Quem paga, quem ainda usa e quem pediu para sair ficam de fora.
             Vai em lotes de 40 (limite de tempo da Vercel) — clique de novo até zerar.
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#5B6B82', marginBottom: 12, cursor: 'pointer' }}>
+            <input type="checkbox" checked={pesqSoAnuncio} onChange={e => { setPesqSoAnuncio(e.target.checked); setPesq(null); setPesqMsg('') }}
+              style={{ width: 16, height: 16, accentColor: '#B4780F', cursor: 'pointer' }} />
+            <span>Só quem veio de <strong>anúncio</strong>{pesq ? ` — ${pesq.pendentesAnuncio} pendentes de anúncio, ${pesq.pendentesOrganico} orgânicos ficam de fora` : ''}</span>
+          </label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
             <button onClick={() => pesquisa('ver')} disabled={pesqOcupado}
               style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid #D8E1EC', background: '#fff', color: '#102A4C', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>
-              1. Ver quem receberia
+              Atualizar contagem
             </button>
-            <button onClick={() => { if (confirm(`Enviar o e-mail agora para ${pesq?.vaoReceber ?? '?'} pessoas (lote de 40)?`)) pesquisa('enviar') }}
-              disabled={pesqOcupado || !pesq || !pesq.vaoReceber}
-              style={{ padding: '9px 14px', borderRadius: 9, border: 'none', background: (!pesq || !pesq.vaoReceber) ? '#C9D6E6' : '#B4780F', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: (!pesq || !pesq.vaoReceber) ? 'default' : 'pointer' }}>
-              2. Enviar lote
+            <button onClick={() => pesquisa('enviar')}
+              disabled={pesqOcupado}
+              style={{ padding: '9px 14px', borderRadius: 9, border: 'none', background: pesqOcupado ? '#C9D6E6' : '#B4780F', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: pesqOcupado ? 'default' : 'pointer' }}>
+              {pesqOcupado ? 'Enviando…' : 'Enviar lote de 40'}
             </button>
             <button onClick={() => pesquisa('ler')} disabled={pesqOcupado}
               style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid #D8E1EC', background: '#fff', color: '#102A4C', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>
-              3. Ver respostas
+              Ver respostas
             </button>
           </div>
           {pesq && (

@@ -162,11 +162,14 @@ export async function POST(req: NextRequest) {
   const { data: lista, error: luErr } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 })
   if (luErr) return NextResponse.json({ error: luErr.message }, { status: 500 })
   const { data: progressos } = await sb.from('progresso')
-    .select('user_id, email, xp, ativado_em, is_premium, premium_expira, dias_ativos, email_lembretes, emails_enviados')
+    .select('user_id, email, xp, ativado_em, is_premium, premium_expira, dias_ativos, email_lembretes, emails_enviados, attrib')
   const porUser = new Map((progressos || []).map(p => [p.user_id, p as any]))
   const agora = Date.now()
 
-  type Alvo = { id: string; email: string; grupo: 'usou' | 'naousou'; ja: boolean }
+  // "Veio de anúncio" = qualquer clique pago: gclid/gbraid/wbraid (Google) ou fbclid (Meta).
+  // Mesma regra do painel (/api/admin/painel), para os dois números baterem.
+  const veioDeAnuncio = (attrib: any) => !!(attrib?.gclid || attrib?.gbraid || attrib?.wbraid || attrib?.fbclid)
+  type Alvo = { id: string; email: string; grupo: 'usou' | 'naousou'; ja: boolean; anuncio: boolean }
   const alvos: Alvo[] = []
   let pulados = 0
   for (const u of lista?.users || []) {
@@ -181,21 +184,32 @@ export async function POST(req: NextRequest) {
     if (dias >= 2) { pulados++; continue }
     const ativado = !!p?.ativado_em || (p?.xp || 0) > 0
     const ja = !!(p?.emails_enviados && typeof p.emails_enviados === 'object' && p.emails_enviados[CHAVE_ENVIO])
-    alvos.push({ id: u.id, email: p?.email || em, grupo: ativado ? 'usou' : 'naousou', ja })
+    alvos.push({ id: u.id, email: p?.email || em, grupo: ativado ? 'usou' : 'naousou', ja, anuncio: veioDeAnuncio(p?.attrib) })
   }
 
-  // Lote: 121 e-mails a 350ms dariam ~42s e a função da Vercel morre antes. Cada clique
-  // manda um lote; quem já recebeu fica marcado em emails_enviados e não repete.
+  // Só quem veio de anúncio, por padrão. É a coorte que o dinheiro comprou e a única cuja
+  // resposta decide o que fazer com o tráfego pago. O orgânico tem muita gente que o Igor
+  // pediu pessoalmente para olhar o app — essa pessoa nunca teve intenção de aprender
+  // inglês, e a resposta dela contamina a leitura. Passe somenteAnuncio:false para incluir.
+  const somenteAnuncio = body?.somenteAnuncio !== false
+  const elegiveis = somenteAnuncio ? alvos.filter(a => a.anuncio) : alvos
+
+  // Lote: mandar tudo de uma vez estoura o tempo da função na Vercel. Cada clique manda um
+  // lote; quem já recebeu fica marcado em emails_enviados e não repete.
   const limite = Math.min(Math.max(Number(body?.limite) || 40, 1), 200)
-  const pendentes = alvos.filter(a => !a.ja)
+  const pendentes = elegiveis.filter(a => !a.ja)
   if (acao === 'ver') {
     return NextResponse.json({
-      total: alvos.length,
-      jaReceberam: alvos.length - pendentes.length,
+      somenteAnuncio,
+      total: elegiveis.length,
+      jaReceberam: elegiveis.length - pendentes.length,
       vaoReceber: pendentes.length,
       porLote: 40,
       usaramUmaVez: pendentes.filter(a => a.grupo === 'usou').length,
       nuncaUsaram: pendentes.filter(a => a.grupo === 'naousou').length,
+      // Para o painel poder dizer o que está ficando de fora sem precisar de outra chamada.
+      pendentesAnuncio: alvos.filter(a => !a.ja && a.anuncio).length,
+      pendentesOrganico: alvos.filter(a => !a.ja && !a.anuncio).length,
       pulados,
       amostra: pendentes.slice(0, 5).map(a => `${a.email} (${a.grupo})`),
     })
