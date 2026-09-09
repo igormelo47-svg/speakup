@@ -5601,6 +5601,10 @@ export default function AppPage() {
             {cardExplorar('#e7f0fa', '🎤', '#2e72d6', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
             {cardExplorar('#FEF3E2', '🎧', '#8a5a10', 'Listening', 'Ouça e entenda', () => setTab('listening'))}
             {cardExplorar('#fcecec', '📝', '#b91c1c', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
+            {/* Teste de nível: o card existia SÓ na home antiga (tab === 'home' && !homeGuiada),
+                e homeGuiada nunca vira false — aquele bloco inteiro é inalcançável. Resultado:
+                depois do onboarding não havia mais NENHUM caminho para refazer o teste. */}
+            {cardExplorar('#e7f0fa', '📊', '#1c55a3', 'Teste de nível', 'Descubra ou revise seu nível', () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false); setTab('nivelamento') })}
             {cardExplorar('#e7f0fa', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
           </div>
           {bannerRow('🇧🇷', green, 'Caça-Erros do Brasileiro', '5 armadilhas que todo brasileiro cai', 'Jogar', () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} })}
