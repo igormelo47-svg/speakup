@@ -4397,6 +4397,17 @@ export default function AppPage() {
     } catch (e) {}
   }
 
+  // Texto seguro para mostrar NO MEIO do streaming: corta um <corr>/<sug> que ainda não
+  // fechou (vira cartão/botões só no fim) e qualquer tag cortada ao meio ("<e", "<su").
+  // Sem isto o aluno vê marcação crua nascendo na tela.
+  function parcialVisivel(bruto: string): string {
+    let t = bruto
+    const abre = t.search(/<(corr|sug)>(?![\s\S]*<\/\1>)/i)
+    if (abre >= 0) t = t.slice(0, abre)
+    t = t.replace(/<[^>]*$/, '')
+    return lerResposta(t).texto
+  }
+
   async function callChat(payload: any) {
     let token = ''
     try { const { data } = await supabase.auth.getSession(); token = data.session?.access_token || '' } catch (e) {}
@@ -4443,11 +4454,42 @@ export default function AppPage() {
     setChatMsgs(m => [...m, { role: 'user', text: msg }]); setLoadingChat(true)
     try {
       eventoAtivacao('primeira_conversa', { origem: 'professor' })
-      const res = await callChat({ mode: 'professor', nivel: level, messages: historicoParaIA(chatMsgs, msg) })
+      const res = await callChat({ mode: 'professor', nivel: level, stream: true, messages: historicoParaIA(chatMsgs, msg) })
       if (res.status === 429) { setChatMsgs(m => [...m, { role: 'ai', text: 'Você atingiu o limite de uso de hoje. 🌟 Volte amanhã ou seja Premium para continuar.', local: true }]); setLoadingChat(false); return }
-      const data = await res.json()
-      const lida = lerResposta(data.content?.[0]?.text || 'Erro.')
-      setChatMsgs(m => [...m, { role: 'ai', text: lida.texto, correcao: lida.correcao, sugestoes: lida.sugestoes }])
+      const ct = res.headers.get('content-type') || ''
+      if (ct.includes('text/event-stream') && res.body) {
+        // Resposta em streaming: o texto aparece enquanto o modelo escreve. Só no fim a
+        // resposta inteira passa por lerResposta, que é quem monta o cartão de correção
+        // e os botões de sugestão — durante o stream esses blocos ficam escondidos.
+        const reader = res.body.getReader()
+        const dec = new TextDecoder()
+        let completo = '', sobra = '', abriu = false
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          sobra += dec.decode(value, { stream: true })
+          const linhas = sobra.split('\n'); sobra = linhas.pop() || ''
+          for (const l of linhas) {
+            if (!l.startsWith('data: ')) continue
+            try {
+              const j = JSON.parse(l.slice(6))
+              if (j.type === 'content_block_delta' && j.delta?.text) {
+                completo += j.delta.text
+                const parcial = parcialVisivel(completo)
+                if (!abriu) { abriu = true; setLoadingChat(false); setChatMsgs(m => [...m, { role: 'ai', text: parcial }]) }
+                else setChatMsgs(m => { const c = [...m]; c[c.length - 1] = { role: 'ai', text: parcial }; return c })
+              }
+            } catch (e) {}
+          }
+        }
+        const lidaS = lerResposta(completo || 'Erro.')
+        if (!abriu) setChatMsgs(m => [...m, { role: 'ai', text: lidaS.texto, correcao: lidaS.correcao, sugestoes: lidaS.sugestoes }])
+        else setChatMsgs(m => { const c = [...m]; c[c.length - 1] = { role: 'ai', text: lidaS.texto, correcao: lidaS.correcao, sugestoes: lidaS.sugestoes }; return c })
+      } else {
+        const data = await res.json()
+        const lida = lerResposta(data.content?.[0]?.text || 'Erro.')
+        setChatMsgs(m => [...m, { role: 'ai', text: lida.texto, correcao: lida.correcao, sugestoes: lida.sugestoes }])
+      }
     } catch { setChatMsgs(m => [...m, { role: 'ai', text: 'Erro de conexão. Tente novamente.', local: true }]) }
     setLoadingChat(false)
   }

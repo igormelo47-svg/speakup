@@ -8,7 +8,7 @@ echo.
 git fetch origin
 git reset --soft origin/master
 git add -A
-git commit -m "Trial 2 dias + bloqueio total, voz neural do Vo, webhook por user_id, admin pendentes"
+git commit -m "Professor IA: streaming SSE, prompt caching, retry em sobrecarga e novas regras de voz"
 git push origin HEAD:master
 echo.
 echo ============================================

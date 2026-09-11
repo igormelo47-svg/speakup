@@ -15,9 +15,28 @@ const LIMIT_PREMIUM = 80
 // Teto diário por IP (todas as contas somadas — barra farm de contas num IP só).
 // 10x o Premium: não atrapalha escola/escritório com vários alunos na mesma rede.
 const LIMIT_IP = 800
-// Preço do claude-haiku-4-5 (US$ por token) para o registro de custo.
-const PRECO_IN = 1 / 1_000_000
-const PRECO_OUT = 5 / 1_000_000
+// Preços por modelo (US$ por token) para o registro de custo.
+// Cache: escrita custa 1,25x a entrada; leitura custa 0,1x.
+const PRECOS: Record<string, { in: number; out: number }> = {
+  "claude-haiku-4-5-20251001": { in: 1 / 1_000_000, out: 5 / 1_000_000 },
+  "claude-sonnet-4-5-20250929": { in: 3 / 1_000_000, out: 15 / 1_000_000 },
+}
+const PRECO_FALLBACK = { in: 1 / 1_000_000, out: 5 / 1_000_000 }
+
+// Modelo padrão e override opcional só para o Professor (a aula é onde a qualidade
+// do modelo mais aparece). Sem a env, NADA muda: tudo continua no Haiku.
+const MODEL_PADRAO = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001"
+const MODEL_PROFESSOR = process.env.ANTHROPIC_MODEL_PROFESSOR || MODEL_PADRAO
+
+// Teto de saída por modo. O professor responde em ~40 palavras: 1000 tokens era um teto
+// que nunca era usado e só aumentava a latência percebida em resposta truncada.
+const MAX_TOKENS: Record<string, number> = {
+  professor: 400,
+  simulador: 350,
+  ajuda_licao: 200,
+  dica_pron: 200,
+  relatorio_fluencia: 500,
+}
 
 const NIVEIS = ["A1", "A2", "B1", "B2", "C1", "C2"]
 const MODES = ["professor", "simulador", "ajuda_licao", "dica_pron", "relatorio_fluencia"]
@@ -109,28 +128,47 @@ export async function POST(req: NextRequest) {
     }
 
     // 4) Monta o prompt do sistema NO SERVIDOR.
-    let system = ""
+    // Em DOIS blocos: o estático (regras do professor/cenário, igual para todo aluno) vai
+    // com cache_control; o perfil, que muda a cada aluno, fica fora do cache. Se o bloco
+    // estático não atingir o mínimo de tokens do modelo, a API simplesmente ignora o cache
+    // — não quebra nada.
+    let estatico = ""
     const nivelAluno = NIVEIS.includes(body.nivel) ? body.nivel : "A1"
     const perfilTxt = resumoPerfilServidor(perfil?.nome || "", nivelAluno, prog)
     // Quem está no A1/A2 é quem mais desiste. Jargão de gramática com esse aluno é o jeito
     // mais rápido de fazer ele fechar o app, então o Vô ganha regras extras de simplicidade.
-    if (mode === "professor") system = PROMPTS.professor + (nivelAluno === "A1" || nivelAluno === "A2" ? PROMPTS.professor_basico : "") + perfilTxt
+    if (mode === "professor") estatico = PROMPTS.professor + (nivelAluno === "A1" || nivelAluno === "A2" ? PROMPTS.professor_basico : "")
     else if (mode === "simulador") {
       const sp = SCENARIO_PROMPTS[String(body.scenarioId || "")]
       if (!sp) return NextResponse.json({ error: "invalid scenario" }, { status: 400 })
-      system = sp + FORMATO_SIMULADOR + perfilTxt
-    } else system = PROMPTS[mode]
+      estatico = sp + FORMATO_SIMULADOR
+    } else estatico = PROMPTS[mode]
 
-    // 5) Chama a Anthropic.
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, system, messages }),
-    })
+    const usaPerfil = mode === "professor" || mode === "simulador"
+    const system: any[] = [{ type: "text", text: estatico, cache_control: { type: "ephemeral" } }]
+    if (usaPerfil && perfilTxt) system.push({ type: "text", text: perfilTxt })
+
+    const modelo = mode === "professor" ? MODEL_PROFESSOR : MODEL_PADRAO
+    const maxTokens = MAX_TOKENS[mode] || 500
+
+    // 5) Chama a Anthropic. Uma tentativa extra em sobrecarga (429/5xx): antes, um
+    // soluço de um segundo na API virava "tenta de novo" na cara do aluno no meio da aula.
+    async function chamar() {
+      return fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({ model: modelo, max_tokens: maxTokens, system, messages }),
+      })
+    }
+    let res = await chamar()
+    if (!res.ok && (res.status === 429 || res.status >= 500)) {
+      await new Promise(r => setTimeout(r, 700))
+      res = await chamar()
+    }
     if (!res.ok) {
       return amigavel("Tô um pouco sobrecarregado agora 😅 Tenta de novo daqui a pouquinho, tá?")
     }
@@ -138,7 +176,13 @@ export async function POST(req: NextRequest) {
 
     // 6) Registra o custo real (tokens de entrada/saída) — best-effort.
     try {
-      const custo = (data?.usage?.input_tokens || 0) * PRECO_IN + (data?.usage?.output_tokens || 0) * PRECO_OUT
+      const pr = PRECOS[modelo] || PRECO_FALLBACK
+      const u = data?.usage || {}
+      const custo =
+        (u.input_tokens || 0) * pr.in +
+        (u.cache_creation_input_tokens || 0) * pr.in * 1.25 +
+        (u.cache_read_input_tokens || 0) * pr.in * 0.1 +
+        (u.output_tokens || 0) * pr.out
       if (custo > 0) admin.rpc("registra_custo", { p_user: userId, p_custo: custo }).then(() => {})
     } catch {}
 
