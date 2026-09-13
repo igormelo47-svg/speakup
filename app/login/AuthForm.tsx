@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import { VALOR, MOEDA } from '../../lib/valor-eventos'
 import { PRECO } from '../_marketing/ui'
+// Funil: cadastro é o degrau mais caro do Vonai (3.500 visitas → 603 testes → 149 contas).
+// Gravar chegada, envio e ERRO separadamente é o que diferencia "ninguém quis criar conta"
+// de "o formulário recusou a conta de alguém que quis".
+import { funil, EV } from '../../lib/funil'
 
 // Formulário de login/cadastro compartilhado entre /login (modo login) e /cadastro (modo cadastro).
 // O CTA da landing aponta pra /cadastro: o visitante novo cai direto na criação de conta.
@@ -38,6 +42,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
   // resultado do teste → tela de cadastro → conta criada.
   useEffect(() => {
     try { ;(window as any).dataLayer?.push({ event: modoInicial === 'cadastro' ? 'cadastro_visto' : 'login_visto' }) } catch (e) {}
+    if (modoInicial === 'cadastro') funil(EV.CADASTRO_ABERTO, { origem: 'direto' }, { umaVez: true })
   }, [modoInicial])
 
   // Link de indicação (?ref=<id do amigo>): guarda o código para creditar o bônus após o cadastro.
@@ -129,6 +134,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       try { track(criando ? 'cadastro_magic_pedido' : 'login_magic_pedido') } catch (e) {}
       if (criando) {
         try { ;(window as any).dataLayer?.push({ event: 'cadastro_enviado', value: VALOR.cadastro, currency: MOEDA, metodo: 'magic' }) } catch (e) {}
+        funil(EV.CADASTRO_ENVIADO, { metodo: 'magic' }, { umaVez: true })
       }
       setAviso(criando
         ? 'Pronto! Abra seu e-mail e toque no link — a conta já entra com o Premium liberado. (Confira o spam.)'
@@ -160,7 +166,14 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
         password: senha,
         options: { data: { nome: nomeFinal }, emailRedirectTo: redirectApp }
       })
-      if (error) { setErro(traduzErro(error.message)); setLoading(false); return }
+      if (error) {
+        // Cadastro RECUSADO. Sem este evento, uma regra de senha, um e-mail já existente ou
+        // um Supabase fora do ar somem do funil como se a pessoa simplesmente tivesse
+        // desistido — e a conclusão errada é "o cadastro não interessa", não "o cadastro
+        // está quebrando".
+        funil(EV.CADASTRO_ERRO, { motivo: String(error.message || '').slice(0, 120) })
+        setErro(traduzErro(error.message)); setLoading(false); return
+      }
       if (data.user) {
         // O banco pode já ter criado o profile via trigger — upsert evita o erro 409 de chave duplicada.
         // Trial de PRECO.diasGratis dias. A duração de verdade é decidida no banco (handle_new_user /
@@ -176,6 +189,7 @@ export default function AuthForm({ modoInicial = 'login' }: { modoInicial?: 'log
       // o inicio_teste só dispara ao carregar o /app; se o aluno travar na confirmação de e-mail,
       // este evento garante que o topo do funil não some da medição do Google Ads.
       try { ;(window as any).dataLayer?.push({ event: 'cadastro_enviado', value: VALOR.cadastro, currency: MOEDA, user_id: data.user?.id || undefined }) } catch (e) {}
+      funil(EV.CADASTRO_ENVIADO, { metodo: 'senha', nivel: nivelTeste || '' }, { umaVez: true, userId: data.user?.id || null })
       // Se a confirmação de e-mail estiver ligada no Supabase, não vem sessão: avisa o aluno.
       if (!data.session) {
         setAviso('Conta criada! Confirme seu e-mail (verifique também o spam) e depois entre.')

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect } from 'react'
+import { funil, EV } from '../lib/funil'
 
 // Captura de atribuição de PRIMEIRO TOQUE. Em TWA/WebView o identificador de clique do
 // anúncio (gclid/fbclid) se perde entre o clique e a conversão — que acontece dias depois,
@@ -9,6 +10,17 @@ import { useEffect } from 'react'
 const CAMPOS = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']
 
 export default function Attribution() {
+  // Primeiro degrau do funil: a VISITA. Fica aqui porque este componente já está no layout
+  // raiz, ou seja, em toda página pública — e porque ele já é o lugar onde a origem do
+  // clique é resolvida. Uma vez por pessoa (anon_id), não uma por página: o degrau é
+  // "chegou ao Vonai", e contar pageview aqui inflaria o topo e faria toda taxa de
+  // conversão abaixo parecer pior do que é.
+  useEffect(() => {
+    try {
+      funil(EV.VISITA, { pagina: (window.location.pathname || '/').slice(0, 120) }, { umaVez: true })
+    } catch (e) {}
+  }, [])
+
   useEffect(() => {
     try {
       if (localStorage.getItem('speakup_attrib')) return // primeiro toque já registrado

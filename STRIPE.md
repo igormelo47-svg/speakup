@@ -68,17 +68,27 @@ Desenvolvedores → **Webhooks** → **Adicionar endpoint**:
 
 Copie o **signing secret** (começa com `whsec_`).
 
-## Passo 5 — Cinco variáveis na Vercel
+## Passo 5 — Seis variáveis na Vercel
 
 Projeto → Settings → Environment Variables (todos os ambientes):
 
 ```
-STRIPE_SECRET_KEY       sk_live_...   (ou sk_test_... enquanto testa)
-STRIPE_PRICE_MENSAL     price_...
-STRIPE_PRICE_ANUAL      price_...
-STRIPE_WEBHOOK_SECRET   whsec_...
-NEXT_PUBLIC_SITE_URL    https://vonai.com.br
+STRIPE_SECRET_KEY              sk_live_...   (ou sk_test_... enquanto testa)
+STRIPE_PRICE_MENSAL            price_...
+STRIPE_PRICE_ANUAL             price_...
+STRIPE_WEBHOOK_SECRET          whsec_...
+NEXT_PUBLIC_SITE_URL           https://vonai.com.br
+NEXT_PUBLIC_CARTAO_NA_ENTRADA  1
 ```
+
+> **A sexta é nova (13/09/2026) e é a que evita o erro que já aconteceu.** Antes dela,
+> `PRECO.cartaoNaEntrada` era uma constante no código: ligar o Stripe exigia configurar a
+> Vercel **e** lembrar de editar `app/_marketing/ui.tsx`, commitar e publicar. Entre 30/08 e
+> 13/09 o repositório ficou com o cartão-na-entrada pronto e a produção sem Stripe nenhum —
+> todo checkout caiu na Kiwify em silêncio por duas semanas e nenhuma tela avisou.
+> Agora é uma variável só, no mesmo lugar das outras. Ligue-a **junto** com as cinco de
+> cima: com ela em `1` e sem `STRIPE_SECRET_KEY`, o site promete cartão que o app não pede.
+> `/api/diagnostico` (logado como dono) acusa essa incoerência.
 
 Opcional: `STRIPE_TRIAL_DIAS` (padrão 3). Se mudar, mude junto `PRECO.diasGratis` em
 `app/_marketing/ui.tsx` e o trigger no banco — senão o site promete uma coisa e cobra outra.
@@ -101,6 +111,9 @@ Duplo clique em `publicar.bat`. Espere `master -> master`.
 1. Abra `vonai.com.br/api/stripe/checkout` no navegador. Deve responder
    `{"ok":true,"configurado":true,"mensal":true,"anual":true,"dias_trial":3}`.
    Se algum vier `false`, falta a variável correspondente na Vercel.
+   *(Em 13/09/2026 essa rota respondia `configurado:false` — foi assim que o problema apareceu.)*
+1b. Entre no `/admin` com sua conta e olhe o bloco **Integrações** no topo: todo item
+   crítico precisa estar verde. Ele lê a mesma coisa, sem precisar decorar URL de API.
 2. Crie uma conta nova → chegue ao paywall → **Começar 3 dias grátis**.
 3. Deve abrir o Stripe pedindo cartão. Em modo de teste use `4242 4242 4242 4242`,
    validade qualquer no futuro, CVC qualquer.
@@ -126,16 +139,20 @@ umas 15 ocorrências por semana.
 ## O que esperar dos números
 
 Menos gente começa o teste — cartão filtra curioso. Isso é o objetivo, não um efeito
-colateral. A conta que importa:
+colateral.
 
-|  | Hoje | Com cartão na entrada |
-|---|---|---|
-| Testes iniciados / mês | 149 | 40 a 50 |
-| Viram assinante | **0** | 25 % a 45 % |
-| Assinantes / mês | **0** | **10 a 20** |
+**O que dá para afirmar:** hoje a conversão teste → assinante é 0%, porque o caminho exige
+que a pessoa volte sozinha dias depois e digite o cartão. Com cartão na entrada, esse
+caminho deixa de existir: quem começa o teste já tem cobrança agendada, e a conversão passa
+a ser "quantos NÃO cancelam antes do 4º dia".
 
-E, pela primeira vez, o mês seguinte te dá a taxa de renovação — que é a resposta honesta
-sobre se o produto segura gente.
+**O que NÃO dá para afirmar:** quanto isso vai dar em reais. Uma versão anterior deste
+arquivo trazia uma tabela prevendo 10 a 20 assinantes por mês. Aquele número era chute com
+cara de projeção — e foi escrito antes de o Stripe sequer estar ligado. A resposta real vem
+do `/admin` depois do primeiro ciclo completo de teste (4 dias) com tráfego rodando.
+
+O que o primeiro mês entrega de concreto, e não existia antes: a taxa de cancelamento
+dentro do teste, a taxa de renovação no 2º ciclo, e qual momento da oferta converte.
 
 ---
 

@@ -5,6 +5,11 @@ import Link from 'next/link'
 import { PERGUNTAS, classificar } from '../../lib/teste-nivel'
 import { PRECO } from '../_marketing/ui'
 import DemoFala from './DemoFala'
+// Funil: o topo (visita → teste → conta) é onde está a MAIOR perda medida do Vonai
+// (603 testes concluídos para 149 contas entre 02 e 29/08). Sem gravar estes degraus com
+// um id anônimo estável, esse pedaço do funil só existe no pixel do Meta — que não se
+// liga ao banco e por isso não prova que são as mesmas pessoas.
+import { funil, EV } from '../../lib/funil'
 
 // Teste de nivelamento público, sem cadastro. A decisão de deixar responder ANTES de
 // pedir e-mail é deliberada: o anúncio promete "teste de nível grátis em 2 minutos" e
@@ -58,6 +63,7 @@ export default function Teste() {
   function iniciar() {
     setComecou(true)
     evento('teste_nivel_iniciado')
+    funil(EV.TESTE_NIVEL_INICIADO, {}, { umaVez: true })
   }
 
   // Concluir o teste é o evento pelo qual a campanha do Meta OTIMIZA. Ele sai por dois
@@ -80,6 +86,7 @@ export default function Teste() {
         setMediuConclusao(true)
         const eventId = idEvento()
         evento('teste_nivel_concluido', { nivel: n, acertos, event_id: eventId })
+        funil(EV.TESTE_NIVEL_CONCLUIDO, { nivel: n, acertos }, { umaVez: true })
         // Best-effort e sem await: medição nunca pode segurar a tela do resultado.
         try {
           fetch('/api/lead-meta', {
@@ -170,7 +177,7 @@ export default function Teste() {
           </div>
           {/* O nível vai na URL para o cadastro guardar e o app começar a trilha dali.
               Sem isso a promessa "comece do seu nível" morre no formulário. */}
-          <Link href={`/cadastro?nivel=${r.nivel}`} style={{ ...botao, display: 'inline-block' }} onClick={() => evento('teste_nivel_cta', { nivel: r.nivel })}>Continuar falando — {PRECO.diasGratis} dias grátis →</Link>
+          <Link href={`/cadastro?nivel=${r.nivel}`} style={{ ...botao, display: 'inline-block' }} onClick={() => { evento('teste_nivel_cta', { nivel: r.nivel }); funil(EV.CADASTRO_ABERTO, { nivel: r.nivel, origem: 'teste_nivel' }, { umaVez: true }) }}>Continuar falando — {PRECO.diasGratis} dias grátis →</Link>
           <div style={{ fontSize: 12.5, color: '#BCD6F2', marginTop: 12 }}>Leva 20 segundos. Sem cartão.</div>
           {/* Os selos das lojas SAÍRAM daqui em 27/08. O tráfego desta página é pago e
               100% celular: mandar esse clique para a loja tira a pessoa da web (onde a

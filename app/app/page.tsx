@@ -12,6 +12,10 @@ import { historicoParaIA } from '../../lib/historico-chat'
 import { PROFESSORES, VELOCIDADES, professorDe, fatorVelocidade, type ProfessorId, type Velocidade } from '../../lib/professores'
 // Fonte única do trial (dias grátis): o site promete o mesmo número — mudar lá muda aqui.
 import { PRECO } from '../_marketing/ui'
+// Funil de conversão: um nome por degrau, gravado no NOSSO banco (não só no GTM do gestor
+// de tráfego). Ver lib/funil.ts para o porquê.
+import { funil, EV } from '../../lib/funil'
+import { variante, assinaturaVariantes } from '../../lib/experimento'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -770,7 +774,7 @@ const BETA_GRATIS = false
 const TRIAL_DIAS = PRECO.diasGratis
 const TRIAL_MS = TRIAL_DIAS * 24 * 60 * 60 * 1000
 // De onde o aluno chegou na aba de planos (medição paywall_visto no dataLayer).
-type OrigemPlans = 'topo' | 'chip' | 'card_home' | 'fim_licao' | 'limite_professor' | 'limite_simulador' | 'limite_licoes' | 'fim_trial' | 'outro'
+type OrigemPlans = 'topo' | 'chip' | 'card_home' | 'fim_licao' | 'limite_professor' | 'limite_simulador' | 'limite_licoes' | 'fim_trial' | 'resultado' | 'progresso' | 'outro'
 
 const dictCatList = [
   {id:'casa',label:'🏠 Casa'},{id:'comida',label:'🍎 Comida'},{id:'corpo',label:'🧍 Corpo'},
@@ -2533,6 +2537,15 @@ export default function AppPage() {
   const [aguardandoPagamento, setAguardandoPagamento] = useState(false)
   // De onde o aluno abriu a aba de planos — vai no evento paywall_visto (1x por sessão).
   const [origemPlans, setOrigemPlans] = useState<OrigemPlans>('outro')
+  // Token do Supabase guardado em ref para os eventos de funil poderem ser enviados sem
+  // um `await getSession()` em cada ponto de medição. Preenchido no bootstrap da sessão.
+  const tokenRef = useRef<string | null>(null)
+  // Tela "Seu plano está pronto" — o resultado que transforma a 1ª lição em percepção de
+  // valor ANTES de qualquer oferta. Só entram dados que o app realmente mediu ou que o
+  // próprio aluno respondeu: nível, acertos da lição, a trava que ele declarou e a meta
+  // que ele escolheu. Nada de "pontos fortes" inventados — resultado fabricado é o tipo de
+  // coisa que o aluno percebe e que derruba a confiança justo no momento da oferta.
+  const [resultado, setResultado] = useState<{ nivel: string; acertos: number; total: number } | null>(null)
   const [treinoAposOnboarding, setTreinoAposOnboarding] = useState(false)
   const [licoesConcluidas, setLicoesConcluidas] = useState<string[]>([])
   const [licaoDiaData, setLicaoDiaData] = useState('')
@@ -2987,7 +3000,12 @@ export default function AppPage() {
       if (localStorage.getItem('speakup_paywall_visto') === hojeStr) return
       localStorage.setItem('speakup_paywall_visto', hojeStr)
       ;(window as any).dataLayer?.push({ event: 'paywall_visto', origem: 'fim_trial', user_id: userId || undefined })
+      // Degrau "viu a oferta" no funil do /admin. O gatilho viaja junto porque a pergunta
+      // que importa não é quantos viram, é QUAL momento converte.
+      ev(EV.PAYWALL_VISTO, { gatilho: 'fim_trial' })
+      ev(EV.TRIAL_EXPIROU, {}, true)
     } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xpHydrated, isPremium])
 
   // Medição da aba de planos: 1x por sessão, com a origem (de onde o aluno veio) — sem
@@ -2997,6 +3015,8 @@ export default function AppPage() {
     if (tab !== 'plans' || paywallSessaoRef.current) return
     paywallSessaoRef.current = true
     try { ;(window as any).dataLayer?.push({ event: 'paywall_visto', origem: origemPlans, user_id: userId || undefined }) } catch (e) {}
+    ev(EV.PAYWALL_VISTO, { gatilho: origemPlans })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
   // Único caminho para a aba de planos: registra a origem antes de trocar de aba.
   const irParaPlans = (origem: OrigemPlans) => { setOrigemPlans(origem); setTab('plans') }
@@ -3459,6 +3479,20 @@ export default function AppPage() {
       setUserName(nome.split(' ')[0])
       setUserId(user.id)
       setUserEmail(user.email || '')
+      // Token guardado para os eventos de funil (ver `ev`). Antes de existir, cada medição
+      // precisaria de um await só para se identificar — e medição com await no caminho da
+      // tela é medição que alguém acaba removendo.
+      tokenRef.current = sess.session?.access_token || null
+      // Abertura do app + em que dia de vida da conta ela aconteceu. É este par que
+      // responde "quantos voltam no dia 2?" sem depender de push nem de e-mail.
+      try {
+        const nasceu = user.created_at ? new Date(user.created_at).getTime() : Date.now()
+        const diaDeVida = Math.max(0, Math.floor((Date.now() - nasceu) / 86400000))
+        // Repetível de propósito: a retenção sai de contar PESSOAS distintas com dia=N,
+        // não de um degrau "voltou". Degrau exigiria um nome por dia (vn_retorno_d1,
+        // _d2, _d7…) e a lista de nomes viraria um problema maior que a métrica.
+        funil(EV.APP_ABERTO, { dia: diaDeVida, variante: assinaturaVariantes(user.id) }, { userId: user.id, token: sess.session?.access_token || null })
+      } catch (e) {}
       // Conversões otimizadas do Google Ads: o e-mail criptografado fica disponível no
       // dataLayer ANTES de qualquer evento de conversão, porque o GTM lê essa variável no
       // momento em que a tag dispara. Sem isso, toda conversão sem cookie se perde.
@@ -3970,7 +4004,14 @@ export default function AppPage() {
       salvarProgressoLicao(novoXp, novasLicoes, st)
       if (treinoAtivo) treinoLicaoRef.current = titulo
       try { track('licao_concluida', { licao: titulo, nivel: level }) } catch (e) {}
-      if (ehNova && novasLicoes.length === 1) eventoAtivacao('primeira_licao', { nivel: level })
+      ev(EV.LICAO_CONCLUIDA, { total: novasLicoes.length, nivel: level })
+      if (ehNova && novasLicoes.length === 1) {
+        eventoAtivacao('primeira_licao', { nivel: level })
+        ev(EV.PRIMEIRA_LICAO_CONCLUIDA, { nivel: level, erros: licaoErrosRef.current }, true)
+        // Guarda o que a 1ª lição de fato mediu, para a tela de resultado logo adiante.
+        // `licaoErrosRef` conta erros de questão; acertos = questões − erros, nunca negativo.
+        setResultado({ nivel: level, acertos: Math.max(0, qs.length - licaoErrosRef.current), total: qs.length })
+      }
       const monta = frasesMontaveis(lessons[level][lessonIdx].examples)
       const trad = frasesTraduzir(lessons[level][lessonIdx].examples)
       setBuildIdx(0); setBuildPicked([]); setBuildChecked(false)
@@ -4218,6 +4259,10 @@ export default function AppPage() {
     // Medição: sem este evento, o funil entre criar conta e pagar é invisível na web
     // (o Google Ads só enxergava inicio_teste, dias antes da decisão).
     try { ;(window as any).dataLayer?.push({ event: 'inicio_checkout', plano, value: plano === 'anual' ? 289.8 : 29.9, currency: 'BRL', user_id: userId || undefined }) } catch (e) {}
+    // Degrau "escolheu um plano", separado de "abriu o checkout": entre os dois mora o
+    // gateway. Se um cair (foi o que aconteceu com o Stripe sem env por duas semanas), a
+    // distância entre estes dois números mostra exatamente isso.
+    ev(EV.PLANO_SELECIONADO, { plano, gatilho: origemPlans })
     const nat = (typeof window !== 'undefined') ? (window as any).VonaiNative : null
     if (nat && nat.platform === 'ios' && typeof nat.subscribe === 'function') { try { nat.subscribe(plano) } catch (e) {} ; return }
     if (isPlayTWA) {
@@ -4258,10 +4303,21 @@ export default function AppPage() {
           body: JSON.stringify({ plano }),
         })
         const j = await r.json().catch(() => ({}))
-        if (r.ok && j?.url) { window.location.href = j.url; return }
+        if (r.ok && j?.url) {
+          ev(EV.CHECKOUT_INICIADO, { plano, gateway: 'stripe', gatilho: origemPlans })
+          window.location.href = j.url
+          return
+        }
         console.error('[checkout] Stripe indisponível, caindo no Kiwify:', j?.motivo || r.status)
+        // ESTE evento é o que faltava em 30/08. O Stripe ficou duas semanas sem env em
+        // produção, o `catch` abaixo funcionou como escrito, todo mundo caiu na Kiwify e
+        // nenhum número em lugar nenhum disse que isso estava acontecendo. Agora diz.
+        ev(EV.CHECKOUT_FALHOU, { plano, gateway: 'stripe', motivo: String(j?.motivo || r.status).slice(0, 120) })
       }
-    } catch (e) { console.error('[checkout] erro ao falar com o Stripe', e) }
+    } catch (e) {
+      console.error('[checkout] erro ao falar com o Stripe', e)
+      ev(EV.CHECKOUT_FALHOU, { plano, gateway: 'stripe', motivo: 'excecao' })
+    }
     abrirCheckoutKiwify(plano)
   }
 
@@ -4279,6 +4335,7 @@ export default function AppPage() {
     const url = qs ? `${base}?${qs}` : base
     try { localStorage.setItem('speakup_plano_checkout', plano) } catch (e) {} // p/ o value certo no purchase
     setAguardandoPagamento(true)
+    ev(EV.CHECKOUT_INICIADO, { plano, gateway: 'kiwify', gatilho: origemPlans })
     const w = window.open(url, '_blank')
     if (!w) window.location.href = url // popup bloqueado (TWA/standalone): segue na própria aba
   }
@@ -4328,6 +4385,9 @@ export default function AppPage() {
               const pl = localStorage.getItem('speakup_plano_checkout') || 'mensal'
               let atb: any = null; try { const raw = localStorage.getItem('speakup_attrib'); if (raw) atb = JSON.parse(raw) } catch (e2) {}
               ;(window as any).dataLayer?.push({ event: 'assinatura_paga', value: pl === 'anual' ? VALOR.assinaturaAnual : VALOR.assinaturaMensal, currency: MOEDA, user_id: userId, transaction_id: 'kiwify_' + userId, event_id: `vonai-purchase-kiwify_${userId}`, ...(atb?.gclid ? { gclid: atb.gclid } : {}), ...(atb?.fbclid ? { fbclid: atb.fbclid } : {}) })
+              // Último degrau do funil. `umaVez` porque assinar é evento de vida, não de
+              // sessão — sem isso uma reabertura da tela contaria assinatura de novo.
+              ev(EV.ASSINATURA_CONCLUIDA, { plano: pl, gateway: 'web' }, true)
             }
           } catch (e) {}
           return
@@ -4358,6 +4418,24 @@ export default function AppPage() {
     } catch (e) {
       window.location.reload()
     } finally { setConferindoPagamento(false) }
+  }
+
+  // ---------------------------------------------------------------------------
+  // FUNIL — atalho local para lib/funil.ts. Existe para o resto do arquivo poder medir um
+  // degrau com uma linha, sem repetir token/variante em cada ponto de chamada.
+  //
+  // `umaVez` marca DEGRAU (passou por aqui uma vez na vida). Ação repetível vai sem ele,
+  // senão o funil passa a contar cliques em vez de pessoas.
+  // Nunca lança e nunca espera: medição não pode atrasar a tela do aluno.
+  // ---------------------------------------------------------------------------
+  function ev(nome: string, props: Record<string, string | number | boolean | undefined> = {}, umaVez = false) {
+    try {
+      funil(nome, { ...props, variante: assinaturaVariantes(userId || null) }, {
+        umaVez,
+        userId: userId || null,
+        token: tokenRef.current,
+      })
+    } catch (e) {}
   }
 
   // Medição (GTM/GA4): eventos de ativação do funil (nivelamento, 1ª lição, 1ª conversa).
@@ -4726,6 +4804,12 @@ export default function AppPage() {
     salvarPerfil({ ...perfilIa, objetivo, trava: onb.trava, interesses: onb.interesses, meta_diaria: onb.minutos * 5, meta_min: onb.minutos, professor: onb.professor || 'vo', velocidade: onb.velocidade, estilo_aprender: 'tarefas', onboarding_v2: hojeStr })
     try { track('onboarding_v2_concluido', { prof: onb.professor || 'vo', nivel: onb.nivel || 'teste', min: onb.minutos }) } catch (e) {}
     try { (window as any).dataLayer?.push({ event: 'trial_iniciar_clique', user_id: userId || undefined }) } catch (e) {}
+    // Degraus do funil. Nível e meta viram eventos próprios porque são o que torna a
+    // experiência "feita para mim" — se a conversão variar por nível ou por minutos/dia,
+    // é aqui que isso aparece.
+    ev(EV.ONBOARDING_CONCLUIDO, { objetivo, trava: onb.trava || '', professor: onb.professor || 'vo' }, true)
+    ev(EV.NIVEL_DEFINIDO, { nivel: onb.nivel || 'a_testar', origem: 'onboarding' }, true)
+    ev(EV.META_DEFINIDA, { minutos: onb.minutos }, true)
     if (isIOSNative) {
       const nat = (window as any).VonaiNative
       if (nat?.subscribe) {
@@ -4996,6 +5080,29 @@ export default function AppPage() {
   const onbBack: CSSProperties = { background: 'none', border: 'none', color: '#BCD6F2', fontSize: 14, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit' }
   const mostrarOnboarding = xpHydrated && isNovo && !perfilIa.objetivo && !onboarded
   const currentLesson = lessons[level][lessonIdx]
+  // "Está no teste grátis agora" — condição repetida em cinco lugares (faixa da home, chip
+  // do topo, oferta do fim da lição, aba de planos). Num lugar só para os textos nunca
+  // discordarem entre si sobre o estado em que a pessoa está.
+  const emTrialAtivo = isPremium && !pagante && !BETA_GRATIS && !!trialExpira && trialExpira > Date.now()
+
+  // Degrau do funil: o aluno VIU a primeira tela do onboarding. Precisa ser efeito, e não
+  // um disparo no primeiro "Continuar": quem abre e desiste na tela 1 é exatamente a perda
+  // que este degrau existe para tornar visível. Fica aqui, acima dos returns antecipados —
+  // declarar hook depois de um `return` derruba a tela com "Rendered more hooks".
+  useEffect(() => {
+    if (!mostrarOnboarding) return
+    ev(EV.ONBOARDING_INICIADO, {}, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mostrarOnboarding, userId])
+
+  // Degrau "viu o resultado". Fica em efeito, e não dentro do JSX, porque disparar medição
+  // durante o render dobra o evento no modo estrito do React — e um degrau que conta duas
+  // vezes é pior que um degrau que não existe: ele inverte a leitura do funil.
+  useEffect(() => {
+    if (view !== 'finish' || !resultado) return
+    ev(EV.RESULTADO_VISTO, { nivel: resultado.nivel, acertos: resultado.acertos, total: resultado.total }, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, resultado, userId])
 
   // ⏳ Enquanto o progresso não chega do banco, mostra skeletons em vez de números zerados.
   if (!xpHydrated) {
@@ -5098,8 +5205,19 @@ export default function AppPage() {
               <div><div style={{ fontSize: 14, fontWeight: 700, color: '#16212c' }}>Plano Mensal</div><div style={{ fontSize: 12, color: '#5c6b7a', marginTop: 2 }}>Cancele quando quiser</div></div>
               <div style={{ textAlign: 'right' }}><span style={{ fontSize: 20, fontWeight: 800, color: blue }}>R$29,90</span><div style={{ fontSize: 11, color: '#5c6b7a' }}>/mês</div></div>
             </div>
-            <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser · sem fidelidade' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele quando quiser · sem fidelidade'}</div>
-            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            {/* "O que acontece se eu NÃO assinar" — a pergunta que todo paywall deixa sem
+                resposta e que é a que mais trava a decisão. Responder aumenta a confiança
+                justamente porque a resposta é boa: nada é perdido. Esconder isso não vende
+                mais; só faz a pessoa fechar o app sem saber se pode voltar. */}
+            <div style={{ background: '#f2f5f8', borderRadius: 12, padding: '12px 14px', marginBottom: 14, fontSize: 12.5, color: '#5c6b7a', lineHeight: 1.55 }}>
+              <b style={{ color: '#16212c' }}>E se eu não assinar agora?</b><br />
+              Sua conta continua sua e todo o progresso fica guardado — XP, sequência e lições feitas. As lições e o professor ficam trancados até você assinar, e voltam exatamente de onde pararam quando você voltar.
+            </div>
+            <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser · sem fidelidade' : PRECO.cartaoNaEntrada ? 'Pagamento seguro via Stripe · Cartão de crédito · Cancele em 1 toque, sem fidelidade' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele quando quiser · sem fidelidade'}</div>
+            {/* O aviso do e-mail só existe porque o webhook da Kiwify casa o pagamento pelo
+                e-mail do checkout. No Stripe a sessão já nasce com o user_id, então o aviso
+                deixaria de ser cuidado e viraria fricção inventada. */}
+            {!isIOSNative && !PRECO.cartaoNaEntrada && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginTop: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}>⚠️ Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
             {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
             <div style={{ fontSize: 11.5, color: '#93a1b0', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
               Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
@@ -6239,6 +6357,7 @@ export default function AppPage() {
         // com os defaults, e as preferências continuam editáveis dentro do app.
         const pular = () => {
           try { track('onb_pulou', { tela: onbStep }) } catch (e) {}
+          ev(EV.ONBOARDING_PULADO, { passo: onbStep })
           concluirOnboarding({ nivel: onb.nivel || undefined, estilo: 'tarefas', destino: 'treino' })
         }
         const linkPular = onbStep > 0 && onbStep <= 7 ? (
@@ -6260,7 +6379,10 @@ export default function AppPage() {
           <button disabled={!ok} onClick={onClick} style={{ width: '100%', padding: 15, marginTop: 14, background: ok ? '#2fd27a' : 'rgba(255,255,255,0.18)', color: ok ? '#0a2a55' : 'rgba(255,255,255,0.5)', border: 'none', borderRadius: 12, fontSize: 15.5, fontWeight: 800, cursor: ok ? 'pointer' : 'default', fontFamily: 'inherit' }}>{rotulo}</button>
         )
         const voltar = onbStep > 0 ? <button onClick={() => setOnbStep(onbStep - 1)} style={onbBack}>← Voltar</button> : null
-        const avancar = () => setOnbStep(onbStep + 1)
+        // Cada passo vira um degrau próprio: é assim que "o onboarding perde gente" deixa de
+        // ser impressão e vira "perde 40% na tela 3". Repetível de propósito — quem volta e
+        // avança de novo conta como passagem, e o /admin conta pessoas distintas.
+        const avancar = () => { ev(EV.ONBOARDING_PASSO, { passo: onbStep }); setOnbStep(onbStep + 1) }
         const OBJETIVOS = [['✈️', 'Me virar em viagens', 'Me virar em viagens no exterior'], ['💼', 'Trabalho e entrevistas', 'Usar inglês no trabalho e em entrevistas'], ['💬', 'Conversar com confiança', 'Conversar com fluência e confiança'], ['🎓', 'Prova ou intercâmbio', 'Passar em prova ou fazer intercâmbio'], ['🌍', 'Morar fora', 'Morar fora do Brasil']]
         const TRAVAS = [['🧠', 'Entendo, mas não consigo falar'], ['🎤', 'Travo em reunião ou entrevista'], ['🗣️', 'Minha pronúncia me envergonha'], ['💭', 'Esqueço as palavras na hora'], ['📐', 'Gramática me confunde']]
         const NIVEIS = [['A1', 'Sei dizer "hello" e falar meu nome'], ['A2', 'Consigo comprar coisas e pedir comida'], ['B1', 'Discuto planos de viagem e reservo hotel'], ['B2', 'Falo com conforto sobre meus interesses'], ['C1', 'Falo de vários temas e entendo séries']]
@@ -7029,7 +7151,11 @@ export default function AppPage() {
           <div style={{ padding: 16 }}>
             <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '0.5px solid var(--color-border-tertiary)', padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 12 }}>O que você ganha com o Premium:</div>
-              {[['🎭', 'Simulações ilimitadas', 'Pratique todos os 12 cenários sem limite diário'], ['🤖', 'Professor IA ilimitado', 'Tire dúvidas sem restrições'], ['📖', 'Todas as lições, do A1 ao C2', 'Centenas de lições, do básico ao avançado'], ['📊', 'Relatório de evolução', 'Acompanhe seu progresso semanal'], ['🎯', 'Trilha personalizada', 'IA monta seu plano de 90 dias'], ['🔓', 'Novos cenários em breve', 'Acesso antecipado a conteúdo novo']].map(([icon, title, desc], i) => (
+              {/* O número de cenários sai de `scenarios.length`, não de um literal. Esta
+                  linha dizia "12 cenários" enquanto o app tinha 29 — o app se vendia por
+                  menos da metade do que entrega, na tela onde a pessoa decide pagar. Número
+                  escrito à mão em texto de venda envelhece sozinho; derivado, não. */}
+              {[['🎭', 'Simulações ilimitadas', `Pratique os ${scenarios.length} cenários sem limite diário`], ['🤖', 'Professor IA ilimitado', 'Tire dúvidas sem restrições'], ['📖', 'Todas as lições, do A1 ao C2', 'Centenas de lições, do básico ao avançado'], ['📊', 'Relatório de evolução', 'Acompanhe seu progresso semanal'], ['🎯', 'Trilha personalizada', 'IA monta seu plano de 90 dias'], ['🔓', 'Novos cenários em breve', 'Acesso antecipado a conteúdo novo']].map(([icon, title, desc], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < 5 ? 12 : 0 }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}><Ic e={icon} /></span>
                   <div><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{title}</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{desc}</div></div>
@@ -7059,22 +7185,39 @@ export default function AppPage() {
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Anual</div><div style={{ fontSize: 12, color: green, marginTop: 2, fontWeight: 600 }}>economize R$69 por ano</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: gold }}>{isIOSNative ? 'R$289,90' : 'R$289,80'}</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/ano · {isIOSNative ? 'R$24,16' : 'R$24,15'}/mês</div></div>
               </div>
-              <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar por {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano <Ic e="→" /></button>
+              {/* CTA pelo que a pessoa GANHA, não pelo que ela paga — o preço está logo
+                  acima, em destaque, então repeti-lo no botão só troca benefício por
+                  boleto. O texto muda com o momento: dentro do teste a decisão é
+                  continuar; depois dele é destravar. */}
+              <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>{emTrialAtivo ? 'Continuar meu plano — 1 ano' : 'Desbloquear meu plano — 1 ano'} <Ic e="→" /></button>
             </div>
             <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '1px solid var(--color-border-tertiary)', padding: 16, marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div><div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plano Mensal</div><div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Menos de R$1 por dia · Cancele quando quiser</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 700, color: blue }}>R$29,90</div><div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>/mês</div></div>
               </div>
-              <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Assinar por R$29,90/mês <Ic e="→" /></button>
+              <button onClick={() => abrirAssinatura('mensal')} style={{ width: '100%', padding: 14, background: blue, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>{emTrialAtivo ? 'Continuar mês a mês' : 'Desbloquear mês a mês'} <Ic e="→" /></button>
             </div>
+            {/* Quando é a cobrança e como cancelar — dito em português, não em letra miúda.
+                É a dúvida que mais trava a decisão, e escondê-la não vende mais: faz a
+                pessoa fechar o app para "pensar", que é onde a conversão morre. */}
+            {emTrialAtivo && trialExpira && (
+              <div style={{ fontSize: 12.5, color: blueDark, background: blueLight, borderRadius: 12, padding: '11px 13px', marginBottom: 12, lineHeight: 1.55 }}>
+                Seu teste Premium vai até <b>{new Date(trialExpira).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</b>.{' '}
+                {PRECO.cartaoNaEntrada
+                  ? 'Assinando agora, nada é cobrado antes dessa data — e você pode cancelar em 1 toque até lá.'
+                  : 'Assinando agora você garante a continuidade; a cobrança é a do plano escolhido, sem fidelidade.'}
+              </div>
+            )}
             <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', textAlign: 'center', fontWeight: 600, marginBottom: 12 }}><Ic e="✅" /> Cancele quando quiser · sem fidelidade</div>
-            {!isIOSNative && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginBottom: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}><Ic e="⚠️" /> Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
+            {/* Só faz sentido no caminho Kiwify, onde o webhook casa o pagamento pelo
+                e-mail do checkout. No Stripe a sessão já nasce com o user_id. */}
+            {!isIOSNative && !PRECO.cartaoNaEntrada && <div style={{ fontSize: 12, color: '#8a5a10', textAlign: 'center', lineHeight: 1.5, marginBottom: 12, background: goldLight, borderRadius: 10, padding: '10px 12px' }}><Ic e="⚠️" /> Importante: pague com o <b>mesmo e-mail</b> que você usou pra criar sua conta no Vonai.</div>}
             {/* Web: quem já pagou (Pix confirmado depois de fechar a aba, ou webhook atrasado)
                 atualiza o acesso sem recarregar — antes esse botão só existia no paywall duro. */}
             {!isIOSNative && <button onClick={conferirPagamento} disabled={conferindoPagamento} style={{ width: '100%', padding: 12, marginBottom: 16, background: 'var(--color-background-primary)', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: conferindoPagamento ? 0.6 : 1 }}>{conferindoPagamento ? 'Conferindo…' : 'Já paguei — atualizar meu acesso'}</button>}
             </>)}
-            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele a qualquer momento' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento'}</div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele a qualquer momento' : PRECO.cartaoNaEntrada ? 'Pagamento seguro via Stripe · Cartão de crédito · Cancele a qualquer momento' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele a qualquer momento'}</div>
             {/* Exigência da App Store (guideline 3.1.2): renovação automática explícita + links de Termos e Privacidade no paywall. */}
             <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', textAlign: 'center', lineHeight: 1.6, marginTop: 10 }}>
               Assinatura com renovação automática: R$29,90/mês ou {isIOSNative ? 'R$289,90' : 'R$289,80'}/ano, cobrada até você cancelar{isIOSNative ? ' (gerencie nos Ajustes do seu ID Apple)' : ''}.{' '}
@@ -7556,18 +7699,83 @@ export default function AppPage() {
                     <button onClick={() => { ativarLembretes(); try { track('lembretes_prompt_finish') } catch (e) {} }} style={{ flexShrink: 0, background: blue, color: '#fff', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ativar</button>
                   </div>
                 )}
-                {/* Nudge de assinatura no MOMENTO DA VITÓRIA (só durante o trial): a emoção
-                    de acabar de concluir a lição é o melhor gatilho de conversão. */}
-                {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (
-                  <div onClick={() => irParaPlans('fim_licao')} style={{ background: 'linear-gradient(135deg, #e08a1e, #e08a1e)', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', animation: 'su_risefade 0.5s ease 0.55s both' }}>
-                    <div style={{ fontSize: 26, flexShrink: 0 }}><Ic e="⭐" c="#fff" /></div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Você está indo muito bem! 🔥</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>Assine o Premium e continue evoluindo, sem interrupções.</div>
+                {/* ---------------------------------------------------------------
+                    RESULTADO — a tela que faz a pessoa entender o que acabou de ganhar.
+
+                    Antes daqui havia só "+30 XP" e, logo abaixo, um banner genérico
+                    ("Você está indo muito bem! Assine o Premium") do mesmo tamanho do botão
+                    de compartilhar. Ou seja: o app pedia dinheiro sem ter mostrado
+                    resultado nenhum. A ordem correta do funil é resultado → percepção de
+                    valor → oferta, e é isso que este bloco e o de baixo fazem.
+
+                    REGRA DESTA TELA: nada aqui é inventado. Nível e acertos foram medidos
+                    nesta lição; a trava e a meta foram respondidas pelo próprio aluno no
+                    onboarding. Resultado fabricado é justamente o que quebra a confiança
+                    no segundo em que a oferta aparece.
+                --------------------------------------------------------------- */}
+                {resultado && (() => {
+                  const minutos = Math.max(5, Math.round((perfilIa.meta_diaria || 50) / 5))
+                  const proxima = lessons[level]?.[lessonIdx + 1]?.title || 'sua próxima lição'
+                  const linha = (rotulo: string, valor: string) => (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '9px 0', borderTop: '1px solid var(--color-border-tertiary)' }}>
+                      <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', flexShrink: 0 }}>{rotulo}</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)', textAlign: 'right' }}>{valor}</span>
                     </div>
-                    <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: 20, padding: '8px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
-                  </div>
-                )}
+                  )
+                  return (
+                    <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 16, padding: 16, marginBottom: 14, textAlign: 'left', animation: 'su_risefade 0.5s ease 0.5s both' }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-text-primary)' }}>Seu plano de inglês está pronto</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 4, marginBottom: 6, lineHeight: 1.5 }}>Montado a partir da lição que você acabou de fazer e do que você respondeu no começo.</div>
+                      {linha('Seu nível', resultado.nivel)}
+                      {linha('Nesta lição', `${resultado.acertos} de ${resultado.total} de primeira`)}
+                      {!!perfilIa.trava && linha('Vamos destravar', String(perfilIa.trava))}
+                      {linha('Seu ritmo', `${minutos} min por dia`)}
+                      {linha('Próximo passo', proxima)}
+                    </div>
+                  )
+                })()}
+
+                {/* ---------------------------------------------------------------
+                    OFERTA CONTEXTUAL — fala do plano DESTA pessoa, não de uma lista de
+                    recursos, e só aparece depois do resultado acima.
+
+                    Ética, que aqui não é detalhe: a data mostrada é a data real do fim do
+                    teste (não há contador falso, não há "última chance"), e a saída
+                    gratuita fica logo abaixo, visível, do mesmo tamanho. Um paywall que
+                    esconde o "agora não" converte uma vez e queima a conta para sempre.
+
+                    O momento em que ela aparece é experimento (`momento_oferta`): depois da
+                    1ª lição ou só a partir da 2ª. Nenhuma das duas é "a certa" antes de ter
+                    número — ver lib/experimento.ts.
+                --------------------------------------------------------------- */}
+                {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
+                  const momento = variante('momento_oferta', userId || null)
+                  const bastante = momento === 'pos_licao2' ? doneLessons >= 2 : doneLessons >= 1
+                  if (!bastante) return null
+                  const fim = new Date(trialExpira).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })
+                  const texto = variante('texto_oferta', userId || null)
+                  return (
+                    <div style={{ background: 'linear-gradient(135deg, #103d77, #2e72d6)', borderRadius: 16, padding: 16, marginBottom: 14, textAlign: 'left', animation: 'su_risefade 0.5s ease 0.58s both' }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>
+                        {texto === 'acervo' ? 'Desbloqueie todas as lições, do A1 ao C2' : 'Continue seu plano personalizado'}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.88)', marginTop: 6, lineHeight: 1.5 }}>
+                        Seu teste Premium vai até <b>{fim}</b>. Com o Premium você segue com o professor de IA sem limite, as conversas do simulador e a trilha inteira — no mesmo ritmo que você escolheu.
+                      </div>
+                      <button
+                        onClick={() => irParaPlans('resultado')}
+                        style={{ width: '100%', marginTop: 12, padding: 13, background: gold, color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {texto === 'acervo' ? 'Ver o que está incluído' : 'Continuar com o Premium'} <Ic e="→" />
+                      </button>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 8, textAlign: 'center', lineHeight: 1.5 }}>
+                        {PRECO.cartaoNaEntrada
+                          ? `Nada é cobrado até ${fim}. Cancele em 1 toque antes disso.`
+                          : 'Você continua no teste até lá. Nada é cobrado automaticamente.'}
+                      </div>
+                    </div>
+                  )
+                })()}
                 <div style={{ animation: 'su_risefade 0.5s ease 0.6s both' }}>
                   <button onClick={async () => {
                     const texto = `Estou aprendendo inglês com um professor de IA no Vonai 🇧🇷 Já concluí ${doneLessons} ${doneLessons === 1 ? 'lição' : 'lições'}${streak > 1 ? ` e estou há ${streak} dias seguidos` : ''}! Vem estudar comigo: https://vonai.com.br`
@@ -8116,6 +8324,23 @@ export default function AppPage() {
                 <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 6, height: 9, overflow: 'hidden' }}><div style={{ background: 'linear-gradient(90deg,#FFD98A,#F5A623)', height: '100%', width: `${nvE.pct}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
                 <div style={{ fontSize: 12.5, marginTop: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.95)' }}>O cérebro adora progresso. Você já domina <b>{vocabDominadas}</b> {vocabDominadas === 1 ? 'palavra' : 'palavras'} e concluiu <b>{doneLessons}</b> {doneLessons === 1 ? 'lição' : 'lições'}. Continue! <Ic e="🚀" /></div>
               </div>
+              {/* OFERTA NA TELA DE PROGRESSO — o segundo melhor momento do app, depois do
+                  fim da 1ª lição. Aqui a pessoa está olhando para o que ela mesma
+                  construiu, e a decisão de assinar passa a ser sobre não perder isso, não
+                  sobre uma lista de recursos.
+
+                  Aparece só com progresso real (≥1 lição) e só durante o teste. Sem número
+                  construído, este card seria um pedido de dinheiro em cima de um zero — que
+                  é exatamente o tipo de paywall que ensina a pessoa a ignorar paywall. */}
+              {emTrialAtivo && doneLessons >= 1 && trialExpira && (
+                <div style={{ background: 'var(--color-background-primary)', border: `1.5px solid ${gold}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-text-primary)' }}>Isso tudo é seu — continue de onde parou</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 5, lineHeight: 1.5 }}>
+                    Seu teste vai até <b>{new Date(trialExpira).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</b>. O progresso fica guardado de qualquer jeito; o Premium é o que mantém a trilha, o professor e as conversas destravados.
+                  </div>
+                  <button onClick={() => irParaPlans('progresso')} style={{ width: '100%', marginTop: 11, padding: 12, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 14.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>Continuar com o Premium <Ic e="→" /></button>
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
                 {metricas.map((m, i) => (
                   <div key={i} style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, padding: '12px 8px', textAlign: 'center' }}>

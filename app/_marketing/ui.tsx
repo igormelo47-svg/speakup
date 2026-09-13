@@ -32,11 +32,19 @@ export const PRECO = {
   // do plano antes de liberar o app (padrão Lucida). A duração real é decidida no banco:
   // migracao_2026-08-21_trial_3_dias.sql — rode junto com o deploy.
   diasGratis: 3,
-  // Cartão pedido na entrada do teste. Só pode virar `true` quando o Stripe estiver de fato
-  // configurado em produção — conta, os 2 preços, portal, webhook e as 5 envs na Vercel
+  // Cartão pedido na entrada do teste. Só vale `true` quando o Stripe estiver de fato
+  // configurado em produção — conta, os 2 preços, portal, webhook e as envs na Vercel
   // (ver STRIPE.md). Enquanto for `false`, TODA página pública diz "sem cartão", que é o que
   // o cadastro realmente faz hoje. Promessa à frente do mecanismo é reclamação na loja.
-  cartaoNaEntrada: false,
+  //
+  // 13/09/2026: virou env (NEXT_PUBLIC_CARTAO_NA_ENTRADA=1) em vez de constante no código.
+  // Motivo: enquanto era constante, ligar o Stripe exigia DOIS passos em ordem — configurar
+  // a Vercel e depois lembrar de editar este arquivo, commitar e publicar. Entre 30/08 e
+  // 13/09 o repositório ficou com o cartão-na-entrada pronto e a produção sem Stripe
+  // nenhum, e todo checkout caiu na Kiwify em silêncio por duas semanas. Com a env, ligar a
+  // cobrança automática é uma coisa só, no mesmo lugar das outras chaves.
+  // Coerência entre os dois é conferida em /api/diagnostico.
+  cartaoNaEntrada: process.env.NEXT_PUBLIC_CARTAO_NA_ENTRADA === '1',
 }
 
 // Frases do teste grátis derivadas do flag acima. Existem para que home, /planos e as
