@@ -4345,6 +4345,22 @@ export default function AppPage() {
   // logo depois de pagar — o pior momento possível. Liga a espera e deixa o polling abaixo
   // confirmar. Hook no topo do componente, junto dos outros: declarar depois de um return
   // antecipado derruba a tela com "Rendered more hooks than during the previous render".
+  // Chegou pelo link de um e-mail do ciclo de vida (?e=d2, ?e=trial_t24...). Registra o
+  // clique e limpa o parâmetro da URL — deixá-lo grudado faria a próxima navegação
+  // contar o mesmo clique de novo, e um refresh viraria "voltou pelo e-mail" para sempre.
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search)
+      const e = q.get('e')
+      if (!e) return
+      ev(EV.EMAIL_CLIQUE, { chave: e.slice(0, 40) })
+      q.delete('e')
+      const qs = q.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : ''))
+    } catch (err) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search)

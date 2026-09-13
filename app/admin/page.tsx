@@ -39,6 +39,7 @@ type FunilCompleto = {
   gateways: Record<string, number>
   falhasCheckout: { total: number; ultimas: { motivo: string; gateway: string; quando: string }[] }
   curvaRetencao: { dia: number; pessoas: number; pctDoD0: number | null }[]
+  emails: { chave: string; enviados: number; cliques: number; assinaram: number; taxaClique: number | null }[]
   experimentos: { nome: string; pergunta: string; variantes: { variante: string; viramOferta: number; assinaram: number; taxa: number | null }[]; aviso: string }[]
   error?: string
   dica?: string
@@ -489,6 +490,38 @@ export default function Admin() {
                           <div style={{ fontSize: 10.5, color: '#5B6B82' }}>{r.pctDoD0 === null ? '—' : `${r.pctDoD0}%`}</div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ciclo de vida por e-mail. A pergunta que isto responde: a sequência de
+                    retorno traz gente de volta, ou só gasta reputação de domínio? */}
+                {funilCompleto.emails && funilCompleto.emails.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#102A4C', marginBottom: 8 }}>E-mails do ciclo de vida</div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ color: '#9AA7B8', textAlign: 'left' }}>
+                            <th style={{ padding: '6px 8px 6px 0' }}>E-mail</th>
+                            <th style={{ padding: 6, textAlign: 'right' }}>Enviados</th>
+                            <th style={{ padding: 6, textAlign: 'right' }}>Cliques</th>
+                            <th style={{ padding: 6, textAlign: 'right' }}>Assinaram</th>
+                            <th style={{ padding: 6, textAlign: 'right' }}>Taxa</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {funilCompleto.emails.map(e => (
+                            <tr key={e.chave} style={{ borderTop: '1px solid #EEF1F6' }}>
+                              <td style={{ padding: '7px 8px 7px 0', color: '#102A4C' }}>{e.chave}</td>
+                              <td style={{ padding: 7, textAlign: 'right' }}>{e.enviados}</td>
+                              <td style={{ padding: 7, textAlign: 'right' }}>{e.cliques}</td>
+                              <td style={{ padding: 7, textAlign: 'right', fontWeight: 700 }}>{e.assinaram}</td>
+                              <td style={{ padding: 7, textAlign: 'right' }}>{e.taxaClique === null ? '—' : `${e.taxaClique}%`}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}

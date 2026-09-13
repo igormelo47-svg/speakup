@@ -184,6 +184,36 @@ export async function GET(req: NextRequest) {
       : null,
   }))
 
+  // ---- Ciclo de vida por e-mail: mandou → clicou → assinou -------------------
+  // A sequência de retorno (dia 2, dia 3, fim de teste, pós-teste) já existia no código há
+  // semanas e nunca produziu um número. Aqui ela finalmente é avaliável por chave: se o
+  // dia 3 manda 40 e traz 0 cliques, ele não está "ajudando um pouco" — está gastando
+  // reputação de domínio, e é melhor desligar.
+  const porEmail = new Map<string, { enviados: Set<string>; cliques: Set<string>; assinaram: Set<string> }>()
+  const garanteEmail = (k: string) => {
+    if (!porEmail.has(k)) porEmail.set(k, { enviados: new Set(), cliques: new Set(), assinaram: new Set() })
+    return porEmail.get(k)!
+  }
+  const clicouEm = new Map<string, string>()
+  for (const l of linhas) {
+    const k = String((l.props || {}).chave || '?')
+    if (l.evento === EV.EMAIL_ENVIADO) garanteEmail(k).enviados.add(l.identidade)
+    if (l.evento === EV.EMAIL_CLIQUE) { garanteEmail(k).cliques.add(l.identidade); clicouEm.set(l.identidade, k) }
+    if (l.evento === EV.ASSINATURA_CONCLUIDA) {
+      const origem = clicouEm.get(l.identidade)
+      if (origem) garanteEmail(origem).assinaram.add(l.identidade)
+    }
+  }
+  const emails = [...porEmail.entries()]
+    .map(([chave, v]) => ({
+      chave,
+      enviados: v.enviados.size,
+      cliques: v.cliques.size,
+      assinaram: v.assinaram.size,
+      taxaClique: v.enviados.size > 0 ? Math.round((v.cliques.size / v.enviados.size) * 1000) / 10 : null,
+    }))
+    .sort((a, b) => b.enviados - a.enviados)
+
   // ---- Retenção por dia de vida (de vn_app_aberto, props.dia) -----------------
   const retencao = new Map<number, Set<string>>()
   for (const l of linhas) {
@@ -249,6 +279,7 @@ export async function GET(req: NextRequest) {
     gateways: Object.fromEntries([...gatewayCheckout].map(([g, s]) => [g, s.size])),
     falhasCheckout: { total: falhas.length, ultimas: falhas.slice(-10).reverse() },
     curvaRetencao,
+    emails,
     experimentos,
   })
 }

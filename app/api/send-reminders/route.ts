@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 import { enviarEmailLembrete, emailTrialAcabando, emailPosTrial, emailDia2, emailDia3 } from '../../../lib/email'
+import { gravarEventoServidor, EV } from '../../../lib/funil'
 import { enviarWhatsapp, whatsappConfigurado } from '../../../lib/whatsapp'
 import { missaoPara } from '../../../lib/missao'
 import { segredoConfere } from '../../../lib/segredo'
@@ -215,8 +216,15 @@ export async function GET(req: NextRequest) {
     await admin.from('progresso').update({ emails_enviados: novo }).eq('user_id', p.user_id)
   }
   const mandar = async (p: any, chave: string, t: { titulo: string; corpo: string; cta: string; href: string }) => {
-    const r = await enviarEmailLembrete({ para: String(p.email), userId: p.user_id, titulo: t.titulo, corpo: t.corpo, cta: t.cta, href: t.href })
-    if (r.ok) { emails++; contagem[chave]++; await marcar(p, chave) }
+    // `chave` viaja até o link (?e=<chave>): é o que permite ao /admin cruzar "mandei o
+    // dia 2" com "essa pessoa voltou e assinou". Sem isso a sequência de retorno inteira
+    // é fé — manda e ninguém sabe se traz alguém de volta.
+    const r = await enviarEmailLembrete({ para: String(p.email), userId: p.user_id, titulo: t.titulo, corpo: t.corpo, cta: t.cta, href: t.href, chave })
+    if (r.ok) {
+      emails++; contagem[chave]++; await marcar(p, chave)
+      // Sem await no caminho crítico do cron: medição não pode atrasar o próximo envio.
+      void gravarEventoServidor(admin as any, { evento: EV.EMAIL_ENVIADO, userId: p.user_id, props: { chave } })
+    }
     else { emailsFalha++; console.error(`[E-mail ${chave}] falhou`, r.motivo) }
     return r.ok
   }

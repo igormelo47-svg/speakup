@@ -62,6 +62,13 @@ export const EV = {
   ASSINATURA_CONCLUIDA: 'vn_assinatura',
   ASSINATURA_CANCELADA: 'vn_assinatura_cancelada',
 
+  // Reengajamento por e-mail/push — fecha o laço do ciclo de vida. Sem estes dois, a
+  // sequência de retorno (dia 2, dia 3, fim de teste, pós-teste) existe no código e é
+  // invisível no resultado: não dá para saber se ela traz alguém de volta ou só gasta
+  // reputação de domínio.
+  EMAIL_ENVIADO: 'vn_email_enviado',   // props.chave = d2 | d3 | trial_t24 | pos_trial_1 | ...
+  EMAIL_CLIQUE: 'vn_email_clique',     // o aluno abriu o app pelo link do e-mail
+
   // Retenção
   RETORNO: 'vn_retorno',                     // props.dia = D1, D2, D3, D7...
   TRIAL_ULTIMO_DIA: 'vn_trial_ultimo_dia',
@@ -171,4 +178,35 @@ export function funil(evento: NomeEvento | string, props: Props = {}, opts: Opco
       void fetch('/api/funil', { method: 'POST', headers, body: corpo, keepalive: true }).catch(() => {})
     } catch {}
   } catch {}
+}
+
+// ---------------------------------------------------------------------------
+// Gravação a partir do SERVIDOR (cron de lembretes, webhooks). O caminho normal é o
+// navegador chamando /api/funil; aqui não há navegador — o cron roda sozinho, 2x por dia.
+//
+// Recebe o client admin já criado por quem chamou, em vez de criar o seu: a rota já tem um,
+// e abrir um segundo por evento desperdiça conexão no plano free.
+// Nunca lança: perder a medição de um e-mail não pode impedir o e-mail de sair.
+// ---------------------------------------------------------------------------
+type ClienteAdmin = {
+  from: (tabela: string) => { insert: (linha: Record<string, unknown>) => Promise<{ error: unknown }> }
+}
+
+export async function gravarEventoServidor(
+  admin: ClienteAdmin,
+  opts: { evento: NomeEvento | string; userId: string; props?: Record<string, string | number | boolean>; etapa?: boolean },
+): Promise<boolean> {
+  try {
+    const { error } = await admin.from('eventos_funil').insert({
+      evento: opts.evento,
+      user_id: opts.userId,
+      identidade: opts.userId,
+      etapa: !!opts.etapa,
+      props: opts.props || {},
+      criado_em: new Date().toISOString(),
+    })
+    return !error
+  } catch {
+    return false
+  }
 }

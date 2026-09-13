@@ -8,7 +8,7 @@ echo.
 git fetch origin
 git reset --soft origin/master
 git add -A
-git commit -m "Funil de conversao: medicao ponta a ponta, oferta no dia 0 e diagnostico das integracoes"
+git commit -m "Medicao do ciclo de vida por e-mail e checagem das colunas do Stripe"
 git push origin HEAD:master
 echo.
 echo ============================================

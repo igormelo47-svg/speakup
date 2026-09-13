@@ -68,13 +68,22 @@ export async function enviarEmailLembrete(params: {
   corpo: string
   cta?: string
   href?: string
+  /** Chave do e-mail no ciclo de vida (d2, d3, trial_t24...). Vai no link como ?e=<chave>
+   *  para o app saber que a visita veio DESTE e-mail e registrar vn_email_clique. Sem isso
+   *  a sequência de retorno não tem como ser avaliada: manda e ninguém sabe se volta. */
+  chave?: string
 }): Promise<ResultadoEmail> {
   const chave = process.env.RESEND_API_KEY
   if (!chave) return { ok: false, motivo: 'sem RESEND_API_KEY' }
   if (!params.para || !params.para.includes('@')) return { ok: false, motivo: 'e-mail invalido' }
 
   const cta = params.cta || 'Continuar meu inglês'
-  const href = params.href || `${BASE}/app`
+  const hrefBase = params.href || `${BASE}/app`
+  // Preserva query existente (o link de planos pode já ter parâmetros) em vez de assumir
+  // que nunca tem — concatenar '?' cego produziria uma URL com dois '?'.
+  const href = params.chave
+    ? `${hrefBase}${hrefBase.includes('?') ? '&' : '?'}e=${encodeURIComponent(params.chave)}`
+    : hrefBase
 
   try {
     const r = await fetch('https://api.resend.com/emails', {

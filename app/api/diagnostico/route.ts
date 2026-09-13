@@ -143,6 +143,37 @@ export async function GET(req: NextRequest) {
       }
     } catch {}
   }
+  // ---- Banco: as colunas que o Stripe PRECISA para gravar quem pagou --------
+  // Isto existe por um quase-acidente encontrado em 13/09/2026: as envs do Stripe estavam
+  // prestes a ser configuradas, mas `migracao_2026-08-30_stripe.sql` nunca tinha rodado —
+  // as três colunas não existiam. Sem elas o cartão passa, o webhook chega e não tem onde
+  // gravar o dono da assinatura: a pessoa paga e NÃO vira Premium. Exatamente o que já
+  // aconteceu uma vez pela Kiwify (17/08). Conferir env sem conferir banco daria um painel
+  // todo verde em cima de um pagamento que não completa.
+  let colunasStripe = false
+  let faltando: string[] = []
+  if (url && service) {
+    const admin = createClient(url, service)
+    for (const col of ['stripe_customer_id', 'stripe_subscription_id', 'stripe_status']) {
+      try {
+        const { error } = await admin.from('progresso').select(col).limit(1)
+        if (error) faltando.push(col)
+      } catch { faltando.push(col) }
+    }
+    colunasStripe = faltando.length === 0
+  }
+  itens.push({
+    id: 'colunas_stripe',
+    ok: colunasStripe,
+    // Crítico junto com o Stripe: com o Stripe ligado e as colunas ausentes, o dinheiro
+    // entra e o acesso não. É pior que o checkout não funcionar.
+    critico: temStripe,
+    titulo: 'Colunas do Stripe no banco',
+    detalhe: colunasStripe
+      ? 'progresso tem stripe_customer_id, stripe_subscription_id e stripe_status.'
+      : `Faltam em progresso: ${faltando.join(', ')}. Rode migracao_2026-08-30_stripe.sql no Supabase. Sem isso o aluno paga e o Premium NÃO liga.`,
+  })
+
   itens.push({
     id: 'tabela_funil',
     ok: tabelaFunil,
