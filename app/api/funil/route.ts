@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
   }
 
   let gravado = false
+  let motivoFalha: string | null = null
   try {
     // Degrau (`umaVez`) só pode existir uma vez por pessoa. A idempotência de verdade tem
     // que ser do BANCO, não do localStorage: quem troca de celular ou limpa o cache
@@ -142,9 +143,14 @@ export async function POST(req: NextRequest) {
     // esperada — não é erro que mereça log.
     if (error && !/duplicate|conflict|unique/i.test(error.message || '')) {
       console.warn('[funil] não gravou', evento, error.message)
+      // O motivo volta na resposta de propósito. Sem isto, "não gravou" é indistinguível
+      // de "gravou" do lado de fora, e a tabela ausente vira um silêncio de duas semanas —
+      // exatamente o erro que esta rota existe para não deixar acontecer de novo.
+      motivoFalha = String(error.message || '').slice(0, 160)
     }
   } catch (e) {
     console.warn('[funil] exceção ao gravar', e instanceof Error ? e.message : e)
+    motivoFalha = e instanceof Error ? e.message.slice(0, 160) : 'excecao'
   }
 
   // Espelho no GA4 sem passar pelo GTM. Só para logado: o Measurement Protocol exige
@@ -155,7 +161,7 @@ export async function POST(req: NextRequest) {
     } catch {}
   }
 
-  return NextResponse.json({ ok: true, gravado })
+  return NextResponse.json({ ok: true, gravado, ...(motivoFalha ? { motivo: motivoFalha } : {}) })
 }
 
 // Diagnóstico rápido: se isto responder `tabela:false`, o SQL de migração não foi aplicado
@@ -166,8 +172,12 @@ export async function GET() {
   if (!url || !service) return NextResponse.json({ ok: true, tabela: false, motivo: 'env ausente' })
   try {
     const admin = createClient(url, service)
-    const { count, error } = await admin.from('eventos_funil').select('*', { count: 'exact', head: true })
+    // `select('*', { head: true })` NÃO erra quando a tabela não existe — devolve count
+    // null e error null, e o diagnóstico dizia "tabela: true" com a migração sem rodar
+    // (visto ao vivo em 13/09/2026). Uma leitura de verdade é o que realmente erra.
+    const { error } = await admin.from('eventos_funil').select('id').limit(1)
     if (error) return NextResponse.json({ ok: true, tabela: false, motivo: error.message })
+    const { count } = await admin.from('eventos_funil').select('*', { count: 'exact', head: true })
     return NextResponse.json({ ok: true, tabela: true, eventos: count ?? 0 })
   } catch (e) {
     return NextResponse.json({ ok: true, tabela: false, motivo: e instanceof Error ? e.message : 'falha' })

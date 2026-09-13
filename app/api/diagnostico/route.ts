@@ -133,9 +133,14 @@ export async function GET(req: NextRequest) {
   if (url && service) {
     try {
       const admin = createClient(url, service)
-      const { count, error } = await admin.from('eventos_funil').select('*', { count: 'exact', head: true })
+      // Leitura de verdade, não `head: true`: um HEAD numa tabela inexistente volta sem
+      // erro e o painel dizia que estava tudo certo com a migração sem rodar.
+      const { error } = await admin.from('eventos_funil').select('id').limit(1)
       tabelaFunil = !error
-      eventosFunil = count ?? 0
+      if (!error) {
+        const { count } = await admin.from('eventos_funil').select('*', { count: 'exact', head: true })
+        eventosFunil = count ?? 0
+      }
     } catch {}
   }
   itens.push({
