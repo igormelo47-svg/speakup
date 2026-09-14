@@ -152,6 +152,7 @@ export async function GET(req: NextRequest) {
   const planoAss = new Map<string, Set<string>>()
   const gatewayCheckout = new Map<string, Set<string>>()
   const falhas: { motivo: string; gateway: string; quando: string }[] = []
+  const abandonaram = new Set<string>()
   for (const l of linhas) {
     const props = l.props || {}
     if (l.evento === EV.PLANO_SELECIONADO) {
@@ -164,6 +165,7 @@ export async function GET(req: NextRequest) {
       if (!planoAss.has(p)) planoAss.set(p, new Set())
       planoAss.get(p)!.add(l.identidade)
     }
+    if (l.evento === EV.CHECKOUT_ABANDONADO) abandonaram.add(l.identidade)
     if (l.evento === EV.CHECKOUT_INICIADO) {
       const g = String(props.gateway || '?')
       if (!gatewayCheckout.has(g)) gatewayCheckout.set(g, new Set())
@@ -277,6 +279,7 @@ export async function GET(req: NextRequest) {
     gatilhos,
     planos,
     gateways: Object.fromEntries([...gatewayCheckout].map(([g, s]) => [g, s.size])),
+    checkoutAbandonado: abandonaram.size,
     falhasCheckout: { total: falhas.length, ultimas: falhas.slice(-10).reverse() },
     curvaRetencao,
     emails,

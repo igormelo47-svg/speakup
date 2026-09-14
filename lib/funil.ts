@@ -59,6 +59,10 @@ export const EV = {
   PLANO_SELECIONADO: 'vn_plano_selecionado', // props.plano = mensal | anual
   CHECKOUT_INICIADO: 'vn_checkout_iniciado', // props.gateway = stripe | kiwify | play | apple
   CHECKOUT_FALHOU: 'vn_checkout_falhou',     // props.motivo — é aqui que um gateway quebrado aparece
+  // Abriu o checkout e não voltou pago em 15 min. Não prova desistência (pode ter pago com
+  // o app fechado), mas é o único sinal de que a pessoa CHEGOU ao pagamento e não concluiu.
+  // Sem ele, a distância entre "abriu o checkout" e "assinou" fica sem explicação nenhuma.
+  CHECKOUT_ABANDONADO: 'vn_checkout_abandonado',
   ASSINATURA_CONCLUIDA: 'vn_assinatura',
   ASSINATURA_CANCELADA: 'vn_assinatura_cancelada',
 

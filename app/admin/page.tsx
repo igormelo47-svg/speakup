@@ -37,6 +37,7 @@ type FunilCompleto = {
   gatilhos: { gatilho: string; viram: number; checkout: number; assinaram: number; taxa: number | null }[]
   planos: { plano: string; escolheram: number; assinaram: number; taxa: number | null }[]
   gateways: Record<string, number>
+  checkoutAbandonado: number
   falhasCheckout: { total: number; ultimas: { motivo: string; gateway: string; quando: string }[] }
   curvaRetencao: { dia: number; pessoas: number; pctDoD0: number | null }[]
   emails: { chave: string; enviados: number; cliques: number; assinaram: number; taxaClique: number | null }[]
@@ -474,6 +475,13 @@ export default function Admin() {
                           <strong style={{ color: '#102A4C' }}>{g}</strong> · {n} checkouts abertos
                         </div>
                       ))}
+                      {/* Quem chegou ao pagamento e não voltou pago em 15 min. É a distância
+                          entre "abriu o checkout" e "assinou" ganhando um número. */}
+                      {funilCompleto.checkoutAbandonado > 0 && (
+                        <div style={{ fontSize: 12, color: '#B91C1C', padding: '4px 0', fontWeight: 600 }}>
+                          {funilCompleto.checkoutAbandonado} não concluíram
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

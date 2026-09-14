@@ -4410,7 +4410,13 @@ export default function AppPage() {
         }
       } catch (e) {}
       const passou = Date.now() - inicio
-      if (passou >= 15 * 60000 && vivo) { setAguardandoPagamento(false); return } // 15 min e desiste em silêncio
+      if (passou >= 15 * 60000 && vivo) {
+        // Desiste de esperar — mas registra. Sem este evento, "10 abriram o checkout e 1
+        // assinou" não tem como ser lido: não dá para distinguir gateway quebrado de
+        // desistência na tela de pagamento.
+        ev(EV.CHECKOUT_ABANDONADO, { plano: (() => { try { return localStorage.getItem('speakup_plano_checkout') || 'mensal' } catch (e) { return 'mensal' } })() })
+        setAguardandoPagamento(false); return
+      }
       // Passados 2 min, afrouxa o ritmo (20s) — o "Já paguei" continua disponível na aba planos.
       if (passou >= 2 * 60000 && iv && ritmo === 5000) { clearInterval(iv); ritmo = 20000; iv = setInterval(checa, ritmo) }
     }
@@ -7205,6 +7211,18 @@ export default function AppPage() {
                   acima, em destaque, então repeti-lo no botão só troca benefício por
                   boleto. O texto muda com o momento: dentro do teste a decisão é
                   continuar; depois dele é destravar. */}
+              {/* AVISO DO PARCELAMENTO (só no caminho Kiwify). Medido em 14/09/2026: o
+                  checkout da Kiwify abre com "12x de R$29,97/ano" como primeira opção — mais
+                  caro POR MÊS que o plano mensal, e R$359,64 no total contra R$289,80 à
+                  vista. Quem clica em "economize R$69" e vê aquilo sente que foi enganado,
+                  no segundo exato da decisão. O certo é desligar os juros no Kiwify; até lá,
+                  avisar é melhor que deixar a pessoa descobrir sozinha. No Stripe não
+                  aparece, porque lá não existe esse parcelamento. */}
+              {!isIOSNative && !isPlayTWA && !PRECO.cartaoNaEntrada && (
+                <div style={{ fontSize: 11.5, color: '#8a5a10', background: goldLight, borderRadius: 8, padding: '8px 10px', marginBottom: 10, lineHeight: 1.45 }}>
+                  No checkout, escolha <b>1x (à vista)</b> — R$289,80. O parcelamento tem juros e sai mais caro.
+                </div>
+              )}
               <button onClick={() => abrirAssinatura('anual')} style={{ width: '100%', padding: 14, background: gold, color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>{emTrialAtivo ? 'Continuar meu plano — 1 ano' : 'Desbloquear meu plano — 1 ano'} <Ic e="→" /></button>
             </div>
             <div style={{ background: 'var(--color-background-primary)', borderRadius: 14, border: '1px solid var(--color-border-tertiary)', padding: 16, marginBottom: 12 }}>

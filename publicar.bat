@@ -8,7 +8,7 @@ echo.
 git fetch origin
 git reset --soft origin/master
 git add -A
-git commit -m "Medicao do ciclo de vida por e-mail e checagem das colunas do Stripe"
+git commit -m "Aviso do parcelamento com juros na Kiwify e evento de checkout abandonado"
 git push origin HEAD:master
 echo.
 echo ============================================
