@@ -5782,6 +5782,32 @@ export default function AppPage() {
             Começar com o Vô <Ic e="→" s={18} c="var(--vonai-amber-ink)" />
           </button>
 
+          {/* ===== FALAR COM O VÔ — o carro-chefe do app =====
+              Conversar com o professor é o que o Vonai tem e o concorrente não copia,
+              mas estava escondido atrás do botão flutuante. Aqui ele tem peso próprio:
+              card claro com o personagem em tamanho de gente, "online" verde e um
+              botão azul cheio. O âmbar continua sendo a ação do dia (treino); este é a
+              porta aberta 24h — duas ações distintas, nenhuma competindo pela mesma cor. */}
+          <div onClick={() => setTab('ai')} style={{ marginTop: 14, background: 'var(--color-background-primary)', borderRadius: 20, padding: 18, cursor: 'pointer', boxShadow: '0 1px 2px rgba(11,23,41,0.05), 0 10px 30px rgba(11,23,41,0.08)', animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.24s both' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ position: 'relative', width: 62, height: 62, flexShrink: 0 }}>
+                <div style={{ position: 'absolute', inset: -4, borderRadius: '50%', background: 'radial-gradient(circle, rgba(75,184,240,0.30) 0%, rgba(75,184,240,0) 70%)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
+                <div style={{ position: 'relative' }}><Mascote size={62} prof viva humor="feliz" /></div>
+                <span style={{ position: 'absolute', right: 1, bottom: 1, width: 13, height: 13, borderRadius: '50%', background: '#16a34a', border: '2.5px solid var(--color-background-primary)' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Falar com o Vô</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#16a34a1a', padding: '2px 8px', borderRadius: 999 }}>online</span>
+                </div>
+                <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 3, lineHeight: 1.4 }}>Seu professor particular, 24h. Pergunte qualquer coisa — em português mesmo.</div>
+              </div>
+            </div>
+            <button onClick={e => { e.stopPropagation(); setTab('ai') }} style={{ width: '100%', marginTop: 14, border: 0, borderRadius: 14, padding: 14, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15.5, background: '#2e72d6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(46,114,214,0.30)' }}>
+              <Ic e="💬" s={17} c="#fff" /> Conversar agora
+            </button>
+          </div>
+
           {/* ===== 3. SEU DIA ===== */}
           <SecTitulo sub={feitos === tarefas.length ? 'Tudo feito hoje 🎉' : `${feitos} de ${tarefas.length} · meta ${metaDiaria} XP`}>Seu dia</SecTitulo>
           <div>
@@ -8676,14 +8702,19 @@ export default function AppPage() {
             barra, empurrando a tela para o lado. */}
         {/* 18/09: quatro abas, como no protótipo aprovado. "Ouvir" mora no Explorar da
             home; o Vô tem o botão flutuante em toda tela — não precisa de aba. */}
-        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎙️', 'Falar'], ['dict', '🔤', 'Palavras']].map(([t, icon, label]) => {
+        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎙️', 'Falar'], ['dict', '🔤', 'Palavras'], ['ai', '🦜', 'Vô']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
           <button key={t} onClick={() => { encerrarTreino(); setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: '1 1 0', minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, maxWidth: '100%', minWidth: 0 }}>
               {/* Material 3: pílula suave atrás do ÍCONE do item ativo (não do bloco todo) */}
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 14px', borderRadius: 999, background: ativo ? 'rgba(46,114,214,0.13)' : 'transparent', transition: 'background 0.2s' }}>
-                <span style={{ fontSize: 22, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} sw={ativo ? 2.2 : 1.9} /></span>
+              {/* A aba do Vô mostra o PERSONAGEM, não um ícone de papagaio: ele é a
+                  marca do app, e desenhado fica reconhecível já na barra. Quando está
+                  ativo ele ganha vida (pisca, mexe a asa); parado fica quieto. */}
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t === 'ai' ? '1px 10px' : '4px 12px', borderRadius: 999, background: ativo ? 'rgba(46,114,214,0.13)' : 'transparent', transition: 'background 0.2s' }}>
+                {t === 'ai'
+                  ? <span style={{ display: 'flex', filter: ativo ? 'none' : 'saturate(0.25) opacity(0.55)', transition: 'filter 0.2s' }}><Mascote size={28} prof viva={ativo} humor="feliz" /></span>
+                  : <span style={{ fontSize: 22, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} sw={ativo ? 2.2 : 1.9} /></span>}
               </span>
               <span style={{ fontSize: 11, color: ativo ? '#2e72d6' : 'var(--color-text-tertiary)', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
             </div>
