@@ -38,6 +38,16 @@
   --vonai-red-700: #b91c1c;
   --vonai-red-600: #dc2626; /* erro */
   --vonai-red-50: #fcecec;
+
+  /* ===== Design aprovado pelo Emmanuel em 18/09/2026 (protótipo "Vô, o professor") =====
+     Quatro cores que a paleta não tinha e o protótipo usa: o navy profundo do topo, a
+     luz que deriva sobre ele, e o âmbar dos botões de ação. Entram AQUI, e não soltas no
+     page.tsx, pela regra de cima: toda cor nova vem deste arquivo. */
+  --vonai-navy-900: #0a1b3d;
+  --vonai-navy-700: #153566;
+  --vonai-glow: #4bb8f0;
+  --vonai-amber: #ffb020;
+  --vonai-amber-ink: #3b2500;
 }
 
 /* O app foi desenhado com tema claro; o modo escuro do SISTEMA continua forcado
@@ -133,6 +143,10 @@ body { overflow-x: hidden; }
 @keyframes su_asa    { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(-7deg) } }
 @keyframes su_borla  { 0%, 100% { transform: rotate(-9deg) } 50% { transform: rotate(9deg) } }
 @keyframes su_lift   { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-2.5px) } }
+/* protótipo 18/09: luz do topo derivando, acerto que pula, erro que treme */
+@keyframes su_drift  { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(-22px, 16px) } }
+@keyframes su_popok  { 0% { transform: scale(1) } 45% { transform: scale(1.035) } 100% { transform: scale(1) } }
+@keyframes su_shake  { 0%, 100% { transform: translateX(0) } 22% { transform: translateX(-6px) } 55% { transform: translateX(5px) } 80% { transform: translateX(-2px) } }
 
 /* ---------------------------------------------------------------------------
    Movimento reduzido (30/08/2026).
