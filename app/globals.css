@@ -120,6 +120,21 @@ body { overflow-x: hidden; }
 * { min-width: 0; }
 
 /* ---------------------------------------------------------------------------
+   Vida do Vô (18/09/2026).
+   A arara ja tinha 5 humores, mas parada ela parecia um icone. Estas quatro
+   animacoes dao vida ao personagem em repouso: pisca, mexe a asa e balanca a
+   borla do capelo. Sao de proposito lentas e de amplitude pequena — o Vo tem
+   que parecer vivo sem disputar atencao com o exercicio.
+   Ficam neste arquivo (e nao no <style> do page.tsx) porque o <Mascote /> e
+   declarado fora da arvore que renderiza aquele bloco. O @media de movimento
+   reduzido logo abaixo ja neutraliza todas elas com * !important.
+   --------------------------------------------------------------------------- */
+@keyframes su_piscar { 0%, 92%, 100% { transform: scaleY(0) } 94%, 97% { transform: scaleY(1) } }
+@keyframes su_asa    { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(-7deg) } }
+@keyframes su_borla  { 0%, 100% { transform: rotate(-9deg) } 50% { transform: rotate(9deg) } }
+@keyframes su_lift   { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-2.5px) } }
+
+/* ---------------------------------------------------------------------------
    Movimento reduzido (30/08/2026).
    O app tem mais de dez animações (su_bob, su_pulse, su_bounce, su_girar…) e
    nenhuma respeitava a preferência do sistema. Para quem tem enxaqueca vestibular

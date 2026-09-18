@@ -1,0 +1,53 @@
+/* ---------------------------------------------------------------------------
+   Vô — animações da coruja (18/09/2026).
+   Cole este bloco no FINAL de app/globals.css, ANTES do @media
+   (prefers-reduced-motion) — assim o bloco de movimento reduzido que já existe
+   lá também neutraliza estas, sem precisar de nada a mais.
+
+   Prefixo su_vo_ para seguir a convenção do arquivo (su_bob, su_pulse, su_skel).
+   --------------------------------------------------------------------------- */
+
+/* respiração: o estado padrão. Quase imperceptível de propósito — o Vô parado
+   ainda parece vivo, mas não disputa atenção com o exercício. */
+@keyframes su_vo_bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-3px) rotate(1.2deg); }
+}
+
+/* cabeça inclinando: usado em "pensando" (antes da resposta) e em "acolhendo"
+   (depois do erro, mais lento). */
+@keyframes su_vo_tilt {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(5deg); }
+}
+
+/* comemoração do acerto: um pulo curto com giro. Duas repetições, não infinitas
+   — festa que não acaba vira ruído. */
+@keyframes su_vo_cheer {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40%      { transform: translateY(-11px) rotate(-5deg); }
+  70%      { transform: translateY(-3px) rotate(4deg); }
+}
+
+@keyframes su_vo_asa_e {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(-26deg); }
+}
+
+@keyframes su_vo_asa_d {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(26deg); }
+}
+
+/* piscada: 5s de ciclo, com a pálpebra fechada em apenas ~4% do tempo. */
+@keyframes su_vo_piscar {
+  0%, 94%, 100% { transform: scaleY(0); }
+  96%, 98%      { transform: scaleY(1); }
+}
+
+/* olhos se movendo enquanto o aluno fala no microfone. */
+@keyframes su_vo_olhar {
+  0%, 100% { transform: translateX(0); }
+  30%      { transform: translateX(-2.4px); }
+  65%      { transform: translateX(2.4px); }
+}

@@ -1,0 +1,279 @@
+diff --git a/app/app/page.tsx b/app/app/page.tsx
+index a63bb56..93c9499 100644
+--- a/app/app/page.tsx
++++ b/app/app/page.tsx
+@@ -123,6 +123,18 @@ function IcBadge({ e, color, onDark, size = 22, box = 38, radius = 10, style }:
+   )
+ }
+ 
++// Título de seção. A home empilha uma dúzia de cards e só o grupo "Explorar" era
++// rotulado — os outros chegavam como uma lista sem fim de peso igual, e o aluno não
++// distinguia o que é "agora" do que é "depois". Três rótulos no mesmo estilo que já
++// existia transformam a mesma tela em grupos legíveis, sem remover nada.
++function SecTitulo({ e, children }: { e: string; children: React.ReactNode }) {
++  return (
++    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '18px 2px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
++      <Ic e={e} s={13} c="var(--color-text-secondary)" /> {children}
++    </div>
++  )
++}
++
+ interface Question { q: string; ctx: string; opts: string[]; ans: number; exp: string }
+ interface Lesson { id?: string; title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[]; cefr?: string }
+ 
+@@ -1846,7 +1858,7 @@ function VoFala({ fala, humor = 'feliz', size = 64, voz = false, escuro = false
+       {/* size 0 = só o balão (quando o mascote grande já está desenhado acima) */}
+       {size > 0 && (
+         <div onClick={() => falarPt(fala)} title="Toque para me ouvir" style={{ flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite' }}>
+-          <Mascote size={size} prof humor={humor} />
++          <Mascote size={size} prof humor={humor} viva />
+         </div>
+       )}
+       <div style={{ position: 'relative', background: escuro ? 'rgba(255,255,255,0.13)' : '#fff', border: escuro ? '1px solid rgba(255,255,255,0.25)' : '1px solid #e4e9ef', borderRadius: '4px 16px 16px 16px', padding: '12px 40px 12px 14px', flex: 1, minHeight: 46, boxShadow: escuro ? 'none' : '0 3px 12px rgba(16,42,76,0.08)' }}>
+@@ -1860,8 +1872,13 @@ function VoFala({ fala, humor = 'feliz', size = 64, voz = false, escuro = false
+ // Mascote do Vonai ("Vô") — personagem próprio em SVG (fica igual em qualquer aparelho).
+ // Mascote do Vonai com humor: reage ao que o aluno faz (comemora acertos, fica
+ // triste com erros). 'comemora' quica e ergue os bracinhos; 'acena' dá tchauzinho.
+-function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' | 'acena'; prof?: boolean }) {
++// `viva`: liga a vida em repouso — pisca, mexe as asas e balança a borla do
++// capelo. Vem DESLIGADA de propósito: o Mascote aparece em 26 lugares e animação
++// infinita em todos eles gasta bateria sem ninguém olhar. Ligue onde o aluno
++// realmente olha (o herói da home, o card do professor, o balão do VoFala).
++function Mascote({ size = 40, humor = 'normal', prof = false, viva = false }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' | 'acena'; prof?: boolean; viva?: boolean }) {
+   const alegre = humor === 'feliz' || humor === 'comemora' || humor === 'acena'
++  const asaViva = viva && humor !== 'comemora' && humor !== 'acena'
+   return (
+     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block', overflow: 'visible', animation: humor === 'comemora' ? 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
+       <defs>
+@@ -1889,10 +1906,10 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
+       <ellipse cx="32" cy="36" rx="20" ry="21" fill="url(#vonaiMasc)" />
+       {/* asas em repouso */}
+       {humor !== 'comemora' && humor !== 'acena' && (
+-        <path d="M51 31 Q55 45 45 54 Q49 42 47 30 Z" fill="#1c55a3" />
++        <path d="M51 31 Q55 45 45 54 Q49 42 47 30 Z" fill="#1c55a3" style={asaViva ? { transformOrigin: '49px 31px', animation: 'su_asa 3.4s ease-in-out infinite' } : undefined} />
+       )}
+       {humor !== 'comemora' && (
+-        <path d="M13 31 Q9 45 19 54 Q15 42 17 30 Z" fill="#1c55a3" />
++        <path d="M13 31 Q9 45 19 54 Q15 42 17 30 Z" fill="#1c55a3" style={asaViva ? { transformOrigin: '15px 31px', animation: 'su_asa 3.4s ease-in-out -1.7s infinite' } : undefined} />
+       )}
+       {/* peito dourado */}
+       <ellipse cx="32" cy="47" rx="10.5" ry="9.5" fill="#FFD98A" />
+@@ -1906,8 +1923,10 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
+         <path d="M32 2.5 L58 11 L32 19.5 L6 11 Z" fill="#16212C" />
+         <path d="M32 5.5 L51 11 L32 16.5 L13 11 Z" fill="#2e72d6" opacity="0.35" />
+         <circle cx="32" cy="11" r="2.2" fill="#FFD98A" />
+-        <path d="M56 12 L56 22" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
+-        <circle cx="56" cy="24.5" r="2.6" fill="#FFD98A" />
++        <g style={viva ? { transformOrigin: '56px 12px', animation: 'su_borla 2.8s ease-in-out infinite' } : undefined}>
++          <path d="M56 12 L56 22" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
++          <circle cx="56" cy="24.5" r="2.6" fill="#FFD98A" />
++        </g>
+       </>)}
+       {/* penachos/sobrancelhas brancas de vô (tristes inclinam) */}
+       {humor === 'triste' ? (<>
+@@ -1927,6 +1946,19 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
+         <circle cx="23" cy="27.5" r="1" fill="#fff" />
+         <circle cx="39" cy="27.5" r="1" fill="#fff" />
+       </>)}
++      {/* piscada (só com o olho aberto): a pálpebra tem a cor da máscara facial e
++          leva a linha do cílio por cima. Fechada em ~5% de um ciclo de 5,2s, e um
++          olho 0,35s atrás do outro — piscar sincronizado parece robô. */}
++      {viva && !alegre && (<>
++        <g style={{ transformOrigin: '24px 28.5px', animation: 'su_piscar 5.2s ease-in-out infinite' }}>
++          <circle cx="24" cy="28.5" r="4.3" fill="#f2f5f8" />
++          <path d="M20.2 28.6 Q24 30.8 27.8 28.6" stroke="#16212C" strokeWidth="1.8" fill="none" strokeLinecap="round" />
++        </g>
++        <g style={{ transformOrigin: '40px 28.5px', animation: 'su_piscar 5.2s ease-in-out -0.35s infinite' }}>
++          <circle cx="40" cy="28.5" r="4.3" fill="#f2f5f8" />
++          <path d="M36.2 28.6 Q40 30.8 43.8 28.6" stroke="#16212C" strokeWidth="1.8" fill="none" strokeLinecap="round" />
++        </g>
++      </>)}
+       {humor === 'triste' && <path d="M45.5 33 Q48 37.5 45.5 39.5 Q43 37.5 45.5 33" fill="#bcd6f2" />}
+       {/* óculos redondos dourados */}
+       <circle cx="24" cy="28" r="8" stroke="#f5a623" strokeWidth="2" fill="none" />
+@@ -5573,7 +5605,7 @@ export default function AppPage() {
+         <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 38px' }}>
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
++              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)', animation: 'su_lift 4.2s ease-in-out infinite' }}><Mascote size={24} viva /></div>
+               <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 6, padding: '1px 6px', marginLeft: 2 }}>ai</span></span>
+             </div>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+@@ -5630,7 +5662,7 @@ export default function AppPage() {
+               </div>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                 <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
+-                <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : '#BCD6F2', fontWeight: 600 }}>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</div>
++                <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : xpHoje === 0 ? '#FFD98A' : '#BCD6F2', fontWeight: 600 }}>{xpHoje === 0 ? `${metaDiaria} XP hoje · vamos lá` : <>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</>}</div>
+               </div>
+               <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= metaDiaria ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / metaDiaria * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+             </div>
+@@ -5643,12 +5675,24 @@ export default function AppPage() {
+           {/* HERO — o coração da home: UMA mensagem, UMA ação */}
+           <div style={{ background: 'linear-gradient(135deg, #2e72d6, #103d77)', borderRadius: 20, padding: 18, marginBottom: 16, boxShadow: '0 10px 26px rgba(16,61,119,0.28)', animation: 'su_risefade 0.5s ease both' }}>
+             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
+-              <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={42} prof humor="feliz" /></div>
++              {/* O humor sai do estado REAL do aluno, não fixo em "feliz": quem chega
++                  agora recebe um tchauzinho, quem já treinou hoje pega o Vô
++                  comemorando, e quem ainda não abriu o treino vê ele atento,
++                  esperando. É o que separa um mascote de um professor. */}
++              <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ position: 'relative', width: 52, height: 52, flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite' }}>
++                <div style={{ position: 'absolute', inset: -5, borderRadius: '50%', background: treinouHoje ? 'rgba(74,222,128,0.42)' : 'rgba(255,217,138,0.38)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
++                <div style={{ position: 'relative', width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}>
++                  <Mascote size={42} prof viva humor={isNovo ? 'acena' : treinouHoje ? 'comemora' : xpHoje === 0 && streak > 0 ? 'normal' : 'feliz'} />
++                </div>
++              </div>
+               <div style={{ flex: 1, minWidth: 0 }}>
+-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
++                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+                   <span style={{ fontSize: 10.5, fontWeight: 800, color: '#bcd6f2', letterSpacing: 0.5 }}>VÔ · SEU PROFESSOR</span>
+                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
+                   <span style={{ fontSize: 10, color: '#9dbbdd' }}>online</span>
++                  {/* O Vô sempre falou ao ser tocado, mas nada na tela dizia isso —
++                      o recurso existia e ninguém achava. */}
++                  <span onClick={e => { e.stopPropagation(); falarPt(msg) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: '#FFD98A', background: 'rgba(255,217,138,0.16)', border: '1px solid rgba(255,217,138,0.4)', borderRadius: 999, padding: '2px 8px', cursor: 'pointer' }}><Ic e="🔊" s={10} c="#FFD98A" /> ouvir</span>
+                 </div>
+                 <div style={{ fontSize: 14.5, lineHeight: 1.5, color: '#fff', fontWeight: 500 }}>{msg}</div>
+               </div>
+@@ -5684,18 +5728,25 @@ export default function AppPage() {
+           </div>
+ 
+           {/* PROFESSOR EM DESTAQUE — nosso principal recurso, logo abaixo do treino. */}
+-          <div onClick={() => setTab('ai')} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 20, padding: 15, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 13, boxShadow: '0 6px 18px rgba(46,114,214,0.32)' }}>
+-            <div style={{ position: 'relative', width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 8px rgba(0,0,0,0.2)' }}>
+-              <Mascote size={42} prof humor="feliz" />
+-              <span style={{ position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: '50%', background: '#4ADE80', border: '2px solid #103D77' }} />
++          {/* Este card vinha com o MESMO degradê azul, o MESMO círculo branco de 52px
++              e a MESMA arara de 42px do herói logo acima — dois cards sósias, colados,
++              e o aluno lia como repetição em vez de duas ações diferentes. O recurso
++              continua em destaque (é o principal), mas agora com cara própria: a única
++              superfície clara com tarja dourada da home, o que a torna a mais notável
++              da tela em vez da segunda mais parecida. */}
++          <div onClick={() => setTab('ai')} style={{ background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderLeft: '3px solid #f5a623', borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 8px rgba(245,166,35,0.14)' }}>
++            <div style={{ position: 'relative', width: 42, height: 42, borderRadius: 10, background: 'rgba(245,166,35,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
++              <Mascote size={34} prof />
++              <span style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderRadius: '50%', background: '#16A34A', border: '2px solid var(--color-background-primary)' }} />
+             </div>
+             <div style={{ flex: 1, minWidth: 0 }}>
+-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Fale com o Vô, seu professor</div>
+-              <div style={{ fontSize: 11.5, color: '#bcd6f2', marginTop: 2, lineHeight: 1.35 }}>Tire qualquer dúvida de inglês na hora · 24h</div>
++              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-text-primary)' }}>Fale com o Vô, seu professor</div>
++              <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', marginTop: 2, lineHeight: 1.35 }}>Tire qualquer dúvida de inglês na hora · 24h</div>
+             </div>
+-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#103D77', background: '#fff', padding: '7px 13px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}><Ic e="💬" s={13} c="#103D77" /> Tirar dúvida</span>
++            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: '#f5a623', padding: '6px 12px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}><Ic e="💬" s={13} c="#fff" /> Tirar dúvida</span>
+           </div>
+ 
++          <SecTitulo e="☀️">Seu dia</SecTitulo>
+           {/* Seu plano de hoje (mantido a pedido do Emmanuel) */}
+           {(() => {
+             const proxL = lessons[level]?.find(l => !l.done)
+@@ -5775,8 +5826,8 @@ export default function AppPage() {
+               <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 12 }}><Ic e="📈" c={green} /> Sua evolução</div>
+                 <div style={{ display: 'flex', gap: 8 }}>
+-                  {[[String(vocabDominadas), 'palavras dominadas', greenLight, green], [String(licoesFixadas), 'lições na memória', purpleLight, purple], [String(diasAtivos), diasAtivos === 1 ? 'dia de estudo' : 'dias de estudo', blueLight, blue]].map(([n, t, bg, cor], i) => (
+-                    <div key={i} style={{ flex: 1, background: bg as string, borderRadius: 10, padding: '12px 6px', textAlign: 'center' }}>
++                  {[[String(vocabDominadas), 'palavras dominadas', green], [String(licoesFixadas), 'lições na memória', purple], [String(diasAtivos), diasAtivos === 1 ? 'dia de estudo' : 'dias de estudo', blue]].map(([n, t, cor], i) => (
++                    <div key={i} style={{ flex: 1, background: 'var(--color-background-secondary)', border: `1px solid ${cor as string}2e`, borderRadius: 10, padding: '12px 6px', textAlign: 'center' }}>
+                       <div style={{ fontSize: 21, fontWeight: 800, color: cor as string, lineHeight: 1 }}>{n}</div>
+                       <div style={{ fontSize: 10, color: 'var(--color-text-secondary)', marginTop: 4, lineHeight: 1.25 }}>{t}</div>
+                     </div>
+@@ -5802,7 +5853,7 @@ export default function AppPage() {
+               <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}><Ic e="🎯" c={purple} /> Missões da semana</div>
+-                  <div style={{ fontSize: 12, fontWeight: 600, color: feitas === lista.length ? green : 'var(--color-text-secondary)' }}>{feitas}/{lista.length}</div>
++                  <div style={{ fontSize: 12, fontWeight: 700, color: feitas === lista.length ? green : feitas === 0 ? gold : 'var(--color-text-secondary)' }}>{feitas === 0 ? `+${lista.reduce((t, m) => t + m.reward, 0)} 🪙 a ganhar` : `${feitas}/${lista.length}`}</div>
+                 </div>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                   {lista.map(m => {
+@@ -5856,7 +5907,7 @@ export default function AppPage() {
+           )}
+ 
+           {/* EXPLORAR — sempre visível. O aluno vê tudo ao entrar; o herói acima dá a direção. */}
+-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '6px 2px 10px', display: 'flex', alignItems: 'center', gap: 6 }}><Ic e="🧭" s={13} c="var(--color-text-secondary)" /> Explorar</div>
++          <SecTitulo e="🧭">Explorar</SecTitulo>
+           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+             {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
+             {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
+@@ -5871,6 +5922,7 @@ export default function AppPage() {
+             {cardExplorar('#e7f0fa', '📊', '#1c55a3', 'Teste de nível', 'Descubra ou revise seu nível', () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false); setTab('nivelamento') })}
+             {cardExplorar('#e7f0fa', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
+           </div>
++          <SecTitulo e="🎯">Treine agora</SecTitulo>
+           {bannerRow('🇧🇷', green, 'Caça-Erros do Brasileiro', '5 armadilhas que todo brasileiro cai', 'Jogar', () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} })}
+           {histDone.length < HISTORIAS.length && bannerRow('📖', purple, 'Histórias', `Mini-novelas · ${histDone.length}/${HISTORIAS.length}`, 'Ler', () => { setHistSel(null); setTab('historias') })}
+           {apostaAtiva && !apostaPerdida && bannerRow('🔥', green, `Aposta de 7 dias: dia ${apostaDia} de 7`, streak >= 7 ? 'Cumprida! Prêmio liberado' : `Faltam ${7 - apostaDia} ${7 - apostaDia === 1 ? 'dia' : 'dias'} pro Premium extra`, 'Treinar', iniciarTreino)}
+@@ -5882,10 +5934,13 @@ export default function AppPage() {
+           {!isIOSNative && !lembretesAtivos && bannerRow('🔔', blue, 'Ativar lembretes diários', 'Um aviso pra não quebrar a sequência', 'Ativar', ativarLembretes)}
+ 
+           <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
+-            <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Vonai · enviar feedback <Ic e="💬" /></span>
+-            <div style={{ marginTop: 8 }}>
+-              <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Excluir minha conta</span>
+-            </div>
++            {/* "Excluir minha conta" continua aqui — a App Store exige que a exclusão
++                seja alcançável de dentro do app (5.1.1(v)) — mas não com o mesmo peso
++                do "enviar feedback": ação destrutiva não disputa clique com elogio. */}
++            <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: blue, border: '1px solid var(--color-border-tertiary)', borderRadius: 999, padding: '7px 16px', cursor: 'pointer' }}><Ic e="💬" s={13} c={blue} /> Enviar feedback</span>
++            <div style={{ height: 1, background: 'var(--color-border-tertiary)', margin: '16px 40px 10px' }} />
++            <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}>Excluir minha conta</span>
++            <div style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)', marginTop: 8 }}>Vonai</div>
+           </div>
+         </div>
+       </div>
+@@ -5974,7 +6029,7 @@ export default function AppPage() {
+           <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 26px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
++                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)', animation: 'su_lift 4.2s ease-in-out infinite' }}><Mascote size={24} viva /></div>
+                 <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 6, padding: '1px 6px', marginLeft: 2 }}>ai</span></span>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+@@ -6030,7 +6085,7 @@ export default function AppPage() {
+                 </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                   <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
+-                  <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : '#BCD6F2', fontWeight: 600 }}>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</div>
++                  <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : xpHoje === 0 ? '#FFD98A' : '#BCD6F2', fontWeight: 600 }}>{xpHoje === 0 ? `${metaDiaria} XP hoje · vamos lá` : <>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</>}</div>
+                 </div>
+                 <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= metaDiaria ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / metaDiaria * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
+                 {isNovo && <button onClick={() => setTab('lessons')} style={{ width: '100%', marginTop: 16, background: '#F5A623', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Começar minha jornada <Ic e="→" /></button>}
+@@ -6153,7 +6208,7 @@ export default function AppPage() {
+                 <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                     <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}><Ic e="🎯" c={purple} /> Missões da semana</div>
+-                    <div style={{ fontSize: 12, fontWeight: 600, color: feitas === lista.length ? green : 'var(--color-text-secondary)' }}>{feitas}/{lista.length}</div>
++                    <div style={{ fontSize: 12, fontWeight: 700, color: feitas === lista.length ? green : feitas === 0 ? gold : 'var(--color-text-secondary)' }}>{feitas === 0 ? `+${lista.reduce((t, m) => t + m.reward, 0)} 🪙 a ganhar` : `${feitas}/${lista.length}`}</div>
+                   </div>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                     {lista.map(m => {
+diff --git a/app/globals.css b/app/globals.css
+index 1ef592f..97c0a63 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -119,6 +119,21 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+ body { overflow-x: hidden; }
+ * { min-width: 0; }
+ 
++/* ---------------------------------------------------------------------------
++   Vida do Vô (18/09/2026).
++   A arara ja tinha 5 humores, mas parada ela parecia um icone. Estas quatro
++   animacoes dao vida ao personagem em repouso: pisca, mexe a asa e balanca a
++   borla do capelo. Sao de proposito lentas e de amplitude pequena — o Vo tem
++   que parecer vivo sem disputar atencao com o exercicio.
++   Ficam neste arquivo (e nao no <style> do page.tsx) porque o <Mascote /> e
++   declarado fora da arvore que renderiza aquele bloco. O @media de movimento
++   reduzido logo abaixo ja neutraliza todas elas com * !important.
++   --------------------------------------------------------------------------- */
++@keyframes su_piscar { 0%, 92%, 100% { transform: scaleY(0) } 94%, 97% { transform: scaleY(1) } }
++@keyframes su_asa    { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(-7deg) } }
++@keyframes su_borla  { 0%, 100% { transform: rotate(-9deg) } 50% { transform: rotate(9deg) } }
++@keyframes su_lift   { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-2.5px) } }
++
+ /* ---------------------------------------------------------------------------
+    Movimento reduzido (30/08/2026).
+    O app tem mais de dez animações (su_bob, su_pulse, su_bounce, su_girar…) e

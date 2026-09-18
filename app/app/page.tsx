@@ -123,6 +123,37 @@ function IcBadge({ e, color, onDark, size = 22, box = 38, radius = 10, style }: 
   )
 }
 
+// Título de seção. A home tem 19 blocos; sem rótulo eles chegam como uma lista
+// infinita de cards de peso igual e o aluno não sabe o que é "agora" e o que é
+// "depois". Três rótulos ("Seu dia", "Treine agora", "Explorar") transformam a
+// mesma tela em quatro grupos legíveis, sem remover nada.
+function SecTitulo({ children, acao, aoTocar }: { children: React.ReactNode; acao?: string; aoTocar?: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '20px 2px 10px' }}>
+      <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{children}</div>
+      {acao && <span onClick={aoTocar} style={{ fontSize: 11.5, fontWeight: 700, color: '#2e72d6', cursor: aoTocar ? 'pointer' : 'default' }}>{acao}</span>}
+    </div>
+  )
+}
+
+// Card de ação da home. Antes eram quatro cards de gradiente cheio (três azuis e
+// um verde) do mesmo tamanho do card do professor — tudo gritava igual e nada
+// parecia o principal. Agora a casca é uma só, clara, e a identidade vem da
+// tarja e do ícone: o gradiente forte fica reservado ao Vô, que é a ação
+// principal da tela.
+function CardAcao({ e, cor, titulo, sub, cta, onClick }: { e: string; cor: string; titulo: string; sub: string; cta: string; onClick: () => void }) {
+  return (
+    <div onClick={onClick} style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: '12px 14px', marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 3px rgba(16,42,76,0.05)' }}>
+      <IcBadge e={e} color={cor} box={40} size={21} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>{titulo}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', marginTop: 2, lineHeight: 1.3 }}>{sub}</div>
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 700, color: cor, background: cor + '1f', padding: '5px 11px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0 }}>{cta} <Ic e="→" /></span>
+    </div>
+  )
+}
+
 interface Question { q: string; ctx: string; opts: string[]; ans: number; exp: string }
 interface Lesson { id?: string; title: string; sub: string; icon: string; done: boolean; explanation: string; tip: string; examples: { en: string; pt: string }[]; q: Question[]; cefr?: string }
 
@@ -1846,7 +1877,7 @@ function VoFala({ fala, humor = 'feliz', size = 64, voz = false, escuro = false 
       {/* size 0 = só o balão (quando o mascote grande já está desenhado acima) */}
       {size > 0 && (
         <div onClick={() => falarPt(fala)} title="Toque para me ouvir" style={{ flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite' }}>
-          <Mascote size={size} prof humor={humor} />
+          <Mascote size={size} prof humor={humor} viva />
         </div>
       )}
       <div style={{ position: 'relative', background: escuro ? 'rgba(255,255,255,0.13)' : '#fff', border: escuro ? '1px solid rgba(255,255,255,0.25)' : '1px solid #e4e9ef', borderRadius: '4px 16px 16px 16px', padding: '12px 40px 12px 14px', flex: 1, minHeight: 46, boxShadow: escuro ? 'none' : '0 3px 12px rgba(16,42,76,0.08)' }}>
@@ -1860,8 +1891,13 @@ function VoFala({ fala, humor = 'feliz', size = 64, voz = false, escuro = false 
 // Mascote do Vonai ("Vô") — personagem próprio em SVG (fica igual em qualquer aparelho).
 // Mascote do Vonai com humor: reage ao que o aluno faz (comemora acertos, fica
 // triste com erros). 'comemora' quica e ergue os bracinhos; 'acena' dá tchauzinho.
-function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' | 'acena'; prof?: boolean }) {
+// `viva`: liga a vida em repouso (pisca, mexe as asas, balanca a borla). Fica
+// DESLIGADA por padrao de proposito — o Mascote aparece em 26 lugares e animacao
+// infinita em todos eles gasta bateria sem ninguem olhar. Ligue onde o aluno
+// olha: o card do professor na home, o balao do VoFala e o logo do cabecalho.
+function Mascote({ size = 40, humor = 'normal', prof = false, viva = false }: { size?: number; humor?: 'normal' | 'feliz' | 'triste' | 'comemora' | 'acena'; prof?: boolean; viva?: boolean }) {
   const alegre = humor === 'feliz' || humor === 'comemora' || humor === 'acena'
+  const asaViva = viva && humor !== 'comemora' && humor !== 'acena'
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block', overflow: 'visible', animation: humor === 'comemora' ? 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
       <defs>
@@ -1889,10 +1925,10 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
       <ellipse cx="32" cy="36" rx="20" ry="21" fill="url(#vonaiMasc)" />
       {/* asas em repouso */}
       {humor !== 'comemora' && humor !== 'acena' && (
-        <path d="M51 31 Q55 45 45 54 Q49 42 47 30 Z" fill="#1c55a3" />
+        <path d="M51 31 Q55 45 45 54 Q49 42 47 30 Z" fill="#1c55a3" style={asaViva ? { transformOrigin: '49px 31px', animation: 'su_asa 3.4s ease-in-out infinite' } : undefined} />
       )}
       {humor !== 'comemora' && (
-        <path d="M13 31 Q9 45 19 54 Q15 42 17 30 Z" fill="#1c55a3" />
+        <path d="M13 31 Q9 45 19 54 Q15 42 17 30 Z" fill="#1c55a3" style={asaViva ? { transformOrigin: '15px 31px', animation: 'su_asa 3.4s ease-in-out -1.7s infinite' } : undefined} />
       )}
       {/* peito dourado */}
       <ellipse cx="32" cy="47" rx="10.5" ry="9.5" fill="#FFD98A" />
@@ -1906,8 +1942,10 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
         <path d="M32 2.5 L58 11 L32 19.5 L6 11 Z" fill="#16212C" />
         <path d="M32 5.5 L51 11 L32 16.5 L13 11 Z" fill="#2e72d6" opacity="0.35" />
         <circle cx="32" cy="11" r="2.2" fill="#FFD98A" />
-        <path d="M56 12 L56 22" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="56" cy="24.5" r="2.6" fill="#FFD98A" />
+        <g style={viva ? { transformOrigin: '56px 12px', animation: 'su_borla 2.8s ease-in-out infinite' } : undefined}>
+          <path d="M56 12 L56 22" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="56" cy="24.5" r="2.6" fill="#FFD98A" />
+        </g>
       </>)}
       {/* penachos/sobrancelhas brancas de vô (tristes inclinam) */}
       {humor === 'triste' ? (<>
@@ -1926,6 +1964,18 @@ function Mascote({ size = 40, humor = 'normal', prof = false }: { size?: number;
         <circle cx="40" cy="28.5" r="3" fill="#16212C" />
         <circle cx="23" cy="27.5" r="1" fill="#fff" />
         <circle cx="39" cy="27.5" r="1" fill="#fff" />
+      </>)}
+      {/* piscada (so com o olho aberto): a pálpebra é da cor da máscara facial,
+          com a linha do cílio por cima — fechada em ~5% do ciclo de 5,2s. */}
+      {viva && !alegre && (<>
+        <g style={{ transformOrigin: '24px 28.5px', animation: 'su_piscar 5.2s ease-in-out infinite' }}>
+          <circle cx="24" cy="28.5" r="4.3" fill="#f2f5f8" />
+          <path d="M20.2 28.6 Q24 30.8 27.8 28.6" stroke="#16212C" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        </g>
+        <g style={{ transformOrigin: '40px 28.5px', animation: 'su_piscar 5.2s ease-in-out -0.35s infinite' }}>
+          <circle cx="40" cy="28.5" r="4.3" fill="#f2f5f8" />
+          <path d="M36.2 28.6 Q40 30.8 43.8 28.6" stroke="#16212C" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        </g>
       </>)}
       {humor === 'triste' && <path d="M45.5 33 Q48 37.5 45.5 39.5 Q43 37.5 45.5 33" fill="#bcd6f2" />}
       {/* óculos redondos dourados */}
@@ -5573,7 +5623,7 @@ export default function AppPage() {
         <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 38px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)', animation: 'su_lift 4.2s ease-in-out infinite' }}><Mascote size={24} viva /></div>
               <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 6, padding: '1px 6px', marginLeft: 2 }}>ai</span></span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
@@ -5974,7 +6024,7 @@ export default function AppPage() {
           <div style={{ background: `linear-gradient(160deg, #2E72D6, ${blueDark})`, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 26px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}><Mascote size={24} /></div>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.15)', animation: 'su_lift 4.2s ease-in-out infinite' }}><Mascote size={24} viva /></div>
                 <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>Von<span style={{ background: '#FFD98A', color: '#103D77', borderRadius: 6, padding: '1px 6px', marginLeft: 2 }}>ai</span></span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
@@ -6030,7 +6080,10 @@ export default function AppPage() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
-                  <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : '#BCD6F2', fontWeight: 600 }}>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</div>
+                  {/* Abrir o app e ler "0/50 XP" é o app te informando que você não
+                      fez nada. Enquanto o dia está em zero a linha convida em vez de
+                      cobrar; assim que entra o primeiro XP ela volta a ser o número. */}
+                  <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : xpHoje === 0 ? '#FFD98A' : '#BCD6F2', fontWeight: 600 }}>{xpHoje === 0 ? `${metaDiaria} XP hoje · vamos lá` : <>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</>}</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= metaDiaria ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / metaDiaria * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
                 {isNovo && <button onClick={() => setTab('lessons')} style={{ width: '100%', marginTop: 16, background: '#F5A623', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Começar minha jornada <Ic e="→" /></button>}
@@ -6060,7 +6113,16 @@ export default function AppPage() {
               return (
                 <div style={{ background: 'linear-gradient(135deg, #2e72d6, #103d77)', borderRadius: 20, padding: 16, marginBottom: 12, boxShadow: '0 6px 18px rgba(75,63,191,0.3)', animation: 'su_risefade 0.5s ease both' }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <div onClick={() => falarPt(linhas.join(' '))} title="Toque para ouvir o Vô" style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}><Mascote size={44} prof humor="feliz" /></div>
+                    {/* O humor do Vô sai do estado REAL do aluno, não fixo em "feliz":
+                        quem chega agora recebe um tchauzinho, quem bateu a meta pega o
+                        Vô comemorando, e quem ainda não estudou hoje vê ele atento,
+                        esperando. É a diferença entre um mascote e um professor. */}
+                    <div onClick={() => falarPt(linhas.join(' '))} title="Toque para ouvir o Vô" style={{ position: 'relative', width: 54, height: 54, flexShrink: 0, cursor: 'pointer', animation: 'su_bob 2.4s ease-in-out infinite' }}>
+                      <div style={{ position: 'absolute', inset: -5, borderRadius: '50%', background: faltaMeta === 0 ? 'rgba(74,222,128,0.45)' : 'rgba(255,217,138,0.40)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
+                      <div style={{ position: 'relative', width: 54, height: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.2)' }}>
+                        <Mascote size={44} prof viva humor={isNovo ? 'acena' : faltaMeta === 0 ? 'comemora' : licoesHoje === 0 && streak > 0 ? 'normal' : 'feliz'} />
+                      </div>
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 11, fontWeight: 800, color: '#bcd6f2', letterSpacing: 0.5 }}>VÔ · SEU PROFESSOR PARTICULAR</span>
@@ -6076,6 +6138,9 @@ export default function AppPage() {
                         ) : (<>
                           <button onClick={() => { if (cen) { startScenario(cen); setTab('speak') } else setTab('speak'); try { track('coach_conversa_dia') } catch (e) {} }} style={{ flex: 1, minWidth: 150, padding: '11px 14px', background: '#fff', color: '#103d77', border: 'none', borderRadius: 20, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 3px 10px rgba(0,0,0,0.18)' }}>🎭 Conversar agora</button>
                           <button onClick={() => setTab('ai')} style={{ padding: '11px 14px', background: 'rgba(255,255,255,0.16)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 20, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>💬 Tirar dúvida</button>
+                          {/* O Vô sempre falou ao ser tocado, mas nada na tela dizia isso —
+                              o recurso existia e ninguém achava. Botão explícito. */}
+                          <button onClick={() => falarPt(linhas.join(' '))} aria-label="Ouvir o Vô" title="Ouvir o Vô" style={{ padding: '11px 13px', background: 'rgba(255,255,255,0.16)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 20, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}><Ic e="🔊" s={15} c="#fff" /></button>
                         </>)}
                       </div>
                     </div>
@@ -6083,32 +6148,34 @@ export default function AppPage() {
                 </div>
               )
             })()}
-            <div onClick={() => { setTab('liga'); carregarLiga() }} style={{ background: 'linear-gradient(135deg, #2E72D6, #103D77)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 30 }}>🏆</div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Liga da semana</div><div style={{ fontSize: 12, color: '#bcd6f2', marginTop: 2 }}>Dispute o topo do ranking com outros alunos</div></div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ver <Ic e="→" /></span>
-            </div>
-            {histDone.length < HISTORIAS.length && (
-              <div onClick={() => { setHistSel(null); setTab('historias') }} style={{ background: 'linear-gradient(135deg, #2e72d6, #103d77)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 30 }}>📖</div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Histórias</div><div style={{ fontSize: 12, color: '#bcd6f2', marginTop: 2 }}>Mini-novelas com áudio e perguntas · {histDone.length}/{HISTORIAS.length} concluídas</div></div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Ler <Ic e="→" /></span>
-              </div>
+            <SecTitulo>Treine agora</SecTitulo>
+            {(revisoesDevidas.length > 0 || errosQs.length > 0) && (
+              <CardAcao
+                e="🧠" cor="#1c55a3" titulo="Revisão Inteligente" cta="Revisar"
+                sub={errosQs.length > 0 ? `${errosQs.length} ${errosQs.length === 1 ? 'erro seu esperando revanche' : 'erros seus esperando revanche'}` : `${revisoesDevidas.length} ${revisoesDevidas.length === 1 ? 'lição pronta' : 'lições prontas'} pra fixar de vez`}
+                onClick={() => { setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao') }}
+              />
             )}
             {!errbrFeito && (
-              <div onClick={() => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} }} style={{ background: 'linear-gradient(135deg, #16a34a, #14532d)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 30 }}>🇧🇷</div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Caça-Erros do Brasileiro</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 2 }}>5 armadilhas que todo brasileiro cai — escape delas hoje</div></div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Jogar <Ic e="→" /></span>
-              </div>
+              <CardAcao
+                e="🇧🇷" cor="#16a34a" titulo="Caça-Erros do Brasileiro" cta="Jogar"
+                sub="5 armadilhas em que todo brasileiro cai — escape delas hoje"
+                onClick={() => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} }}
+              />
             )}
-            {(revisoesDevidas.length > 0 || errosQs.length > 0) && (
-              <div onClick={() => { setRevQ(0); setRevSel(-1); setRevAns(false); setRevAcertos(0); setRevResult(false); setTab('revisao') }} style={{ background: 'linear-gradient(135deg, #16A34A, #16a34a)', borderRadius: 14, padding: 14, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <IcBadge e="🧠" color="#16a34a" onDark box={44} size={24} />
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Revisão Inteligente</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{errosQs.length > 0 ? `${errosQs.length} ${errosQs.length === 1 ? 'erro seu esperando revanche' : 'erros seus esperando revanche'}` : `${revisoesDevidas.length} ${revisoesDevidas.length === 1 ? 'lição pronta' : 'lições prontas'} pra fixar de vez`}</div></div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20 }}>Revisar <Ic e="→" /></span>
-              </div>
+            {histDone.length < HISTORIAS.length && (
+              <CardAcao
+                e="📖" cor="#2e72d6" titulo="Histórias" cta="Ler"
+                sub={`Mini-novelas com áudio e perguntas · ${histDone.length}/${HISTORIAS.length} concluídas`}
+                onClick={() => { setHistSel(null); setTab('historias') }}
+              />
             )}
+            <CardAcao
+              e="🏆" cor="#f5a623" titulo="Liga da semana" cta="Ver"
+              sub="Dispute o topo do ranking com outros alunos"
+              onClick={() => { setTab('liga'); carregarLiga() }}
+            />
+            <SecTitulo>Seu dia</SecTitulo>
             {(() => {
               const proxL = lessons[level]?.find(l => !l.done)
               const tasks = [
@@ -6153,7 +6220,7 @@ export default function AppPage() {
                 <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}><Ic e="🎯" c={purple} /> Missões da semana</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: feitas === lista.length ? green : 'var(--color-text-secondary)' }}>{feitas}/{lista.length}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: feitas === lista.length ? green : feitas === 0 ? gold : 'var(--color-text-secondary)' }}>{feitas === 0 ? `+${lista.reduce((t, m) => t + m.reward, 0)} 🪙 a ganhar` : `${feitas}/${lista.length}`}</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {lista.map(m => {
@@ -6205,48 +6272,30 @@ export default function AppPage() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$29,90/mês <Ic e="→" /></div>
               </div>
             )}
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '2px 2px 10px' }}>Explorar</div>
+            <SecTitulo>Explorar tudo</SecTitulo>
+            {/* Antes: oito cartões escritos um a um, cada um com o seu pastel
+                (#fef3e2, #fcecec, #e7f0fa…) e a sua cor de texto (#8a5a10,
+                #223040, #b91c1c). Eram oito estilos para oito itens do MESMO
+                menu, e no modo escuro os pastéis ficavam claros enquanto o
+                resto escurecia. Agora é uma lista: casca única sobre os tokens
+                de tema, e a cor vive só no ícone — que é onde ela informa. */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div onClick={() => { setView('levels'); setTab('lessons') }} style={{ background: blueLight, borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="📖" color={blue} style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: blueDark }}>Lições</div>
-                <div style={{ fontSize: 11, color: blue }}>Trilha por nível</div>
-              </div>
-              <div onClick={() => setTab('speak')} style={{ background: purpleLight, borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="🎭" color={purple} style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#1c55a3' }}>Simulador</div>
-                <div style={{ fontSize: 11, color: purple }}>{scenarios.length} cenários</div>
-              </div>
-              <div onClick={() => setTab('ai')} style={{ background: '#fef3e2', borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="🤖" color="#8a5a10" style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#8a5a10' }}>Professor IA</div>
-                <div style={{ fontSize: 11, color: '#8a5a10' }}>Tira-dúvidas 24h</div>
-              </div>
-              <div onClick={() => setTab('vocab')} style={{ background: greenLight, borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="📚" color={green} style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#14532d' }}>Vocabulário</div>
-                <div style={{ fontSize: 11, color: green }}>{vocab.length} palavras</div>
-              </div>
-              <div onClick={() => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') }} style={{ background: '#e7f0fa', borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="🎤" color="#2e72d6" style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#103d77' }}>Pronúncia</div>
-                <div style={{ fontSize: 11, color: '#2e72d6' }}>Fale e receba dicas</div>
-              </div>
-              <div onClick={() => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') }} style={{ background: '#fcecec', borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="📝" color="#b91c1c" style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#b91c1c' }}>Prova Semanal</div>
-                <div style={{ fontSize: 11, color: '#b91c1c' }}>{provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões'}</div>
-              </div>
-              <div onClick={() => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') }} style={{ background: '#e7f0fa', borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="📊" color="#1c55a3" style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#223040' }}>Teste de nível</div>
-                <div style={{ fontSize: 11, color: '#1c55a3' }}>Descubra seu nível</div>
-              </div>
-              <div onClick={() => setTab('evolucao')} style={{ background: '#e7f0fa', borderRadius: 10, padding: 14, cursor: 'pointer' }}>
-                <IcBadge e="📈" color={blue} style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: blueDark }}>Evolução</div>
-                <div style={{ fontSize: 11, color: blue }}>Métricas e conquistas</div>
-              </div>
+              {[
+                { e: '📖', cor: '#2e72d6', nome: 'Lições', sub: 'Trilha por nível', acao: () => { setView('levels'); setTab('lessons') } },
+                { e: '🎭', cor: '#1c55a3', nome: 'Simulador', sub: `${scenarios.length} cenários`, acao: () => setTab('speak') },
+                { e: '🤖', cor: '#103d77', nome: 'Professor IA', sub: 'Tira-dúvidas 24h', acao: () => setTab('ai') },
+                { e: '📚', cor: '#16a34a', nome: 'Vocabulário', sub: `${vocab.length} palavras`, acao: () => setTab('vocab') },
+                { e: '🎤', cor: '#2e72d6', nome: 'Pronúncia', sub: 'Fale e receba dicas', acao: () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') } },
+                { e: '📝', cor: '#b91c1c', nome: 'Prova Semanal', sub: provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', acao: () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') } },
+                { e: '📊', cor: '#1c55a3', nome: 'Teste de nível', sub: 'Descubra seu nível', acao: () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setTab('nivelamento') } },
+                { e: '📈', cor: '#16a34a', nome: 'Evolução', sub: 'Métricas e conquistas', acao: () => setTab('evolucao') },
+              ].map(c => (
+                <div key={c.nome} onClick={c.acao} style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, cursor: 'pointer', boxShadow: '0 1px 3px rgba(16,42,76,0.05)' }}>
+                  <IcBadge e={c.e} color={c.cor} box={38} size={20} style={{ marginBottom: 9 }} />
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{c.nome}</div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 2 }}>{c.sub}</div>
+                </div>
+              ))}
             </div>
             {!isIOSNative && !lembretesAtivos && (
               <div onClick={ativarLembretes} style={{ background: 'linear-gradient(135deg, #16A34A, #16a34a)', borderRadius: 10, padding: 16, marginTop: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -6292,11 +6341,15 @@ export default function AppPage() {
                 </div>
               )
             })()}
-            <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
-              <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Vonai · enviar feedback <Ic e="💬" /></span>
-              <div style={{ marginTop: 8 }}>
-                <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 11, color: 'var(--color-text-secondary)', cursor: 'pointer' }}>Excluir minha conta</span>
-              </div>
+            {/* O "Excluir minha conta" continua aqui — a App Store exige que a exclusão
+                seja alcançável de dentro do app (5.1.1(v)) — mas não com o mesmo peso
+                do "enviar feedback": ação destrutiva não disputa clique com elogio.
+                Fica depois do fio, em texto terciário. */}
+            <div style={{ textAlign: 'center', marginTop: 26, paddingBottom: 4 }}>
+              <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#2e72d6', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 999, padding: '7px 16px', cursor: 'pointer' }}><Ic e="💬" s={13} c="#2e72d6" /> Enviar feedback</span>
+              <div style={{ height: 1, background: 'var(--color-border-tertiary)', margin: '16px 40px 10px' }} />
+              <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}>Excluir minha conta</span>
+              <div style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)', marginTop: 8 }}>Vonai</div>
             </div>
           </div>
         </div>
