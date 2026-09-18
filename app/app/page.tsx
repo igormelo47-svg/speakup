@@ -123,60 +123,70 @@ function IcBadge({ e, color, onDark, size = 22, box = 38, radius = 10, style }: 
   )
 }
 
-// Título de seção. A home empilha uma dúzia de cards e só o grupo "Explorar" era
-// rotulado — os outros chegavam como uma lista sem fim de peso igual, e o aluno não
-// distinguia o que é "agora" do que é "depois". Três rótulos no mesmo estilo que já
-// existia transformam a mesma tela em grupos legíveis, sem remover nada.
-function SecTitulo({ e, children }: { e: string; children: React.ReactNode }) {
+// Título de seção (brief do Emmanuel 18/09: hierarquia clara, muito espaço em branco,
+// nada de dashboard). Sentence case, 17px, respiro de 30px em cima. Sem ícone.
+function SecTitulo({ children, sub }: { e?: string; children: React.ReactNode; sub?: string }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '18px 2px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-      <Ic e={e} s={13} c="var(--color-text-secondary)" /> {children}
+    <div style={{ margin: '30px 2px 12px' }}>
+      <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3, lineHeight: 1.2 }}>{children}</div>
+      {sub && <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 3 }}>{sub}</div>}
     </div>
   )
 }
 
-// ===== Sistema visual dos exercícios (18/09/2026) =====
-// A tela em que o aluno passa mais tempo era a mais plana do app: opções em fio de
-// 0,5px, botão de peso 500, feedback num quadradinho. Três peças dão a ela cara de
-// app de idioma de verdade — tudo na paleta oficial, sem cor nova.
-
-// Botão "empurrável": sombra sólida embaixo, afunda ao tocar (o :active global já
-// faz o scale). Cores: azul (ação), verde (acerto/concluir), dourado (checar).
-function estiloBotao(cor: 'azul' | 'verde' | 'dourado' | 'cinza' = 'azul', extra?: CSSProperties): CSSProperties {
-  const m = {
-    azul:    { bg: '#2e72d6', sombra: '#103d77', txt: '#fff' },
-    verde:   { bg: '#16a34a', sombra: '#14532d', txt: '#fff' },
-    dourado: { bg: '#f5a623', sombra: '#e08a1e', txt: '#fff' },
-    cinza:   { bg: 'var(--color-background-secondary)', sombra: 'var(--color-border-tertiary)', txt: 'var(--color-text-tertiary)' },
-  }[cor]
-  return { width: '100%', padding: '15px 16px', background: m.bg, color: m.txt, border: 'none', borderRadius: 14, fontSize: 15.5, fontWeight: 800, cursor: cor === 'cinza' ? 'default' : 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 0 ${m.sombra}`, letterSpacing: 0.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, ...extra }
+// Linha de ação (o "Também disponível" do protótipo): ícone num quadrado suave, título,
+// subtítulo, seta. Sem card, sem borda, sem sombra — só um fio entre as linhas.
+function LinhaAcao({ e, cor, titulo, sub, onClick, direita, ultima }: { e: string; cor: string; titulo: React.ReactNode; sub?: React.ReactNode; onClick?: () => void; direita?: React.ReactNode; ultima?: boolean }) {
+  return (
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 2px', borderBottom: ultima ? 'none' : '1px solid var(--color-border-tertiary)', cursor: onClick ? 'pointer' : 'default' }}>
+      <div style={{ width: 42, height: 42, borderRadius: 13, background: cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={e} s={21} c={cor} sw={1.9} /></div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.3 }}>{titulo}</div>
+        {sub && <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>}
+      </div>
+      {direita !== undefined ? direita : <Ic e="›" s={20} c="var(--color-text-tertiary)" sw={2} />}
+    </div>
+  )
 }
 
-// Feedback (protótipo aprovado 18/09): card verde/vermelho com título e explicação,
-// embaixo o Vô comentando num balão, e o botão âmbar de continuar.
+// ===== Sistema visual dos exercícios (protótipo aprovado 18/09) =====
+
+// Botão âmbar: a ação principal de qualquer tela de treino.
+function estiloAmbar(extra?: CSSProperties): CSSProperties {
+  return { width: '100%', border: 0, borderRadius: 15, padding: 16, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(255,176,32,0.36)', ...extra }
+}
+
+// Botão secundário (checar / desabilitado). Sem sombra pesada, sem 3D.
+function estiloBotao(cor: 'azul' | 'verde' | 'dourado' | 'cinza' = 'azul', extra?: CSSProperties): CSSProperties {
+  const m = {
+    azul:    { bg: '#2e72d6', txt: '#fff' },
+    verde:   { bg: '#16a34a', txt: '#fff' },
+    dourado: { bg: 'var(--vonai-amber)', txt: 'var(--vonai-amber-ink)' },
+    cinza:   { bg: 'var(--color-background-secondary)', txt: 'var(--color-text-tertiary)' },
+  }[cor]
+  return { width: '100%', padding: 16, background: m.bg, color: m.txt, border: 'none', borderRadius: 15, fontSize: 16, fontWeight: 800, cursor: cor === 'cinza' ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, ...extra }
+}
+
+// Feedback: card verde/vermelho com título e explicação, embaixo o Vô comentando num
+// balão, e o botão âmbar de continuar.
 function FeedbackVo({ acertou, titulo, children, fala, botao }: { acertou: boolean; titulo: React.ReactNode; children?: React.ReactNode; fala?: React.ReactNode; botao?: React.ReactNode }) {
   return (
     <div style={{ animation: 'su_risefade 0.38s cubic-bezier(0.22,1,0.36,1)' }}>
       <div style={{ borderRadius: 16, padding: '16px 17px', background: acertou ? '#e3f3ea' : '#fcecec', marginTop: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontWeight: 800, fontSize: 17, color: acertou ? '#16a34a' : '#dc2626', letterSpacing: -0.2 }}><Ic e={acertou ? '✓' : '✗'} s={19} sw={2.4} c={acertou ? '#16a34a' : '#dc2626'} /> {titulo}</div>
-        {children && <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 8, lineHeight: 1.5 }}>{children}</div>}
+        {children && <div style={{ fontSize: 14.5, color: 'var(--color-text-secondary)', marginTop: 8, lineHeight: 1.5 }}>{children}</div>}
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 11, marginTop: 14 }}>
         <div style={{ width: 52, height: 52, flexShrink: 0 }}><Mascote size={52} prof viva humor={acertou ? 'comemora' : 'triste'} /></div>
-        <div style={{ flex: 1, position: 'relative', background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '16px 16px 16px 5px', padding: '12px 14px', fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.45, boxShadow: '0 1px 2px rgba(11,23,41,0.05), 0 10px 30px rgba(11,23,41,0.08)' }}>{fala || (acertou ? 'Isso! Continua nesse ritmo.' : 'Todo mundo cai nessa. Vou te trazer ela de novo daqui a dois dias.')}</div>
+        <div style={{ flex: 1, position: 'relative', background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '16px 16px 16px 5px', padding: '12px 14px', fontSize: 14.5, color: 'var(--color-text-secondary)', lineHeight: 1.45 }}>{fala || (acertou ? 'Isso! Continua nesse ritmo.' : 'Todo mundo cai nessa. Vou te trazer ela de novo daqui a dois dias.')}</div>
       </div>
       {botao && <div style={{ marginTop: 16 }}>{botao}</div>}
     </div>
   )
 }
 
-// Botão âmbar do protótipo (a ação principal de qualquer tela de treino).
-function estiloAmbar(extra?: CSSProperties): CSSProperties {
-  return { width: '100%', border: 0, borderRadius: 15, padding: 16, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(255,176,32,0.36)', ...extra }
-}
-
-// Opção de múltipla escolha (protótipo aprovado 18/09): borda de 2px, raio 15,
-// texto 16px. Acerto fica verde e dá um pulo curto; erro fica vermelho e treme.
+// Opção de múltipla escolha: borda de 2px, raio 15, texto 16px. Acerto fica verde e dá
+// um pulo curto; erro fica vermelho e treme; as outras apagam.
 function OpcaoQuiz({ texto, estado, onClick }: { texto: React.ReactNode; estado: 'neutra' | 'certa' | 'errada' | 'apagada'; onClick?: () => void }) {
   const cor = estado === 'certa' ? '#16a34a' : estado === 'errada' ? '#dc2626' : 'var(--color-border-tertiary)'
   const bg = estado === 'certa' ? '#e3f3ea' : estado === 'errada' ? '#fcecec' : 'var(--color-background-primary)'
@@ -5580,23 +5590,14 @@ export default function AppPage() {
 
   // Superfície neutra + cor só no ícone: um app profissional tem UMA cor de marca,
   // não um arco-íris de cartões. O fundo pastel individual saiu de propósito.
-  const cardExplorar = (bg: string, icon: string, cor: string, titulo: string, sub: string, onClick: () => void) => (
-    <div onClick={onClick} style={{ background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 14, padding: 14, cursor: 'pointer', boxShadow: '0 1px 2px rgba(16,33,60,0.04)' }}>
-      <IcBadge e={icon} color={cor} style={{ marginBottom: 10 }} />
-      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{titulo}</div>
-      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 1 }}>{sub}</div>
-    </div>
+  // 18/09: Explorar e os destaques deixaram de ser cartões empilhados e viraram uma
+  // lista única (brief do Emmanuel: clean, sem "vários quadrados", sem bordas/sombras).
+  // `bg` ficou por compatibilidade das chamadas e é ignorado.
+  const cardExplorar = (_bg: string, icon: string, cor: string, titulo: string, sub: string, onClick: () => void) => (
+    <LinhaAcao e={icon} cor={cor} titulo={titulo} sub={sub} onClick={onClick} />
   )
-
-  // Destaques abaixo do grid: mesma superfície neutra dos cartões, cor só no ícone
-  // e no botão. Os degradês multicoloridos (verde→marrom etc.) davam cara de banner
-  // de promoção; a família unificada dá cara de produto.
   const bannerRow = (icon: string, cor: string, titulo: string, sub: string, cta: string, onClick: () => void) => (
-    <div onClick={onClick} style={{ background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: 14, padding: 13, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 2px rgba(16,33,60,0.04)' }}>
-      <IcBadge e={icon} color={cor} box={42} size={22} />
-      <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{titulo}</div><div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{sub}</div></div>
-      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: cor, padding: '5px 12px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0 }}>{cta}</span>
-    </div>
+    <LinhaAcao e={icon} cor={cor} titulo={titulo} sub={sub} onClick={onClick} direita={<span style={{ fontSize: 13, fontWeight: 700, color: cor, whiteSpace: 'nowrap' }}>{cta} ›</span>} />
   )
 
   // Faixa de assinatura no TOPO da home, logo abaixo do nome do aluno. Fica visível
@@ -5756,25 +5757,10 @@ export default function AppPage() {
             </div>
           )}
 
-          {/* Este card vinha com o MESMO degradê azul, o MESMO círculo branco de 52px
-              e a MESMA arara de 42px do herói logo acima — dois cards sósias, colados,
-              e o aluno lia como repetição em vez de duas ações diferentes. O recurso
-              continua em destaque (é o principal), mas agora com cara própria: a única
-              superfície clara com tarja dourada da home, o que a torna a mais notável
-              da tela em vez da segunda mais parecida. */}
-          <div onClick={() => setTab('ai')} style={{ background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderLeft: '3px solid #f5a623', borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 8px rgba(245,166,35,0.14)' }}>
-            <div style={{ position: 'relative', width: 42, height: 42, borderRadius: 10, background: 'rgba(245,166,35,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Mascote size={34} prof />
-              <span style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderRadius: '50%', background: '#16A34A', border: '2px solid var(--color-background-primary)' }} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-text-primary)' }}>Fale com o Vô, seu professor</div>
-              <div style={{ fontSize: 11.5, color: 'var(--color-text-secondary)', marginTop: 2, lineHeight: 1.35 }}>Tire qualquer dúvida de inglês na hora · 24h</div>
-            </div>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: '#f5a623', padding: '6px 12px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}><Ic e="💬" s={13} c="#fff" /> Tirar dúvida</span>
-          </div>
+          {/* Professor: uma linha, não um card. Ele é o mais importante, então é a primeira. */}
+          <LinhaAcao e="💬" cor="#2e72d6" titulo="Falar com o Vô" sub="Tire qualquer dúvida de inglês, a qualquer hora" onClick={() => setTab('ai')} ultima />
 
-          <SecTitulo e="☀️">Seu dia</SecTitulo>
+          <SecTitulo sub={perfilIa.objetivo || OBJETIVO_PADRAO}>Seu dia</SecTitulo>
           {/* Seu plano de hoje (mantido a pedido do Emmanuel) */}
           {(() => {
             const proxL = lessons[level]?.find(l => !l.done)
@@ -5787,21 +5773,18 @@ export default function AppPage() {
             const feitos = tasks.filter(t => t.feito).length
             const tudo = feitos === tasks.length
             return (
-              <div style={{ background: blueDark, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}><Ic e="🎯" /> Seu plano de hoje</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: tudo ? '#4ADE80' : '#BCD6F2' }}>{feitos}/{tasks.length}</div>
-                </div>
-                <div style={{ fontSize: 11.5, color: tudo ? '#4ADE80' : (streak > 0 && feitos === 0) ? '#FFD98A' : '#9DBBDD', marginBottom: 12, fontWeight: (streak > 0 && feitos === 0) ? 600 : 400 }}>{tudo ? 'Mandou bem! Plano de hoje completo 🎉' : (streak > 0 && feitos === 0) ? `🔥 Não perca sua sequência de ${streak} ${streak === 1 ? 'dia' : 'dias'} — faça 1 tarefa!` : `Meta: ${perfilIa.objetivo || OBJETIVO_PADRAO}`}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {tasks.map((t, i) => (
-                    <div key={i} onClick={t.feito ? undefined : t.acao} style={{ background: t.feito ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12, cursor: t.feito ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', gap: 7, minHeight: 92 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: t.feito ? '#16A34A' : 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.feito ? <Ic e="✓" s={17} c="#fff" /> : <Ic e={t.icon} s={18} c="#fff" />}</div>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', lineHeight: 1.2, textDecoration: t.feito ? 'line-through' : 'none', opacity: t.feito ? 0.75 : 1 }}>{t.titulo}</div>
-                      <div style={{ fontSize: 10.5, color: '#9DBBDD', lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{t.sub}</div>
+              <div>
+                {tasks.map((t, i) => (
+                  <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: i < tasks.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none', cursor: t.feito ? 'default' : 'pointer' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: t.feito ? '#16a34a' : 'transparent', border: t.feito ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>{t.feito && <Ic e="✓" s={15} sw={2.8} c="#fff" />}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 600, color: t.feito ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)', textDecoration: t.feito ? 'line-through' : 'none', lineHeight: 1.3 }}>{t.titulo}</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{t.sub}</div>
                     </div>
-                  ))}
-                </div>
+                    {!t.feito && <Ic e="›" s={20} c="var(--color-text-tertiary)" sw={2} />}
+                  </div>
+                ))}
+                <div style={{ fontSize: 13.5, color: tudo ? '#16a34a' : 'var(--color-text-secondary)', marginTop: 12, fontWeight: 600 }}>{tudo ? 'Plano de hoje completo 🎉' : `${feitos} de ${tasks.length} feitos${streak > 0 && feitos === 0 ? ` · uma tarefa segura seus ${streak} ${streak === 1 ? 'dia' : 'dias'}` : ''}`}</div>
               </div>
             )
           })()}
@@ -5818,26 +5801,24 @@ export default function AppPage() {
             try { desafioPago = !!localStorage.getItem('speakup_desafio3_' + userId) } catch (e) {}
             const dias3 = Math.min(streak, 3)
             return (
-              <div style={{ background: 'linear-gradient(135deg, #1c55a3, #103D77)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}><Ic e="🌙" /> Sua missão de amanhã</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FFD98A', background: 'rgba(255,217,138,0.15)', padding: '3px 10px', borderRadius: 10 }}>{m.personalizada ? '✨ feita dos seus erros' : '🔒 destrava amanhã'}</span>
+              <div style={{ marginTop: 22, background: 'var(--color-background-secondary)', borderRadius: 16, padding: '15px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-secondary)' }}>Amanhã</div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: m.personalizada ? '#e08a1e' : 'var(--color-text-tertiary)' }}>{m.personalizada ? '✨ feita dos seus erros' : '🔒 destrava amanhã'}</span>
                 </div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
-                  <div style={{ fontSize: 28 }}>{m.emoji}</div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div style={{ fontSize: 26, lineHeight: 1 }}>{m.emoji}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{m.titulo}</div>
-                    <div style={{ fontSize: 11.5, color: '#bcd6f2', lineHeight: 1.4, marginTop: 2 }}>{m.chamada}</div>
+                    <div style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{m.titulo}</div>
+                    <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', lineHeight: 1.4, marginTop: 2 }}>{m.chamada}</div>
                   </div>
                 </div>
                 {!desafioPago && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
                     {[1, 2, 3].map(d => (
-                      <div key={d} style={{ flex: 1, textAlign: 'center', background: d <= dias3 ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)', border: d <= dias3 ? '1px solid rgba(74,222,128,0.5)' : '1px solid transparent', borderRadius: 10, padding: '6px 4px', fontSize: 11, fontWeight: 700, color: d <= dias3 ? '#4ADE80' : '#9DBBDD' }}>
-                        {d <= dias3 ? '✓' : ''} Dia {d}
-                      </div>
+                      <div key={d} style={{ width: 26, height: 26, borderRadius: '50%', background: d <= dias3 ? '#16a34a' : 'var(--color-background-primary)', border: d <= dias3 ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d <= dias3 && <Ic e="✓" s={13} sw={2.8} c="#fff" />}</div>
                     ))}
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#FFD98A', whiteSpace: 'nowrap' }}>3 dias = +{DESAFIO_3_DIAS_MOEDAS} 🪙</div>
+                    <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginLeft: 4 }}>3 dias seguidos = <b style={{ color: '#e08a1e' }}>+{DESAFIO_3_DIAS_MOEDAS} 🪙</b></div>
                   </div>
                 )}
               </div>
@@ -5851,13 +5832,13 @@ export default function AppPage() {
             const diasAtivos = Object.keys(hist).filter(d => (hist[d] || 0) > 0).length
             if (vocabDominadas === 0 && licoesFixadas === 0 && diasAtivos < 2) return null
             return (
-              <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 12 }}><Ic e="📈" c={green} /> Sua evolução</div>
+              <div>
+                <SecTitulo sub="Domínio de verdade, não cliques">Sua evolução</SecTitulo>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[[String(vocabDominadas), 'palavras dominadas', green], [String(licoesFixadas), 'lições na memória', purple], [String(diasAtivos), diasAtivos === 1 ? 'dia de estudo' : 'dias de estudo', blue]].map(([n, t, cor], i) => (
-                    <div key={i} style={{ flex: 1, background: 'var(--color-background-secondary)', border: `1px solid ${cor as string}2e`, borderRadius: 10, padding: '12px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 21, fontWeight: 800, color: cor as string, lineHeight: 1 }}>{n}</div>
-                      <div style={{ fontSize: 10, color: 'var(--color-text-secondary)', marginTop: 4, lineHeight: 1.25 }}>{t}</div>
+                    <div key={i} style={{ flex: 1, padding: '6px 2px' }}>
+                      <div style={{ fontSize: 30, fontWeight: 800, color: cor as string, lineHeight: 1, letterSpacing: -0.8 }}>{n}</div>
+                      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.3 }}>{t}</div>
                     </div>
                   ))}
                 </div>
@@ -5878,71 +5859,63 @@ export default function AppPage() {
             ]
             const feitas = lista.filter(m => claimed.includes(m.id)).length
             return (
-              <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}><Ic e="🎯" c={purple} /> Missões da semana</div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: feitas === lista.length ? green : feitas === 0 ? gold : 'var(--color-text-secondary)' }}>{feitas === 0 ? `+${lista.reduce((t, m) => t + m.reward, 0)} 🪙 a ganhar` : `${feitas}/${lista.length}`}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {lista.map(m => {
-                    const pct = Math.round(m.cur / m.alvo * 100)
-                    const completa = m.cur >= m.alvo
-                    const resgatada = claimed.includes(m.id)
-                    return (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 10, background: resgatada ? 'rgba(22,163,74,0.14)' : 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={19} c={resgatada ? green : '#2e72d6'} /></div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 5 }}>{m.nome}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 6, height: 7, overflow: 'hidden' }}><div style={{ background: completa ? green : '#2e72d6', height: '100%', width: `${pct}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
-                            <div style={{ fontSize: 10.5, color: 'var(--color-text-secondary)', fontWeight: 600, minWidth: 42, textAlign: 'right' }}>{m.cur}/{m.alvo}</div>
-                          </div>
+              <div>
+                <SecTitulo sub={feitas === 0 ? `+${lista.reduce((t, m) => t + m.reward, 0)} 🪙 esperando por você` : `${feitas} de ${lista.length} resgatadas`}>Missões da semana</SecTitulo>
+                {lista.map((m, idx) => {
+                  const pct = Math.round(m.cur / m.alvo * 100)
+                  const completa = m.cur >= m.alvo
+                  const resgatada = claimed.includes(m.id)
+                  return (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: idx < lista.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none' }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 13, background: resgatada ? '#16a34a1a' : '#2e72d61a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={21} sw={1.9} c={resgatada ? '#16a34a' : '#2e72d6'} /></div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 7 }}>{m.nome}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 999, height: 6, overflow: 'hidden' }}><div style={{ background: completa ? '#16a34a' : '#2e72d6', height: '100%', width: `${pct}%`, borderRadius: 999, transition: 'width 0.4s' }} /></div>
+                          <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{m.cur}/{m.alvo}</div>
                         </div>
-                        {resgatada ? (
-                          <div style={{ fontSize: 11, fontWeight: 700, color: green, flexShrink: 0 }}><Ic e="✓" /> feito</div>
-                        ) : completa ? (
-                          <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'linear-gradient(135deg,#f5a623,#e08a1e)', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>+{m.reward} 🪙</button>
-                        ) : (
-                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', flexShrink: 0 }}>+{m.reward} 🪙</div>
-                        )}
                       </div>
-                    )
-                  })}
-                </div>
+                      {resgatada ? (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', flexShrink: 0 }}>Feito</div>
+                      ) : completa ? (
+                        <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', border: 'none', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>+{m.reward} 🪙</button>
+                      ) : (
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>+{m.reward} 🪙</div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )
           })()}
 
-          {/* Convite grátis do trial / upsell — mantido, discreto */}
-          {isPremium && !pagante && !BETA_GRATIS && trialExpira && trialExpira > Date.now() && (() => {
-            const horas = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
-            const urgente = horas <= 24
-            const quando = horas <= 24 ? `Acaba em ${horas}h` : `Acaba em ${Math.ceil(horas / 24)} dias`
+          {/* Upsell: uma linha suave, sem degradê. Urgência só no último dia do trial. */}
+          {!pagante && !BETA_GRATIS && (() => {
+            const emTrial = isPremium && !!trialExpira && trialExpira > Date.now()
+            const horas = emTrial ? Math.max(1, Math.ceil((trialExpira! - Date.now()) / 3600000)) : 0
+            const urgente = emTrial && horas <= 24
+            if (!emTrial && isPremium) return null
             return (
-              <div onClick={() => irParaPlans('card_home')} style={{ background: urgente ? 'linear-gradient(135deg, #b91c1c, #dc2626)' : `linear-gradient(135deg, ${blueDark}, ${blue})`, borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <IcBadge e={urgente ? '⏰' : '⭐'} color={urgente ? '#dc2626' : gold} onDark box={42} size={22} />
-                <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{urgente ? 'Seu teste está acabando!' : 'Você está no teste grátis'}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>{quando} · Assine para não perder o acesso</div></div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Assinar <Ic e="→" /></div>
+              <div onClick={() => irParaPlans('card_home')} style={{ marginTop: 26, background: urgente ? '#fcecec' : 'var(--color-background-secondary)', borderRadius: 16, padding: '15px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 13, background: urgente ? '#dc26261a' : '#f5a6231f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={urgente ? '⏰' : '⭐'} s={21} sw={1.9} c={urgente ? '#dc2626' : '#e08a1e'} /></div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15.5, fontWeight: 700, color: urgente ? '#b91c1c' : 'var(--color-text-primary)' }}>{urgente ? 'Seu teste acaba hoje' : emTrial ? `Teste grátis · ${Math.ceil(horas / 24)} ${Math.ceil(horas / 24) === 1 ? 'dia' : 'dias'}` : 'Vonai Premium'}</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{emTrial ? 'Assine para não perder o acesso' : 'IA ilimitada · voz · plano personalizado'}</div>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: urgente ? '#dc2626' : '#e08a1e', whiteSpace: 'nowrap' }}>{emTrial ? 'Assinar ›' : 'R$ 29,90 ›'}</span>
               </div>
             )
           })()}
-          {!isPremium && (
-            <div onClick={() => irParaPlans('card_home')} style={{ background: `linear-gradient(135deg, ${blueDark}, ${blue})`, borderRadius: 14, padding: 13, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <IcBadge e="⭐" color={gold} onDark box={42} size={22} />
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: '#fff' }}>Seja Premium <Ic e="✨" /></div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>IA ilimitada · Conversação por voz · Plano personalizado</div></div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 20 }}>R$29,90 <Ic e="→" /></div>
-            </div>
-          )}
 
           {/* EXPLORAR — sempre visível. O aluno vê tudo ao entrar; o herói acima dá a direção. */}
-          <SecTitulo e="🧭">Explorar</SecTitulo>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          <SecTitulo sub="Tudo que o Vonai tem, num lugar só">Explorar</SecTitulo>
+          <div>
             {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
             {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
             {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
             {cardExplorar('#e7f0fa', '🏆', '#2E72D6', 'Liga', 'Ranking da semana', () => { setTab('liga'); carregarLiga() })}
             {cardExplorar('#e7f0fa', '🎤', '#2e72d6', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
-            {cardExplorar('#FEF3E2', '🎧', '#8a5a10', 'Listening', 'Ouça e entenda', () => setTab('listening'))}
+            {cardExplorar('#FEF3E2', '🎧', '#2e72d6', 'Ouvir', 'Áudios pra treinar o ouvido', () => setTab('listening'))}
             {cardExplorar('#fcecec', '📝', '#b91c1c', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
             {/* Teste de nível: o card existia SÓ na home antiga (tab === 'home' && !homeGuiada),
                 e homeGuiada nunca vira false — aquele bloco inteiro é inalcançável. Resultado:
@@ -5950,7 +5923,7 @@ export default function AppPage() {
             {cardExplorar('#e7f0fa', '📊', '#1c55a3', 'Teste de nível', 'Descubra ou revise seu nível', () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false); setTab('nivelamento') })}
             {cardExplorar('#e7f0fa', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
           </div>
-          <SecTitulo e="🎯">Treine agora</SecTitulo>
+          <SecTitulo sub="Rápido, pra hoje">Treine agora</SecTitulo>
           {bannerRow('🇧🇷', green, 'Caça-Erros do Brasileiro', '5 armadilhas que todo brasileiro cai', 'Jogar', () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} })}
           {histDone.length < HISTORIAS.length && bannerRow('📖', purple, 'Histórias', `Mini-novelas · ${histDone.length}/${HISTORIAS.length}`, 'Ler', () => { setHistSel(null); setTab('historias') })}
           {apostaAtiva && !apostaPerdida && bannerRow('🔥', green, `Aposta de 7 dias: dia ${apostaDia} de 7`, streak >= 7 ? 'Cumprida! Prêmio liberado' : `Faltam ${7 - apostaDia} ${7 - apostaDia === 1 ? 'dia' : 'dias'} pro Premium extra`, 'Treinar', iniciarTreino)}
@@ -5961,7 +5934,7 @@ export default function AppPage() {
               no Android/PWA/navegador continua funcionando. (iOS: pendente notificação nativa.) */}
           {!isIOSNative && !lembretesAtivos && bannerRow('🔔', blue, 'Ativar lembretes diários', 'Um aviso pra não quebrar a sequência', 'Ativar', ativarLembretes)}
 
-          <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 4 }}>
+          <div style={{ textAlign: 'center', marginTop: 36, paddingBottom: 10 }}>
             {/* "Excluir minha conta" continua aqui — a App Store exige que a exclusão
                 seja alcançável de dentro do app (5.1.1(v)) — mas não com o mesmo peso
                 do "enviar feedback": ação destrutiva não disputa clique com elogio. */}
@@ -8746,7 +8719,7 @@ export default function AppPage() {
           navegador novo ficava sem o botão — foi assim que ele "sumiu" pro Emmanuel. */}
       {/* Na home o herói já é o Vô falando; o flutuante por cima dele fazia TRÊS
           araras na mesma tela (logo, herói, balão). Fora da home continua em todas. */}
-      {!mostrarOnboarding && tab !== 'ai' && tab !== 'home' && (
+      {!mostrarOnboarding && tab !== 'ai' && (
         /* O container é só posicionamento: pointerEvents none nele (e auto nos filhos
            clicáveis) evita que a área vazia/balão engula o toque do conteúdo embaixo. */
         <div style={{ position: 'absolute', right: 12, bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, pointerEvents: 'none' }}>
@@ -8754,13 +8727,13 @@ export default function AppPage() {
             /* pointerEvents none: o balão é AVISO, não alvo. Sem isso ele engolia o clique
                do botão que estivesse embaixo — inclusive o "Começar exercícios" da 1ª lição
                (bug achado no QA de 15/08). Só o ✕ recebe toque. */
-            <div style={{ position: 'relative', background: '#fff', borderRadius: '14px 14px 4px 14px', padding: '9px 30px 9px 12px', boxShadow: '0 4px 16px rgba(16,42,76,0.22)', maxWidth: 190, animation: 'su_risefade 0.5s ease both', pointerEvents: 'none' }}>
-              <span style={{ fontSize: 12.5, color: '#16212c', lineHeight: 1.45 }}>Precisa de ajuda? É só me tocar que eu te ajudo! 😊</span>
+            <div style={{ position: 'relative', background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '16px 16px 5px 16px', padding: '10px 30px 10px 14px', boxShadow: '0 1px 2px rgba(11,23,41,0.05), 0 10px 30px rgba(11,23,41,0.08)', maxWidth: 200, animation: 'su_risefade 0.5s ease both', pointerEvents: 'none' }}>
+              <span style={{ fontSize: 13.5, color: 'var(--color-text-primary)', lineHeight: 1.45 }}>Travou em algo? <b>Toca em mim.</b></span>
               <button onClick={() => marcarVoFabDica()} aria-label="Fechar dica" style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', fontSize: 13, color: '#93a1b0', cursor: 'pointer', padding: 2, pointerEvents: 'auto' }}>✕</button>
             </div>
           )}
-          <button onClick={() => { marcarVoFabDica(); encerrarTreino(); setTab('ai'); try { track('vo_fab') } catch (e) {} }} aria-label="Falar com o Vô, seu professor" style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff', border: '2.5px solid #F5A623', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px rgba(16,42,76,0.3)', padding: 0, animation: 'su_bob 2.6s ease-in-out infinite', pointerEvents: 'auto' }}>
-            <Mascote size={42} prof humor="feliz" />
+          <button onClick={() => { marcarVoFabDica(); encerrarTreino(); setTab('ai'); try { track('vo_fab') } catch (e) {} }} aria-label="Falar com o Vô, seu professor" style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--color-background-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(11,23,41,0.06), 0 12px 30px rgba(11,23,41,0.16)', padding: 0, animation: 'su_bob 3.6s ease-in-out infinite', pointerEvents: 'auto' }}>
+            <Mascote size={44} prof viva humor="feliz" />
           </button>
         </div>
       )}
@@ -8781,16 +8754,18 @@ export default function AppPage() {
             "Professor" não cabem e a última saía cortada ("Pr..."). minWidth:0 deixa o
             flex encolher de verdade — sem isso o conteúdo trava a largura e estoura a
             barra, empurrando a tela para o lado. */}
-        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎭', 'Simular'], ['listening', '🎧', 'Ouvir'], ['dict', '🔤', 'Palavras'], ['ai', '🦜', 'Vô']].map(([t, icon, label]) => {
+        {/* 18/09: quatro abas, como no protótipo aprovado. "Ouvir" mora no Explorar da
+            home; o Vô tem o botão flutuante em toda tela — não precisa de aba. */}
+        {[['home', '🏠', 'Início'], ['trilha', '🗺️', 'Trilha'], ['speak', '🎙️', 'Falar'], ['dict', '🔤', 'Palavras']].map(([t, icon, label]) => {
           const ativo = t === 'trilha' ? (tab === 'trilha' || tab === 'lessons') : tab === t
           return (
           <button key={t} onClick={() => { encerrarTreino(); setTab(t); if (t === 'speak') { setConvStarted(false); setSelectedScenario(null) } }} style={{ flex: '1 1 0', minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, maxWidth: '100%', minWidth: 0 }}>
               {/* Material 3: pílula suave atrás do ÍCONE do item ativo (não do bloco todo) */}
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 14px', borderRadius: 999, background: ativo ? 'rgba(46,114,214,0.13)' : 'transparent', transition: 'background 0.2s' }}>
-                <span style={{ fontSize: 21, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#1c55a3' : 'var(--color-text-tertiary)'} /></span>
+                <span style={{ fontSize: 22, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} sw={ativo ? 2.2 : 1.9} /></span>
               </span>
-              <span style={{ fontSize: 10, color: ativo ? '#1c55a3' : 'var(--color-text-tertiary)', fontWeight: ativo ? 800 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
+              <span style={{ fontSize: 11, color: ativo ? '#2e72d6' : 'var(--color-text-tertiary)', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
             </div>
           </button>
           )
