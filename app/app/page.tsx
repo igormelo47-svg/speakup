@@ -134,21 +134,6 @@ function SecTitulo({ children, sub }: { e?: string; children: React.ReactNode; s
   )
 }
 
-// Linha de ação (o "Também disponível" do protótipo): ícone num quadrado suave, título,
-// subtítulo, seta. Sem card, sem borda, sem sombra — só um fio entre as linhas.
-function LinhaAcao({ e, cor, titulo, sub, onClick, direita, ultima }: { e: string; cor: string; titulo: React.ReactNode; sub?: React.ReactNode; onClick?: () => void; direita?: React.ReactNode; ultima?: boolean }) {
-  return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 2px', borderBottom: ultima ? 'none' : '1px solid var(--color-border-tertiary)', cursor: onClick ? 'pointer' : 'default' }}>
-      <div style={{ width: 42, height: 42, borderRadius: 13, background: cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={e} s={21} c={cor} sw={1.9} /></div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.3 }}>{titulo}</div>
-        {sub && <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>}
-      </div>
-      {direita !== undefined ? direita : <Ic e="›" s={20} c="var(--color-text-tertiary)" sw={2} />}
-    </div>
-  )
-}
-
 // ===== Sistema visual dos exercícios (protótipo aprovado 18/09) =====
 
 // Botão âmbar: a ação principal de qualquer tela de treino.
@@ -5641,16 +5626,6 @@ export default function AppPage() {
 
   // Superfície neutra + cor só no ícone: um app profissional tem UMA cor de marca,
   // não um arco-íris de cartões. O fundo pastel individual saiu de propósito.
-  // 18/09: Explorar e os destaques deixaram de ser cartões empilhados e viraram uma
-  // lista única (brief do Emmanuel: clean, sem "vários quadrados", sem bordas/sombras).
-  // `bg` ficou por compatibilidade das chamadas e é ignorado.
-  const cardExplorar = (_bg: string, icon: string, cor: string, titulo: string, sub: string, onClick: () => void) => (
-    <LinhaAcao e={icon} cor={cor} titulo={titulo} sub={sub} onClick={onClick} />
-  )
-  const bannerRow = (icon: string, cor: string, titulo: string, sub: string, cta: string, onClick: () => void) => (
-    <LinhaAcao e={icon} cor={cor} titulo={titulo} sub={sub} onClick={onClick} direita={<span style={{ fontSize: 13, fontWeight: 700, color: cor, whiteSpace: 'nowrap' }}>{cta} ›</span>} />
-  )
-
   // Faixa de assinatura no TOPO da home, logo abaixo do nome do aluno. Fica visível
   // em toda abertura do app para quem ainda não paga — antes o único convite eram o
   // chip pequeno ao lado do nome e um card mais abaixo, que passavam despercebidos.
@@ -5701,293 +5676,182 @@ export default function AppPage() {
     else if (proxL) msg = `${saudacao}, ${userName}. Seu treino de hoje está pronto: "${proxL.title}" + uma conversa rápida. Bora?`
     else msg = `${saudacao}, ${userName}. Seu treino de hoje está pronto — 5 minutos e você mantém o ritmo. 🔥`
 
+    // ===== HOME REORGANIZADA — 18/09/2026 =====
+    // Ela empilhava 17 blocos e ~25 linhas tocáveis: cabeçalho, card de progresso com
+    // QUATRO medidas ao mesmo tempo (anel do nível, XP, nível numérico, meta do dia),
+    // herói, "já concluiu", "falar com o Vô", plano, missão de amanhã, evolução,
+    // missões, premium, explorar, treine agora, rodapé. Não era estilo: era volume.
+    // Agora são CINCO blocos, cada um com uma pergunta:
+    //   1. cabeçalho ...... quem sou eu e onde estou (UMA barra de progresso)
+    //   2. o Vô ........... o que eu faço agora
+    //   3. seu dia ........ o que falta hoje
+    //   4. missões ........ o que ganho essa semana
+    //   5. explorar ....... o resto, num grid de atalhos
+    // O que saiu da home não sumiu do app: "Sua evolução" já existe inteira na aba
+    // Evolução; Caça-Erros, Histórias, Convite e Lembretes viraram atalhos no grid.
+    const lvlArr = lessons[level] || []
+    const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(chaveLicao(l))).length
+    const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
+
+    const tarefas = [
+      { icon: '📖', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
+      { icon: '🧠', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
+      { icon: '🎭', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
+      { icon: '🔥', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
+    ]
+    const feitos = tarefas.filter(t => t.feito).length
+
+    const weekNow = Math.floor(Date.now() / (7 * 86400000))
+    const claimed = missoes.week === weekNow ? missoes.claimed : []
+    const semXpAtual = Math.max(0, xp - semBaseRef.current)
+    const diasSemana = Object.keys(hist).filter(d => Math.floor(new Date(d + 'T00:00:00').getTime() / (7 * 86400000)) === weekNow && (hist[d] || 0) > 0).length
+    const missoesLista = [
+      { id: 'xp', e: '⚡', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
+      { id: 'dias', e: '📅', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
+      { id: 'streak', e: '🔥', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
+    ]
+    const missoesAGanhar = missoesLista.filter(m => !claimed.includes(m.id)).reduce((t, m) => t + m.reward, 0)
+
+    // Atalhos: tudo que não é "agora". Ícone + rótulo, três por linha — o aluno varre
+    // com o olho em vez de ler doze subtítulos.
+    const atalhos: { e: string; cor: string; nome: string; acao: () => void; on?: boolean }[] = [
+      { e: '📖', cor: '#2e72d6', nome: 'Lições', acao: () => { setView('levels'); setTab('lessons') } },
+      { e: '🎭', cor: '#1c55a3', nome: 'Simulador', acao: () => setTab('speak') },
+      { e: '🎤', cor: '#2e72d6', nome: 'Pronúncia', acao: () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') } },
+      { e: '🎧', cor: '#1c55a3', nome: 'Ouvir', acao: () => setTab('listening') },
+      { e: '📚', cor: '#16a34a', nome: 'Vocabulário', acao: () => setTab('vocab') },
+      { e: '📖', cor: '#103d77', nome: 'Histórias', acao: () => { setHistSel(null); setTab('historias') } },
+      { e: '🇧🇷', cor: '#16a34a', nome: 'Caça-Erros', acao: () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} } },
+      { e: '📝', cor: '#b91c1c', nome: 'Prova', acao: () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') } },
+      { e: '📊', cor: '#1c55a3', nome: 'Teste de nível', acao: () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false); setTab('nivelamento') } },
+      { e: '📈', cor: '#16a34a', nome: 'Evolução', acao: () => setTab('evolucao') },
+      { e: '🎁', cor: '#e08a1e', nome: 'Convidar', acao: compartilharIndicacao },
+      ...(!isIOSNative && !lembretesAtivos ? [{ e: '🔔', cor: '#2e72d6', nome: 'Lembretes', acao: ativarLembretes }] : []),
+    ]
+
     return (
       <div>
-        {/* HEADER — design aprovado pelo Emmanuel em 18/09 (protótipo "Vô, o professor"):
-            navy profundo com um halo de luz que deriva devagar, o Vô grande na saudação
-            (é ele quem recebe o aluno, não um logo), barra de nível que preenche ao abrir. */}
-        <div style={{ background: 'linear-gradient(160deg, var(--vonai-navy-700) 0%, var(--vonai-navy-900) 78%)', padding: 'calc(env(safe-area-inset-top) + 14px) 16px 38px', position: 'relative', overflow: 'hidden' }}>
+        {/* ===== 1. CABEÇALHO ===== */}
+        <div style={{ background: 'linear-gradient(160deg, var(--vonai-navy-700) 0%, var(--vonai-navy-900) 78%)', padding: 'calc(env(safe-area-inset-top) + 14px) 16px 26px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', top: -140, right: -100, background: 'radial-gradient(circle, rgba(75,184,240,0.42) 0%, rgba(75,184,240,0) 68%)', animation: 'su_drift 14s ease-in-out infinite', pointerEvents: 'none' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: -0.2, position: 'relative' }}>Von<span style={{ color: 'var(--vonai-glow)' }}>ai</span></span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0, position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#fff', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>🔥 {streak} {streak === 1 ? 'dia' : 'dias'}</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 18, position: 'relative' }}>
+            <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: -0.2 }}>Von<span style={{ color: 'var(--vonai-glow)' }}>ai</span></span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+              {streak > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#fff' }}>🔥 {streak}</div>}
               <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,176,32,0.16)', border: '1px solid rgba(255,176,32,0.45)', borderRadius: 999, padding: '5px 11px', cursor: 'pointer' }}><span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 12.5, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
-              <button onClick={alternarTema} aria-label="Alternar modo escuro" title="Modo claro/escuro" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 999, width: 32, height: 32, color: '#e7f0fa', fontSize: 13, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{temaEscuro ? '☀️' : '🌙'}</button>
-              <button onClick={logout} aria-label="Sair" title="Sair" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 999, width: 32, height: 32, color: '#e7f0fa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}><Ic e="🚪" s={14} c="#e7f0fa" /></button>
+              <button onClick={alternarTema} aria-label="Alternar modo escuro" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 999, width: 32, height: 32, color: '#e7f0fa', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{temaEscuro ? '☀️' : '🌙'}</button>
+              <button onClick={logout} aria-label="Sair" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 999, width: 32, height: 32, color: '#e7f0fa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}><Ic e="🚪" s={14} c="#e7f0fa" /></button>
             </div>
           </div>
-          {/* Saudação com o Vô grande: ele recebe o aluno. Toque = ele fala. */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginBottom: 18, position: 'relative' }}>
-            <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ position: 'relative', width: 96, height: 96, flexShrink: 0, cursor: 'pointer', animation: 'su_bob 3.6s ease-in-out infinite' }}>
-              <div style={{ position: 'absolute', inset: -10, borderRadius: '50%', background: treinouHoje ? 'rgba(74,222,128,0.35)' : 'rgba(75,184,240,0.35)', filter: 'blur(6px)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative', width: 96, height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Mascote size={92} prof viva humor={isNovo ? 'acena' : treinouHoje ? 'comemora' : xpHoje === 0 && streak > 0 ? 'normal' : 'feliz'} />
-              </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, position: 'relative' }}>
+            <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ position: 'relative', width: 92, height: 92, flexShrink: 0, cursor: 'pointer', animation: 'su_bob 3.6s ease-in-out infinite' }}>
+              <div style={{ position: 'absolute', inset: -10, borderRadius: '50%', background: treinouHoje ? 'rgba(74,222,128,0.32)' : 'rgba(75,184,240,0.32)', filter: 'blur(6px)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
+              <div style={{ position: 'relative' }}><Mascote size={92} prof viva humor={isNovo ? 'acena' : treinouHoje ? 'comemora' : xpHoje === 0 && streak > 0 ? 'normal' : 'feliz'} /></div>
             </div>
-            <div style={{ flex: 1, minWidth: 0, paddingBottom: 6 }}>
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.72)' }}>{saudacao},</div>
-              <div style={{ fontSize: 25, fontWeight: 800, color: '#fff', letterSpacing: -0.4, lineHeight: 1.15, marginTop: 1 }}>{userName} {pagante && <span style={{ fontSize: 11, background: gold, color: '#fff', padding: '2px 7px', borderRadius: 20, marginLeft: 6 }}>PRO <Ic e="⭐" /></span>}{isPremium && !pagante && !!trialExpira && trialExpira > Date.now() && (() => { const h = Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000)); return <span onClick={() => irParaPlans('chip')} style={{ fontSize: 11, fontWeight: 700, background: h <= 24 ? '#b91c1c' : 'rgba(255,255,255,0.18)', color: '#fff', padding: '2px 8px', borderRadius: 20, marginLeft: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>Teste Premium · {h <= 24 ? 'acaba hoje' : `${Math.ceil(h / 24)} dias`} <Ic e="⏳" /></span> })()}</div>
+              <div style={{ fontSize: 25, fontWeight: 800, color: '#fff', letterSpacing: -0.4, lineHeight: 1.15, marginTop: 1 }}>{userName} {pagante && <span style={{ fontSize: 11, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', padding: '2px 8px', borderRadius: 999, marginLeft: 4, verticalAlign: 'middle', fontWeight: 800 }}>PRO</span>}</div>
+              {/* UMA barra de progresso. Antes eram quatro medidas competindo. */}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.78)', marginBottom: 7 }}><span>Nível {level}</span><span>{lvlPct}%</span></div>
+                <div style={{ height: 7, borderRadius: 999, background: 'rgba(255,255,255,0.16)', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, var(--vonai-glow), #8FD9FF)', width: `${lvlPct}%`, transition: 'width 1.4s cubic-bezier(0.22,1,0.36,1)' }} /></div>
+              </div>
             </div>
           </div>
-          {barraAssinar()}
-          {/* Card grande de progresso (o que o Emmanuel achou mais bonito) */}
-          {(() => {
-            const lvlArr = lessons[level] || []
-            const lvlDone = lvlArr.filter(l => licoesConcluidas.includes(chaveLicao(l))).length
-            const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
-            const C = 188.5
-            const nv = nivelDeXp(xp)
-            return (
-            <div style={{ background: 'rgba(9,28,58,0.45)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: 20, padding: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <div style={{ position: 'relative', width: 76, height: 76, flexShrink: 0 }}>
-                  <svg width="76" height="76" viewBox="0 0 76 76">
-                    <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="7" />
-                    <circle cx="38" cy="38" r="30" fill="none" stroke="#4ADE80" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${C * lvlPct / 100} ${C}`} transform="rotate(-90 38 38)" />
-                  </svg>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{level}</div>
-                    <div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 2 }}>{lvlPct}%</div>
-                  </div>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, color: '#BCD6F2', marginBottom: 9 }}>Seu progresso no nível {level}</div>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{xpShown}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>XP</div></div>
-                    <div><div style={{ fontSize: 18, fontWeight: 700, color: xpHoje > 0 ? '#4ADE80' : '#fff', lineHeight: 1 }}>+{xpHoje}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>hoje</div></div>
-                    <div><div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{doneLessons}</div><div style={{ fontSize: 10, color: '#9DBBDD', marginTop: 3 }}>lições</div></div>
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,166,35,0.16)', borderRadius: 10, padding: '9px 12px', marginBottom: 14 }}>
-                <Ic e="🔥" c="#F5A623" s={22} />
-                <div style={{ flex: 1, fontSize: 13, color: '#fff', fontWeight: 600 }}>{streak} {streak === 1 ? 'dia' : 'dias'} de sequência</div>
-                {recorde > 0 && <div style={{ fontSize: 12, color: '#ffd98a', fontWeight: 600 }}><Ic e="🏆" /> recorde {recorde}</div>}
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="⭐" c="#FFD98A" /> Nível {nv.nivel}</div>
-                  <div style={{ fontSize: 11, color: '#BCD6F2', fontWeight: 600 }}>faltam {nv.need - nv.into} XP</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: 'linear-gradient(90deg,#FFD98A,#F5A623)', height: '100%', width: `${nv.pct}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}><Ic e="🎯" /> Meta de hoje</div>
-                <div style={{ fontSize: 11, color: xpHoje >= metaDiaria ? '#4ADE80' : xpHoje === 0 ? '#FFD98A' : '#BCD6F2', fontWeight: 600 }}>{xpHoje === 0 ? `${metaDiaria} XP hoje · vamos lá` : <>{xpHoje}/{metaDiaria} XP {xpHoje >= metaDiaria && <Ic e="✓" />}</>}</div>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 6, height: 8, overflow: 'hidden' }}><div style={{ background: xpHoje >= metaDiaria ? '#4ADE80' : '#F5A623', height: '100%', width: `${Math.min(100, Math.round(xpHoje / metaDiaria * 100))}%`, borderRadius: 6, transition: 'width 0.4s' }} /></div>
-            </div>
-            )
-          })()}
+          <div style={{ position: 'relative', marginTop: 16 }}>{barraAssinar()}</div>
         </div>
 
-        {/* "Folha" com cantos arredondados sobrepondo o herói azul: transição suave, sem corte seco */}
-        <div style={{ padding: '22px 16px 16px', marginTop: -20, background: 'var(--color-background-tertiary)', borderTopLeftRadius: 26, borderTopRightRadius: 26, position: 'relative' }}>
-          {/* HERO — design aprovado 18/09: o Vô fala num balão (ele já apareceu grande
-              na saudação, então aqui é só a fala), abaixo o card "continuar de onde
-              parou" e UM botão âmbar. Sem prévia de passos, sem segundo mascote. */}
-          <div style={{ position: 'relative', background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '5px 16px 16px 16px', padding: '13px 15px', fontSize: 14.5, lineHeight: 1.5, color: 'var(--color-text-primary)', fontWeight: 500, boxShadow: '0 1px 2px rgba(11,23,41,0.05), 0 10px 30px rgba(11,23,41,0.08)', animation: 'su_risefade 0.4s cubic-bezier(0.22,1,0.36,1) both', marginBottom: 16 }}>
+        {/* ===== folha clara sobrepondo o cabeçalho ===== */}
+        <div style={{ padding: '22px 16px 16px', marginTop: -18, background: 'var(--color-background-tertiary)', borderTopLeftRadius: 26, borderTopRightRadius: 26, position: 'relative' }}>
+
+          {/* ===== 2. O VÔ: o que fazer agora ===== */}
+          <div style={{ position: 'relative', background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '5px 16px 16px 16px', padding: '14px 16px', fontSize: 15, lineHeight: 1.5, color: 'var(--color-text-primary)', fontWeight: 500, animation: 'su_risefade 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
             {msg}
-            <span onClick={() => falarPt(msg)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8, fontSize: 11.5, fontWeight: 700, color: '#2e72d6', cursor: 'pointer', verticalAlign: 'middle' }}><Ic e="🔊" s={12} c="#2e72d6" /> ouvir</span>
+            <span onClick={() => falarPt(msg)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#2e72d6', cursor: 'pointer', verticalAlign: 'middle' }}><Ic e="🔊" s={12} c="#2e72d6" /> ouvir</span>
           </div>
-          <div onClick={iniciarTreino} style={{ borderRadius: 20, padding: 20, background: 'linear-gradient(150deg, #2e72d6 0%, #1c55a3 100%)', color: '#fff', boxShadow: '0 12px 28px rgba(46,114,214,0.28)', position: 'relative', overflow: 'hidden', cursor: 'pointer', animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.08s both' }}>
+
+          <div onClick={iniciarTreino} style={{ borderRadius: 20, padding: 20, marginTop: 16, background: 'linear-gradient(150deg, #2e72d6 0%, #1c55a3 100%)', color: '#fff', boxShadow: '0 12px 28px rgba(46,114,214,0.26)', position: 'relative', overflow: 'hidden', cursor: 'pointer', animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.08s both' }}>
             <div style={{ position: 'absolute', width: 150, height: 150, borderRadius: '50%', bottom: -80, left: -40, background: 'radial-gradient(circle, rgba(255,255,255,0.2), rgba(255,255,255,0) 70%)', pointerEvents: 'none' }} />
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.82, position: 'relative' }}>{isNovo ? 'Seu primeiro treino' : treinouHoje ? 'Treino de hoje feito' : temRevisao ? 'Revisar antes de seguir' : 'Continuar de onde parou'}</div>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.4, marginTop: 8, position: 'relative', lineHeight: 1.2 }}>{treinouHoje ? 'Bora a próxima?' : temRevisao ? (errosQs.length > 0 ? `${errosQs.length} ${errosQs.length === 1 ? 'erro seu' : 'erros seus'} esperando revanche` : 'Revisão pronta') : proxL ? proxL.title : 'Revisar o nível'}</div>
             <div style={{ fontSize: 13, opacity: 0.86, marginTop: 3, position: 'relative' }}>{proxL ? `${proxL.q.length} exercícios · cerca de 5 min` : 'Cerca de 5 min'}</div>
           </div>
-          <button onClick={iniciarTreino} style={{ width: '100%', border: 0, borderRadius: 15, padding: 16, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(255,176,32,0.36)', marginTop: 14, marginBottom: 16, letterSpacing: -0.1, animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.16s both' }}>
-            {isNovo ? 'Começar com o Vô' : treinouHoje ? 'Próxima lição' : 'Começar com o Vô'} <Ic e="→" s={18} c="var(--vonai-amber-ink)" />
+          <button onClick={iniciarTreino} style={{ width: '100%', border: 0, borderRadius: 15, padding: 16, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(255,176,32,0.36)', marginTop: 14, animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.16s both' }}>
+            Começar com o Vô <Ic e="→" s={18} c="var(--vonai-amber-ink)" />
           </button>
-          {(doneLessons > 0 || vocabDominadas > 0) && (
-            <div style={{ background: 'var(--color-background-secondary)', borderRadius: 15, padding: '14px 16px', fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: 16 }}>
-              Você já concluiu <b style={{ color: 'var(--color-text-primary)' }}>{doneLessons} {doneLessons === 1 ? 'lição' : 'lições'}</b>{vocabDominadas > 0 && <> e domina <b style={{ color: 'var(--color-text-primary)' }}>{vocabDominadas} {vocabDominadas === 1 ? 'palavra' : 'palavras'}</b></>}. {streak >= 3 ? `${streak} dias seguidos — isso é ritmo.` : 'Cada dia conta.'}
+
+          {/* ===== 3. SEU DIA ===== */}
+          <SecTitulo sub={feitos === tarefas.length ? 'Tudo feito hoje 🎉' : `${feitos} de ${tarefas.length} · meta ${metaDiaria} XP`}>Seu dia</SecTitulo>
+          <div>
+            {tarefas.map((t, i) => (
+              <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: i < tarefas.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none', cursor: t.feito ? 'default' : 'pointer' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: t.feito ? '#16a34a' : 'transparent', border: t.feito ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>{t.feito && <Ic e="✓" s={15} sw={2.8} c="#fff" />}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15.5, fontWeight: 600, color: t.feito ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)', textDecoration: t.feito ? 'line-through' : 'none', lineHeight: 1.3 }}>{t.titulo}</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{t.sub}</div>
+                </div>
+                {!t.feito && <Ic e="›" s={20} c="var(--color-text-tertiary)" sw={2} />}
+              </div>
+            ))}
+          </div>
+
+          {/* ===== 4. MISSÕES DA SEMANA (mantidas a pedido do Emmanuel) ===== */}
+          <SecTitulo sub={missoesAGanhar > 0 ? `+${missoesAGanhar} 🪙 esperando por você` : 'Todas resgatadas 🎉'}>Missões da semana</SecTitulo>
+          <div>
+            {missoesLista.map((m, idx) => {
+              const pct = Math.round(m.cur / m.alvo * 100)
+              const completa = m.cur >= m.alvo
+              const resgatada = claimed.includes(m.id)
+              return (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: idx < missoesLista.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 13, background: resgatada ? '#16a34a1a' : '#2e72d61a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={21} sw={1.9} c={resgatada ? '#16a34a' : '#2e72d6'} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 7 }}>{m.nome}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 999, height: 6, overflow: 'hidden' }}><div style={{ background: completa ? '#16a34a' : '#2e72d6', height: '100%', width: `${pct}%`, borderRadius: 999, transition: 'width 0.4s' }} /></div>
+                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{m.cur}/{m.alvo}</div>
+                    </div>
+                  </div>
+                  {resgatada ? (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', flexShrink: 0 }}>Feito</div>
+                  ) : completa ? (
+                    <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', border: 'none', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>+{m.reward} 🪙</button>
+                  ) : (
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>+{m.reward} 🪙</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ===== 5. EXPLORAR: grid de atalhos, ícone + rótulo ===== */}
+          <SecTitulo sub="Tudo que o Vonai tem">Explorar</SecTitulo>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {atalhos.map(a => (
+              <div key={a.nome} onClick={a.acao} style={{ background: 'var(--color-background-primary)', borderRadius: 16, padding: '16px 8px 13px', textAlign: 'center', cursor: 'pointer' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: a.cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 9px' }}><Ic e={a.e} s={22} sw={1.9} c={a.cor} /></div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.25 }}>{a.nome}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Premium: uma linha, só para quem ainda não assina */}
+          {!isPremium && !BETA_GRATIS && (
+            <div onClick={() => irParaPlans('card_home')} style={{ marginTop: 26, background: 'var(--color-background-secondary)', borderRadius: 16, padding: '15px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
+              <div style={{ width: 42, height: 42, borderRadius: 13, background: '#f5a6231f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="⭐" s={21} sw={1.9} c="#e08a1e" /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>Vonai Premium</div>
+                <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>IA ilimitada · voz · plano personalizado</div>
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#e08a1e', whiteSpace: 'nowrap' }}>R$ 29,90 ›</span>
             </div>
           )}
 
-          {/* Professor: uma linha, não um card. Ele é o mais importante, então é a primeira. */}
-          <LinhaAcao e="💬" cor="#2e72d6" titulo="Falar com o Vô" sub="Tire qualquer dúvida de inglês, a qualquer hora" onClick={() => setTab('ai')} ultima />
-
-          <SecTitulo sub={perfilIa.objetivo || OBJETIVO_PADRAO}>Seu dia</SecTitulo>
-          {/* Seu plano de hoje (mantido a pedido do Emmanuel) */}
-          {(() => {
-            const proxL = lessons[level]?.find(l => !l.done)
-            const tasks = [
-              { icon: '📖', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
-              { icon: '🧠', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
-              { icon: '🎭', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
-              { icon: '🔥', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
-            ]
-            const feitos = tasks.filter(t => t.feito).length
-            const tudo = feitos === tasks.length
-            return (
-              <div>
-                {tasks.map((t, i) => (
-                  <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: i < tasks.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none', cursor: t.feito ? 'default' : 'pointer' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: t.feito ? '#16a34a' : 'transparent', border: t.feito ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>{t.feito && <Ic e="✓" s={15} sw={2.8} c="#fff" />}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, fontWeight: 600, color: t.feito ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)', textDecoration: t.feito ? 'line-through' : 'none', lineHeight: 1.3 }}>{t.titulo}</div>
-                      <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{t.sub}</div>
-                    </div>
-                    {!t.feito && <Ic e="›" s={20} c="var(--color-text-tertiary)" sw={2} />}
-                  </div>
-                ))}
-                <div style={{ fontSize: 13.5, color: tudo ? '#16a34a' : 'var(--color-text-secondary)', marginTop: 12, fontWeight: 600 }}>{tudo ? 'Plano de hoje completo 🎉' : `${feitos} de ${tasks.length} feitos${streak > 0 && feitos === 0 ? ` · uma tarefa segura seus ${streak} ${streak === 1 ? 'dia' : 'dias'}` : ''}`}</div>
-              </div>
-            )
-          })()}
-
-          {/* MISSÃO DE AMANHÃ — só aparece depois que o aluno fez algo hoje. O fim da
-              sessão terminava em nada e ninguém voltava (~4 de 51); este card é o gancho:
-              uma atividade concreta trancada até amanhã + o desafio dos 3 dias. O e-mail
-              de lembrete do dia seguinte cobra a MESMA missão (lib/missao.ts). */}
-          {(licoesHoje > 0 || simulacoesHoje > 0 || vocabFeitoHoje || desafioFeito) && (() => {
-            // Se o professor registrou um erro do aluno, a missão de amanhã é o treino
-            // DESSE erro — a memória do Vô visível, que é a promessa da marca.
-            const m = missaoPara(perfilIa?.topicos_fracos, diaSeguinte(hojeStr))
-            let desafioPago = false
-            try { desafioPago = !!localStorage.getItem('speakup_desafio3_' + userId) } catch (e) {}
-            const dias3 = Math.min(streak, 3)
-            return (
-              <div style={{ marginTop: 22, background: 'var(--color-background-secondary)', borderRadius: 16, padding: '15px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-secondary)' }}>Amanhã</div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: m.personalizada ? '#e08a1e' : 'var(--color-text-tertiary)' }}>{m.personalizada ? '✨ feita dos seus erros' : '🔒 destrava amanhã'}</span>
-                </div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <div style={{ fontSize: 26, lineHeight: 1 }}>{m.emoji}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{m.titulo}</div>
-                    <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', lineHeight: 1.4, marginTop: 2 }}>{m.chamada}</div>
-                  </div>
-                </div>
-                {!desafioPago && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
-                    {[1, 2, 3].map(d => (
-                      <div key={d} style={{ width: 26, height: 26, borderRadius: '50%', background: d <= dias3 ? '#16a34a' : 'var(--color-background-primary)', border: d <= dias3 ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d <= dias3 && <Ic e="✓" s={13} sw={2.8} c="#fff" />}</div>
-                    ))}
-                    <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginLeft: 4 }}>3 dias seguidos = <b style={{ color: '#e08a1e' }}>+{DESAFIO_3_DIAS_MOEDAS} 🪙</b></div>
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-
-          {/* Sua evolução (evidência): números de DOMÍNIO real, não de cliques —
-              palavras que o aluno marcou que sabe e lições que já subiram de caixa no SRS. */}
-          {(() => {
-            const licoesFixadas = Object.values(srsData).filter(d => d.box >= 2).length
-            const diasAtivos = Object.keys(hist).filter(d => (hist[d] || 0) > 0).length
-            if (vocabDominadas === 0 && licoesFixadas === 0 && diasAtivos < 2) return null
-            return (
-              <div>
-                <SecTitulo sub="Domínio de verdade, não cliques">Sua evolução</SecTitulo>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {[[String(vocabDominadas), 'palavras dominadas', green], [String(licoesFixadas), 'lições na memória', purple], [String(diasAtivos), diasAtivos === 1 ? 'dia de estudo' : 'dias de estudo', blue]].map(([n, t, cor], i) => (
-                    <div key={i} style={{ flex: 1, padding: '6px 2px' }}>
-                      <div style={{ fontSize: 30, fontWeight: 800, color: cor as string, lineHeight: 1, letterSpacing: -0.8 }}>{n}</div>
-                      <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 6, lineHeight: 1.3 }}>{t}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })()}
-
-          {/* Missões da semana (mantido a pedido do Emmanuel) */}
-          {(() => {
-            const weekNow = Math.floor(Date.now() / (7 * 86400000))
-            const claimed = missoes.week === weekNow ? missoes.claimed : []
-            const semXpAtual = Math.max(0, xp - semBaseRef.current)
-            const diasSemana = Object.keys(hist).filter(d => Math.floor(new Date(d + 'T00:00:00').getTime() / (7 * 86400000)) === weekNow && (hist[d] || 0) > 0).length
-            const lista = [
-              { id: 'xp', e: '⚡', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
-              { id: 'dias', e: '📅', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
-              { id: 'streak', e: '🔥', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
-            ]
-            const feitas = lista.filter(m => claimed.includes(m.id)).length
-            return (
-              <div>
-                <SecTitulo sub={feitas === 0 ? `+${lista.reduce((t, m) => t + m.reward, 0)} 🪙 esperando por você` : `${feitas} de ${lista.length} resgatadas`}>Missões da semana</SecTitulo>
-                {lista.map((m, idx) => {
-                  const pct = Math.round(m.cur / m.alvo * 100)
-                  const completa = m.cur >= m.alvo
-                  const resgatada = claimed.includes(m.id)
-                  return (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: idx < lista.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none' }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 13, background: resgatada ? '#16a34a1a' : '#2e72d61a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={21} sw={1.9} c={resgatada ? '#16a34a' : '#2e72d6'} /></div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 7 }}>{m.nome}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 999, height: 6, overflow: 'hidden' }}><div style={{ background: completa ? '#16a34a' : '#2e72d6', height: '100%', width: `${pct}%`, borderRadius: 999, transition: 'width 0.4s' }} /></div>
-                          <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{m.cur}/{m.alvo}</div>
-                        </div>
-                      </div>
-                      {resgatada ? (
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', flexShrink: 0 }}>Feito</div>
-                      ) : completa ? (
-                        <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', border: 'none', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>+{m.reward} 🪙</button>
-                      ) : (
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>+{m.reward} 🪙</div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
-
-          {/* Upsell: uma linha suave, sem degradê. Urgência só no último dia do trial. */}
-          {!pagante && !BETA_GRATIS && (() => {
-            const emTrial = isPremium && !!trialExpira && trialExpira > Date.now()
-            const horas = emTrial ? Math.max(1, Math.ceil((trialExpira! - Date.now()) / 3600000)) : 0
-            const urgente = emTrial && horas <= 24
-            if (!emTrial && isPremium) return null
-            return (
-              <div onClick={() => irParaPlans('card_home')} style={{ marginTop: 26, background: urgente ? '#fcecec' : 'var(--color-background-secondary)', borderRadius: 16, padding: '15px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
-                <div style={{ width: 42, height: 42, borderRadius: 13, background: urgente ? '#dc26261a' : '#f5a6231f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={urgente ? '⏰' : '⭐'} s={21} sw={1.9} c={urgente ? '#dc2626' : '#e08a1e'} /></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15.5, fontWeight: 700, color: urgente ? '#b91c1c' : 'var(--color-text-primary)' }}>{urgente ? 'Seu teste acaba hoje' : emTrial ? `Teste grátis · ${Math.ceil(horas / 24)} ${Math.ceil(horas / 24) === 1 ? 'dia' : 'dias'}` : 'Vonai Premium'}</div>
-                  <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{emTrial ? 'Assine para não perder o acesso' : 'IA ilimitada · voz · plano personalizado'}</div>
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: urgente ? '#dc2626' : '#e08a1e', whiteSpace: 'nowrap' }}>{emTrial ? 'Assinar ›' : 'R$ 29,90 ›'}</span>
-              </div>
-            )
-          })()}
-
-          {/* EXPLORAR — sempre visível. O aluno vê tudo ao entrar; o herói acima dá a direção. */}
-          <SecTitulo sub="Tudo que o Vonai tem, num lugar só">Explorar</SecTitulo>
-          <div>
-            {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
-            {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
-            {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
-            {cardExplorar('#e7f0fa', '🎤', '#2e72d6', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
-            {cardExplorar('#FEF3E2', '🎧', '#2e72d6', 'Ouvir', 'Áudios pra treinar o ouvido', () => setTab('listening'))}
-            {cardExplorar('#fcecec', '📝', '#b91c1c', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
-            {/* Teste de nível: o card existia SÓ na home antiga (tab === 'home' && !homeGuiada),
-                e homeGuiada nunca vira false — aquele bloco inteiro é inalcançável. Resultado:
-                depois do onboarding não havia mais NENHUM caminho para refazer o teste. */}
-            {cardExplorar('#e7f0fa', '📊', '#1c55a3', 'Teste de nível', 'Descubra ou revise seu nível', () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false); setTab('nivelamento') })}
-            {cardExplorar('#e7f0fa', '📈', blue, 'Evolução', 'Métricas e conquistas', () => setTab('evolucao'))}
-          </div>
-          <SecTitulo sub="Rápido, pra hoje">Treine agora</SecTitulo>
-          {bannerRow('🇧🇷', green, 'Caça-Erros do Brasileiro', '5 armadilhas que todo brasileiro cai', 'Jogar', () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} })}
-          {histDone.length < HISTORIAS.length && bannerRow('📖', purple, 'Histórias', `Mini-novelas · ${histDone.length}/${HISTORIAS.length}`, 'Ler', () => { setHistSel(null); setTab('historias') })}
-          {apostaAtiva && !apostaPerdida && bannerRow('🔥', green, `Aposta de 7 dias: dia ${apostaDia} de 7`, streak >= 7 ? 'Cumprida! Prêmio liberado' : `Faltam ${7 - apostaDia} ${7 - apostaDia === 1 ? 'dia' : 'dias'} pro Premium extra`, 'Treinar', iniciarTreino)}
-          {apostaPerdida && bannerRow('💔', '#dc2626', 'A aposta de 7 dias quebrou', 'A sequência zerou. Quer tentar de novo hoje?', 'Apostar', apostarSeteDias)}
-          {bannerRow('🎁', '#e08a1e', 'Convide um amigo', 'Ele ganha +2 dias, você ganha 100 🪙', 'Enviar', compartilharIndicacao)}
-          {/* Lembretes usam web push (serviceWorker/PushManager), que NÃO existe no app
-              iOS nativo (Capacitor). Esconde lá pra não mostrar o botão que só dá erro;
-              no Android/PWA/navegador continua funcionando. (iOS: pendente notificação nativa.) */}
-          {!isIOSNative && !lembretesAtivos && bannerRow('🔔', blue, 'Ativar lembretes diários', 'Um aviso pra não quebrar a sequência', 'Ativar', ativarLembretes)}
-
           <div style={{ textAlign: 'center', marginTop: 36, paddingBottom: 10 }}>
-            {/* "Excluir minha conta" continua aqui — a App Store exige que a exclusão
-                seja alcançável de dentro do app (5.1.1(v)) — mas não com o mesmo peso
-                do "enviar feedback": ação destrutiva não disputa clique com elogio. */}
+            {/* "Excluir minha conta" continua alcançável (App Store 5.1.1(v)), mas depois
+                do fio e em texto terciário: ação destrutiva não disputa clique com elogio. */}
             <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: blue, border: '1px solid var(--color-border-tertiary)', borderRadius: 999, padding: '7px 16px', cursor: 'pointer' }}><Ic e="💬" s={13} c={blue} /> Enviar feedback</span>
             <div style={{ height: 1, background: 'var(--color-border-tertiary)', margin: '16px 40px 10px' }} />
             <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}>Excluir minha conta</span>
