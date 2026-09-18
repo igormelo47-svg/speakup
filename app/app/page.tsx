@@ -5694,10 +5694,10 @@ export default function AppPage() {
     const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
 
     const tarefas = [
-      { icon: '📖', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
-      { icon: '🧠', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
-      { icon: '🎭', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
-      { icon: '🔥', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
+      { icon: '📖', cor: '#2e72d6', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
+      { icon: '🧠', cor: '#16a34a', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
+      { icon: '🎭', cor: '#1c55a3', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
+      { icon: '🔥', cor: '#e08a1e', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
     ]
     const feitos = tarefas.filter(t => t.feito).length
 
@@ -5706,9 +5706,9 @@ export default function AppPage() {
     const semXpAtual = Math.max(0, xp - semBaseRef.current)
     const diasSemana = Object.keys(hist).filter(d => Math.floor(new Date(d + 'T00:00:00').getTime() / (7 * 86400000)) === weekNow && (hist[d] || 0) > 0).length
     const missoesLista = [
-      { id: 'xp', e: '⚡', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
-      { id: 'dias', e: '📅', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
-      { id: 'streak', e: '🔥', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
+      { id: 'xp', e: '⚡', cor: '#e08a1e', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
+      { id: 'dias', e: '📅', cor: '#2e72d6', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
+      { id: 'streak', e: '🔥', cor: '#dc2626', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
     ]
     const missoesAGanhar = missoesLista.filter(m => !claimed.includes(m.id)).reduce((t, m) => t + m.reward, 0)
 
@@ -5808,44 +5808,74 @@ export default function AppPage() {
             </button>
           </div>
 
-          {/* ===== 3. SEU DIA ===== */}
-          <SecTitulo sub={feitos === tarefas.length ? 'Tudo feito hoje 🎉' : `${feitos} de ${tarefas.length} · meta ${metaDiaria} XP`}>Seu dia</SecTitulo>
-          <div>
+          {/* ===== 3. SEU DIA =====
+              Estava sem graça de propósito errado: eu tinha tirado TODA superfície e
+              sobrou texto solto no cinza, com o círculo do check quase invisível.
+              Volta a ter uma casca branca (UMA por seção, não uma por item), anel de
+              progresso à esquerda do título, ícone colorido por tarefa e o check com
+              contraste de verdade. Feito = linha verde. */}
+          <div style={{ marginTop: 30, background: 'var(--color-background-primary)', borderRadius: 20, padding: '18px 16px 8px', boxShadow: '0 1px 2px rgba(11,23,41,0.04), 0 8px 24px rgba(11,23,41,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
+              {(() => {
+                const C = 132
+                const pct = feitos / tarefas.length
+                return (
+                  <div style={{ position: 'relative', width: 50, height: 50, flexShrink: 0 }}>
+                    <svg width="50" height="50" viewBox="0 0 50 50">
+                      <circle cx="25" cy="25" r="21" fill="none" stroke="var(--color-background-secondary)" strokeWidth="6" />
+                      <circle cx="25" cy="25" r="21" fill="none" stroke={feitos === tarefas.length ? '#16a34a' : '#2e72d6'} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 25 25)" style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>{feitos}/{tarefas.length}</div>
+                  </div>
+                )
+              })()}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Seu dia</div>
+                <div style={{ fontSize: 13.5, color: feitos === tarefas.length ? '#16a34a' : 'var(--color-text-secondary)', marginTop: 2, fontWeight: feitos === tarefas.length ? 700 : 400 }}>{feitos === tarefas.length ? 'Tudo feito hoje 🎉' : xpHoje > 0 ? `${xpHoje} de ${metaDiaria} XP hoje` : `Meta de ${metaDiaria} XP — comece por uma`}</div>
+              </div>
+            </div>
             {tarefas.map((t, i) => (
-              <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: i < tarefas.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none', cursor: t.feito ? 'default' : 'pointer' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: t.feito ? '#16a34a' : 'transparent', border: t.feito ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>{t.feito && <Ic e="✓" s={15} sw={2.8} c="#fff" />}</div>
+              <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '12px 2px', borderTop: '1px solid var(--color-border-tertiary)', cursor: t.feito ? 'default' : 'pointer' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 13, background: t.feito ? '#16a34a14' : t.cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.25s' }}><Ic e={t.icon} s={20} sw={1.9} c={t.feito ? '#16a34a' : t.cor} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15.5, fontWeight: 600, color: t.feito ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)', textDecoration: t.feito ? 'line-through' : 'none', lineHeight: 1.3 }}>{t.titulo}</div>
-                  <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>{t.sub}</div>
+                  <div style={{ fontSize: 15.5, fontWeight: 700, color: t.feito ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)', textDecoration: t.feito ? 'line-through' : 'none', lineHeight: 1.3 }}>{t.titulo}</div>
+                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.sub}</div>
                 </div>
-                {!t.feito && <Ic e="›" s={20} c="var(--color-text-tertiary)" sw={2} />}
+                <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: t.feito ? '#16a34a' : 'var(--color-background-secondary)', border: t.feito ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.25s' }}>{t.feito ? <Ic e="✓" s={14} sw={3} c="#fff" /> : <Ic e="›" s={15} sw={2.4} c="var(--color-text-tertiary)" />}</div>
               </div>
             ))}
           </div>
 
-          {/* ===== 4. MISSÕES DA SEMANA (mantidas a pedido do Emmanuel) ===== */}
-          <SecTitulo sub={missoesAGanhar > 0 ? `+${missoesAGanhar} 🪙 esperando por você` : 'Todas resgatadas 🎉'}>Missões da semana</SecTitulo>
-          <div>
-            {missoesLista.map((m, idx) => {
+          {/* ===== 4. MISSÕES DA SEMANA (mantidas a pedido do Emmanuel) =====
+              Os três ícones eram a MESMA caixinha azul pálida e a barra tinha 6px de
+              cinza: nada distinguia "ganhe XP" de "7 dias de sequência". Agora cada
+              missão tem a sua cor (dourado = XP, azul = dias, vermelho = fogo) e a
+              barra é da cor da missão. Prêmio resgatável vira pílula âmbar. */}
+          <div style={{ marginTop: 16, background: 'var(--color-background-primary)', borderRadius: 20, padding: '18px 16px 8px', boxShadow: '0 1px 2px rgba(11,23,41,0.04), 0 8px 24px rgba(11,23,41,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Missões da semana</div>
+              {missoesAGanhar > 0 && <span style={{ fontSize: 12.5, fontWeight: 800, color: '#e08a1e', background: '#f5a6231f', padding: '5px 11px', borderRadius: 999, whiteSpace: 'nowrap' }}>+{missoesAGanhar} 🪙</span>}
+            </div>
+            {missoesLista.map(m => {
               const pct = Math.round(m.cur / m.alvo * 100)
               const completa = m.cur >= m.alvo
               const resgatada = claimed.includes(m.id)
               return (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 2px', borderBottom: idx < missoesLista.length - 1 ? '1px solid var(--color-border-tertiary)' : 'none' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 13, background: resgatada ? '#16a34a1a' : '#2e72d61a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={21} sw={1.9} c={resgatada ? '#16a34a' : '#2e72d6'} /></div>
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 2px', borderTop: '1px solid var(--color-border-tertiary)' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 13, background: resgatada ? '#16a34a14' : m.cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={20} sw={1.9} c={resgatada ? '#16a34a' : m.cor} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 7 }}>{m.nome}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ flex: 1, background: 'var(--color-background-secondary)', borderRadius: 999, height: 6, overflow: 'hidden' }}><div style={{ background: completa ? '#16a34a' : '#2e72d6', height: '100%', width: `${pct}%`, borderRadius: 999, transition: 'width 0.4s' }} /></div>
-                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{m.cur}/{m.alvo}</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 7 }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
+                      <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{m.cur}/{m.alvo}</span>
                     </div>
+                    <div style={{ background: 'var(--color-background-secondary)', borderRadius: 999, height: 8, overflow: 'hidden' }}><div style={{ background: resgatada ? '#16a34a' : `linear-gradient(90deg, ${m.cor}aa, ${m.cor})`, height: '100%', width: `${pct}%`, borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} /></div>
                   </div>
                   {resgatada ? (
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', flexShrink: 0 }}>Feito</div>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="✓" s={14} sw={3} c="#fff" /></div>
                   ) : completa ? (
-                    <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', border: 'none', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>+{m.reward} 🪙</button>
+                    <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', border: 'none', borderRadius: 999, padding: '9px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(255,176,32,0.35)', animation: 'su_halo 2.4s ease-in-out infinite' }}>+{m.reward}</button>
                   ) : (
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>+{m.reward} 🪙</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>+{m.reward} 🪙</div>
                   )}
                 </div>
               )
