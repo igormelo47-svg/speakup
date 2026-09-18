@@ -5764,7 +5764,7 @@ export default function AppPage() {
         </div>
 
         {/* ===== folha clara sobrepondo o cabeçalho ===== */}
-        <div style={{ padding: '22px 16px 16px', marginTop: -18, background: 'var(--color-background-tertiary)', borderTopLeftRadius: 26, borderTopRightRadius: 26, position: 'relative' }}>
+        <div style={{ padding: '22px 16px 10px', marginTop: -18, background: 'var(--color-background-tertiary)', borderTopLeftRadius: 26, borderTopRightRadius: 26, position: 'relative' }}>
 
           {/* ===== 2. O VÔ: o que fazer agora ===== */}
           <div style={{ position: 'relative', background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '5px 16px 16px 16px', padding: '14px 16px', fontSize: 15, lineHeight: 1.5, color: 'var(--color-text-primary)', fontWeight: 500, animation: 'su_risefade 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
@@ -5875,13 +5875,14 @@ export default function AppPage() {
             </div>
           )}
 
-          <div style={{ textAlign: 'center', marginTop: 36, paddingBottom: 10 }}>
-            {/* "Excluir minha conta" continua alcançável (App Store 5.1.1(v)), mas depois
-                do fio e em texto terciário: ação destrutiva não disputa clique com elogio. */}
-            <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: blue, border: '1px solid var(--color-border-tertiary)', borderRadius: 999, padding: '7px 16px', cursor: 'pointer' }}><Ic e="💬" s={13} c={blue} /> Enviar feedback</span>
-            <div style={{ height: 1, background: 'var(--color-border-tertiary)', margin: '16px 40px 10px' }} />
-            <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}>Excluir minha conta</span>
-            <div style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)', marginTop: 8 }}>Vonai</div>
+          {/* Rodapé em UMA linha. Antes ocupava quase meia tela de cinza vazio: botão de
+              feedback, fio, "excluir minha conta" e "Vonai" empilhados com 36px de
+              respiro. São links de manutenção — o aluno usa uma vez na vida.
+              "Excluir minha conta" continua alcançável (App Store 5.1.1(v)). */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20, paddingBottom: 2, fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+            <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ cursor: 'pointer' }}>Enviar feedback</span>
+            <span aria-hidden>·</span>
+            <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ cursor: 'pointer' }}>Excluir conta</span>
           </div>
         </div>
       </div>
