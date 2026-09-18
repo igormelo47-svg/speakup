@@ -1946,107 +1946,141 @@ function Mascote({ size = 40, humor = 'normal', prof = false, viva = false }: { 
   const asaViva = viva && humor !== 'comemora' && humor !== 'acena'
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ display: 'block', overflow: 'visible', animation: humor === 'comemora' ? 'su_bounce 0.7s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
+      {/* ===== Vô, a arara-azul professora — redesenho de 18/09/2026 =====
+          O desenho anterior era chapado: cor sólida no corpo, olho sem brilho, óculos
+          de traço fino. De longe (e em 24px) sumia. Este tem volume — luz vindo de
+          cima-esquerda, sombra no chão, peito com degradê, lente com reflexo — que é
+          o que separa "ícone" de "personagem". Mesma API, mesmos humores. */}
       <defs>
-        <linearGradient id="vonaiMasc" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#2e72d6" />
-          <stop offset="1" stopColor="#2e72d6" />
+        <linearGradient id="voCorpo" x1="0.18" y1="0" x2="0.82" y2="1">
+          <stop offset="0" stopColor="#5f97ea" /><stop offset="0.52" stopColor="#2e72d6" /><stop offset="1" stopColor="#1a5099" />
         </linearGradient>
+        <linearGradient id="voAsa" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#2b62b8" /><stop offset="1" stopColor="#143c78" />
+        </linearGradient>
+        <linearGradient id="voPeito" x1="0.3" y1="0" x2="0.7" y2="1">
+          <stop offset="0" stopColor="#ffeec2" /><stop offset="1" stopColor="#f3bf55" />
+        </linearGradient>
+        <linearGradient id="voCapelo" x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0" stopColor="#2a3d59" /><stop offset="1" stopColor="#101c2e" />
+        </linearGradient>
+        <radialGradient id="voFace" cx="0.38" cy="0.32" r="0.78">
+          <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#e6edf6" />
+        </radialGradient>
       </defs>
-      {/* ===== Redesign 2 (06/08): uma ARARA-AZUL professora. O bicho brasileiro que
-          FALA — que é exatamente o que o app ensina a fazer. Corpo no azul da marca,
-          peito dourado, óculos e sobrancelhas brancas de vô, capelo de formatura.
-          Mesmos humores, mesma API. ===== */}
-      {/* asa acenando — boas-vindas */}
+
+      {/* sombra no chão: assenta o personagem em vez de deixá-lo flutuando */}
+      <ellipse cx="32" cy="58.4" rx="14.5" ry="2.5" fill="#102a4c" opacity="0.14" />
+
+      {/* asa acenando */}
       {humor === 'acena' && (
         <g style={{ transformOrigin: '50px 40px', animation: 'su_wave 1.1s ease-in-out infinite' }}>
-          <path d="M50 40 Q60 33 59 22 Q52 26 48 33 Z" fill="#1c55a3" />
+          <path d="M50 40 Q61 33 60 21 Q52 25 47.5 33 Z" fill="url(#voAsa)" />
         </g>
       )}
-      {/* asas para cima na comemoração */}
+      {/* asas erguidas na comemoração */}
       {humor === 'comemora' && (<>
-        <path d="M14 40 Q4 32 6 20 Q13 25 17 33 Z" fill="#1c55a3" />
-        <path d="M50 40 Q60 32 58 20 Q51 25 47 33 Z" fill="#1c55a3" />
+        <path d="M14 40 Q3 32 5 19 Q13 24 17 33 Z" fill="url(#voAsa)" />
+        <path d="M50 40 Q61 32 59 19 Q51 24 47 33 Z" fill="url(#voAsa)" />
       </>)}
+
       {/* corpo */}
-      <ellipse cx="32" cy="36" rx="20" ry="21" fill="url(#vonaiMasc)" />
+      <ellipse cx="32" cy="36.5" rx="20.5" ry="21.5" fill="url(#voCorpo)" />
+      {/* luz de borda no alto-esquerda — o detalhe que dá volume */}
+      <path d="M14.5 29 Q18 17.5 30 15.2" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round" fill="none" opacity="0.26" />
+
       {/* asas em repouso */}
       {humor !== 'comemora' && humor !== 'acena' && (
-        <path d="M51 31 Q55 45 45 54 Q49 42 47 30 Z" fill="#1c55a3" style={asaViva ? { transformOrigin: '49px 31px', animation: 'su_asa 3.4s ease-in-out infinite' } : undefined} />
+        <path d="M51.2 30.5 Q55.5 45 45 54.5 Q49.5 42 47.2 29.5 Z" fill="url(#voAsa)" style={asaViva ? { transformOrigin: '49px 31px', animation: 'su_asa 3.4s ease-in-out infinite' } : undefined} />
       )}
       {humor !== 'comemora' && (
-        <path d="M13 31 Q9 45 19 54 Q15 42 17 30 Z" fill="#1c55a3" style={asaViva ? { transformOrigin: '15px 31px', animation: 'su_asa 3.4s ease-in-out -1.7s infinite' } : undefined} />
+        <path d="M12.8 30.5 Q8.5 45 19 54.5 Q14.5 42 16.8 29.5 Z" fill="url(#voAsa)" style={asaViva ? { transformOrigin: '15px 31px', animation: 'su_asa 3.4s ease-in-out -1.7s infinite' } : undefined} />
       )}
+
       {/* peito dourado */}
-      <ellipse cx="32" cy="47" rx="10.5" ry="9.5" fill="#FFD98A" />
-      <path d="M25 44 Q32 48 39 44" stroke="#ffd98a" strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.7" />
+      <ellipse cx="32" cy="47.2" rx="11" ry="9.8" fill="url(#voPeito)" />
+      <path d="M24.5 44 Q32 48.5 39.5 44" stroke="#ffffff" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.45" />
+
       {/* máscara facial branca (marca da arara) */}
-      <circle cx="24" cy="28" r="8.6" fill="#f2f5f8" />
-      <circle cx="40" cy="28" r="8.6" fill="#f2f5f8" />
-      {/* capelo de professor com borla dourada */}
+      <circle cx="24" cy="28" r="8.9" fill="url(#voFace)" />
+      <circle cx="40" cy="28" r="8.9" fill="url(#voFace)" />
+
+      {/* capelo de professor */}
       {prof && (<>
-        <path d="M17 15.5 Q32 9 47 15.5 L47 20 Q32 14.5 17 20 Z" fill="#223040" />
-        <path d="M32 2.5 L58 11 L32 19.5 L6 11 Z" fill="#16212C" />
-        <path d="M32 5.5 L51 11 L32 16.5 L13 11 Z" fill="#2e72d6" opacity="0.35" />
-        <circle cx="32" cy="11" r="2.2" fill="#FFD98A" />
+        <path d="M17 15.2 Q32 8.6 47 15.2 L47 20 Q32 14.2 17 20 Z" fill="#1b2c44" />
+        <path d="M32 2 L58.5 10.8 L32 19.6 L5.5 10.8 Z" fill="url(#voCapelo)" />
+        <path d="M32 4.8 L51 10.8 L32 16.8 L13 10.8 Z" fill="#5f97ea" opacity="0.22" />
+        <circle cx="32" cy="10.8" r="2.1" fill="#ffd98a" />
         <g style={viva ? { transformOrigin: '56px 12px', animation: 'su_borla 2.8s ease-in-out infinite' } : undefined}>
-          <path d="M56 12 L56 22" stroke="#FFD98A" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="56" cy="24.5" r="2.6" fill="#FFD98A" />
+          <path d="M56 12 L56 22" stroke="#f5a623" strokeWidth="2.1" strokeLinecap="round" />
+          <circle cx="56" cy="24.6" r="2.8" fill="#ffd98a" />
         </g>
       </>)}
-      {/* penachos/sobrancelhas brancas de vô (tristes inclinam) */}
+
+      {/* sobrancelhas brancas de vô (tristes inclinam) */}
       {humor === 'triste' ? (<>
-        <path d="M18 21.5 Q24 23 29 25.5" stroke="#f2f5f8" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-        <path d="M46 21.5 Q40 23 35 25.5" stroke="#f2f5f8" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M18 21.5 Q24 23 29 25.5" stroke="#f4f8fc" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M46 21.5 Q40 23 35 25.5" stroke="#f4f8fc" strokeWidth="3.4" fill="none" strokeLinecap="round" />
       </>) : (<>
-        <path d="M17.5 22.5 Q24 19.5 30 22" stroke="#f2f5f8" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-        <path d="M34 22 Q40 19.5 46.5 22.5" stroke="#f2f5f8" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M17.5 22.4 Q24 19.2 30 21.9" stroke="#f4f8fc" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M34 21.9 Q40 19.2 46.5 22.4" stroke="#f4f8fc" strokeWidth="3.4" fill="none" strokeLinecap="round" />
       </>)}
+
       {/* olhos */}
       {alegre ? (<>
-        <path d="M20 29 Q24 24.5 28 29" stroke="#16212C" strokeWidth="2.8" fill="none" strokeLinecap="round" />
-        <path d="M36 29 Q40 24.5 44 29" stroke="#16212C" strokeWidth="2.8" fill="none" strokeLinecap="round" />
+        <path d="M19.8 29.2 Q24 24.2 28.2 29.2" stroke="#16212C" strokeWidth="2.9" fill="none" strokeLinecap="round" />
+        <path d="M35.8 29.2 Q40 24.2 44.2 29.2" stroke="#16212C" strokeWidth="2.9" fill="none" strokeLinecap="round" />
       </>) : (<>
-        <circle cx="24" cy="28.5" r="3" fill="#16212C" />
-        <circle cx="40" cy="28.5" r="3" fill="#16212C" />
-        <circle cx="23" cy="27.5" r="1" fill="#fff" />
-        <circle cx="39" cy="27.5" r="1" fill="#fff" />
+        <circle cx="24" cy="28.4" r="3.3" fill="#16212C" />
+        <circle cx="40" cy="28.4" r="3.3" fill="#16212C" />
+        <circle cx="22.8" cy="27.1" r="1.25" fill="#fff" />
+        <circle cx="38.8" cy="27.1" r="1.25" fill="#fff" />
+        <circle cx="25.2" cy="29.8" r="0.6" fill="#fff" opacity="0.6" />
+        <circle cx="41.2" cy="29.8" r="0.6" fill="#fff" opacity="0.6" />
       </>)}
-      {/* piscada (só com o olho aberto): a pálpebra tem a cor da máscara facial e
-          leva a linha do cílio por cima. Fechada em ~5% de um ciclo de 5,2s, e um
-          olho 0,35s atrás do outro — piscar sincronizado parece robô. */}
+
+      {/* piscada: pálpebra da cor da máscara, com o cílio por cima. ~5% de um ciclo
+          de 5,2s, e um olho 0,35s atrás do outro — piscar sincronizado parece robô. */}
       {viva && !alegre && (<>
-        <g style={{ transformOrigin: '24px 28.5px', animation: 'su_piscar 5.2s ease-in-out infinite' }}>
-          <circle cx="24" cy="28.5" r="4.3" fill="#f2f5f8" />
-          <path d="M20.2 28.6 Q24 30.8 27.8 28.6" stroke="#16212C" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        <g style={{ transformOrigin: '24px 28.4px', animation: 'su_piscar 5.2s ease-in-out infinite' }}>
+          <circle cx="24" cy="28.4" r="4.5" fill="#eef3f9" />
+          <path d="M20 28.5 Q24 30.9 28 28.5" stroke="#16212C" strokeWidth="1.9" fill="none" strokeLinecap="round" />
         </g>
-        <g style={{ transformOrigin: '40px 28.5px', animation: 'su_piscar 5.2s ease-in-out -0.35s infinite' }}>
-          <circle cx="40" cy="28.5" r="4.3" fill="#f2f5f8" />
-          <path d="M36.2 28.6 Q40 30.8 43.8 28.6" stroke="#16212C" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        <g style={{ transformOrigin: '40px 28.4px', animation: 'su_piscar 5.2s ease-in-out -0.35s infinite' }}>
+          <circle cx="40" cy="28.4" r="4.5" fill="#eef3f9" />
+          <path d="M36 28.5 Q40 30.9 44 28.5" stroke="#16212C" strokeWidth="1.9" fill="none" strokeLinecap="round" />
         </g>
       </>)}
-      {humor === 'triste' && <path d="M45.5 33 Q48 37.5 45.5 39.5 Q43 37.5 45.5 33" fill="#bcd6f2" />}
-      {/* óculos redondos dourados */}
-      <circle cx="24" cy="28" r="8" stroke="#f5a623" strokeWidth="2" fill="none" />
-      <circle cx="40" cy="28" r="8" stroke="#f5a623" strokeWidth="2" fill="none" />
-      <path d="M30.5 26.5 Q32 25.5 33.5 26.5" stroke="#f5a623" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <path d="M16 26.5 L12 25.5" stroke="#f5a623" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M48 26.5 L52 25.5" stroke="#f5a623" strokeWidth="1.8" strokeLinecap="round" />
+      {humor === 'triste' && <path d="M45.5 33 Q48 37.5 45.5 39.5 Q43 37.5 45.5 33" fill="#9dc7f0" />}
+
+      {/* óculos redondos dourados, com reflexo na lente */}
+      <circle cx="24" cy="28" r="8.2" stroke="#f5a623" strokeWidth="2.3" fill="none" />
+      <circle cx="40" cy="28" r="8.2" stroke="#f5a623" strokeWidth="2.3" fill="none" />
+      <path d="M19.5 23.6 Q21.6 21.4 24.4 21.1" stroke="#ffffff" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.7" />
+      <path d="M35.5 23.6 Q37.6 21.4 40.4 21.1" stroke="#ffffff" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.7" />
+      <path d="M30.4 26.4 Q32 25.2 33.6 26.4" stroke="#f5a623" strokeWidth="2.1" fill="none" strokeLinecap="round" />
+      <path d="M15.9 26.2 L11.6 25.2" stroke="#f5a623" strokeWidth="1.9" strokeLinecap="round" />
+      <path d="M48.1 26.2 L52.4 25.2" stroke="#f5a623" strokeWidth="1.9" strokeLinecap="round" />
+
       {/* bico de arara */}
       {humor === 'comemora' ? (<>
-        <path d="M26 34.5 Q32 31.5 38 34.5 Q37 39 32 40.5 Q27 39 26 34.5 Z" fill="#223040" />
-        <ellipse cx="32" cy="43" rx="4.6" ry="3" fill="#8a5a10" />
-        <path d="M28 46 Q32 48.5 36 46" stroke="#223040" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+        {/* bico aberto: mandíbula de cima, a boca escura DENTRO do bico e a mandíbula
+            de baixo. A versão anterior era uma elipse marrom solta no peito. */}
+        <path d="M27 38.6 Q32 44.4 37 38.6 Q37.4 42.8 32 45.2 Q26.6 42.8 27 38.6 Z" fill="#1b2b40" />
+        <path d="M25.5 34.4 Q32 31.2 38.5 34.4 Q38.2 39.4 32 40.4 Q25.8 39.4 25.5 34.4 Z" fill="#22334c" />
+        <path d="M27 35 Q32 32.8 37 35" stroke="#5a7290" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.9" />
       </>) : (<>
-        <path d="M25.5 34.5 Q32 31.5 38.5 34.5 Q38 42.5 32 45.5 Q26 42.5 25.5 34.5 Z" fill="#223040" />
-        <path d="M28.5 35.5 Q32 34 35.5 35.5" stroke="#5c6b7a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        <path d="M25.5 34.4 Q32 31.2 38.5 34.4 Q38 42.6 32 45.6 Q26 42.6 25.5 34.4 Z" fill="#22334c" />
+        <path d="M27 35 Q32 32.8 37 35" stroke="#5a7290" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.9" />
         {humor === 'triste'
-          ? <path d="M29 43.5 Q32 42 35 43.5" stroke="#1a2430" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-          : <path d="M29 41.5 Q32 44 35 41.5" stroke="#1a2430" strokeWidth="1.6" fill="none" strokeLinecap="round" />}
+          ? <path d="M29 43.6 Q32 42 35 43.6" stroke="#0f1a28" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          : <path d="M29 41.4 Q32 44 35 41.4" stroke="#0f1a28" strokeWidth="1.6" fill="none" strokeLinecap="round" />}
       </>)}
+
       {/* bochechas */}
       {humor !== 'triste' && (<>
-        <circle cx="18.5" cy="33" r="2.6" fill="#ffd98a" opacity="0.55" />
-        <circle cx="45.5" cy="33" r="2.6" fill="#ffd98a" opacity="0.55" />
+        <ellipse cx="18.2" cy="33.2" rx="2.9" ry="2.3" fill="#ffc46b" opacity="0.5" />
+        <ellipse cx="45.8" cy="33.2" rx="2.9" ry="2.3" fill="#ffc46b" opacity="0.5" />
       </>)}
     </svg>
   )
@@ -3663,6 +3697,13 @@ export default function AppPage() {
         setXp(initialXp)
         lastSyncedXpRef.current = usandoCache ? null : dbXp
         setPerfilIa(prog.perfil_ia || {})
+        // Nível: o servidor manda. Se não houver lá ainda (conta antiga), sobe o local.
+        try {
+          const nvServ = prog.perfil_ia?.nivel
+          const nvLocal = localStorage.getItem('speakup_nivel')
+          if (nvServ && lessons[nvServ]) { setLevel(nvServ); localStorage.setItem('speakup_nivel', nvServ) }
+          else if (nvLocal && lessons[nvLocal] && !usandoCache) { setLevel(nvLocal); salvarProgresso({ perfil_ia: { ...(prog.perfil_ia || {}), nivel: nvLocal } }) }
+        } catch (e) {}
         setStreak(prog.streak || 0)
         // Semeia o marcador local de atividade a partir do banco: sem isso, um aparelho novo
         // (troca de celular, reinstalação, limpar dados) zeraria uma sequência legítima na 1ª lição.
@@ -4905,6 +4946,16 @@ export default function AppPage() {
   const vocabFeitoHoje = vocabDiaData === hojeStr
   const OBJETIVO_PADRAO = 'Conversar 30 minutos em inglês sem usar português'
   function salvarPerfil(novo: any) { setPerfilIa(novo); salvarProgresso({ perfil_ia: novo }) }
+  // Nível CEFR do aluno. Até 18/09 ele vivia SÓ no localStorage deste aparelho: refazer o
+  // teste no celular não mudava nada no computador, e limpar dados voltava para A1 — foi
+  // isso que o Emmanuel viu como "o nível não muda". Agora vai para o perfil no servidor
+  // (perfil_ia.nivel) e todo aparelho lê de lá ao abrir.
+  function aplicarNivel(nv: string) {
+    if (!lessons[nv]) return
+    setLevel(nv)
+    try { localStorage.setItem('speakup_nivel', nv) } catch (e) {}
+    setPerfilIa((p: any) => { const novo = { ...p, nivel: nv }; salvarProgresso({ perfil_ia: novo }); return novo })
+  }
   // Professor e velocidade escolhidos valem para TODA voz do app (chat, lições, pronúncia).
   const professor = professorDe(perfilIa.professor)
   useEffect(() => {
@@ -5181,7 +5232,7 @@ export default function AppPage() {
   //   conhecer o aluno e para medirmos qual porta retém melhor.
   function concluirOnboarding(o: { nivel?: string; irNivelamento?: boolean; estilo?: string; destino?: 'ai' | 'trilha' | 'treino' | 'nivelManual' }) {
     salvarPerfil({ ...perfilIa, objetivo: onbObj || OBJETIVO_PADRAO, meta_diaria: onbMeta, ...(o.estilo ? { estilo_aprender: o.estilo } : {}) })
-    if (o.nivel) { setLevel(o.nivel); try { localStorage.setItem('speakup_nivel', o.nivel) } catch (e) {} }
+    if (o.nivel) aplicarNivel(o.nivel)
     try { localStorage.setItem('speakup_onboarded', '1') } catch (e) {}
     setOnboarded(true)
     try { track('onboarding_estilo', { estilo: o.estilo || 'nenhum' }) } catch (e) {}
@@ -5913,7 +5964,6 @@ export default function AppPage() {
             {cardExplorar(blueLight, '📖', blue, 'Lições', 'Trilha por nível', () => { setView('levels'); setTab('lessons') })}
             {cardExplorar(purpleLight, '🎭', purple, 'Simulador', `${scenarios.length} cenários`, () => setTab('speak'))}
             {cardExplorar(greenLight, '📚', green, 'Vocabulário', `${vocab.length} palavras`, () => setTab('vocab'))}
-            {cardExplorar('#e7f0fa', '🏆', '#2E72D6', 'Liga', 'Ranking da semana', () => { setTab('liga'); carregarLiga() })}
             {cardExplorar('#e7f0fa', '🎤', '#2e72d6', 'Pronúncia', 'Fale e receba dicas', () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') })}
             {cardExplorar('#FEF3E2', '🎧', '#2e72d6', 'Ouvir', 'Áudios pra treinar o ouvido', () => setTab('listening'))}
             {cardExplorar('#fcecec', '📝', '#b91c1c', 'Prova Semanal', provaScoreSemana !== null ? `Nota: ${provaScoreSemana}/20` : '20 questões', () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') })}
@@ -7092,7 +7142,7 @@ export default function AppPage() {
                   ['C2', 'Domínio', 'Entendo nuances, ironia e textos complexos sem esforço.', '#103d77'],
                 ].map(([lv, nome, desc, cor]) => (
                   <button key={lv} onClick={() => {
-                    setLevel(lv); try { localStorage.setItem('speakup_nivel', lv) } catch (e) {}
+                    aplicarNivel(lv)
                     try { track('nivel_escolhido_manual', { nivel: lv }) } catch (e) {}
                     const arr = lessons[lv] || []
                     const idx = arr.findIndex(l => !licoesConcluidas.includes(chaveLicao(l)))
@@ -7173,8 +7223,7 @@ export default function AppPage() {
                     if (nova) { setNivFila([...nivFila, nova]); setNivIdx(nivIdx + 1); setNivSel(-1); setNivAns(false); return }
                   }
                   const rec = calcularNivelFinal(hist)
-                  setNivResult(rec); setLevel(rec)
-                  try { localStorage.setItem('speakup_nivel', rec) } catch (e) {}
+                  setNivResult(rec); aplicarNivel(rec)
                   eventoAtivacao('nivelamento_concluido', { nivel: rec, acertos: hist.filter(h => h.ok).length, total: hist.length })
                 }} style={{ width: '100%', padding: 15, marginTop: 8, background: !nivAns ? 'var(--color-background-secondary)' : blue, color: !nivAns ? 'var(--color-text-secondary)' : '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: !nivAns ? 'default' : 'pointer' }}>{nivIdx < NIV_TOTAL - 1 ? <>Próxima <Ic e="→" /></> : <>Ver meu nível <Ic e="🎯" /></>}</button>
                 <button onClick={() => setNivEscolher(true)} style={{ width: '100%', padding: 12, marginTop: 10, background: 'none', color: 'var(--color-text-secondary)', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Já sei meu nível — escolher sem teste</button>
@@ -8732,8 +8781,15 @@ export default function AppPage() {
               <button onClick={() => marcarVoFabDica()} aria-label="Fechar dica" style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', fontSize: 13, color: '#93a1b0', cursor: 'pointer', padding: 2, pointerEvents: 'auto' }}>✕</button>
             </div>
           )}
-          <button onClick={() => { marcarVoFabDica(); encerrarTreino(); setTab('ai'); try { track('vo_fab') } catch (e) {} }} aria-label="Falar com o Vô, seu professor" style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--color-background-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(11,23,41,0.06), 0 12px 30px rgba(11,23,41,0.16)', padding: 0, animation: 'su_bob 3.6s ease-in-out infinite', pointerEvents: 'auto' }}>
-            <Mascote size={44} prof viva humor="feliz" />
+          <button onClick={() => { marcarVoFabDica(); encerrarTreino(); setTab('ai'); try { track('vo_fab') } catch (e) {} }} aria-label="Falar com o Vô, seu professor" style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, animation: 'su_bob 3.6s ease-in-out infinite', pointerEvents: 'auto' }}>
+            {/* halo que respira: o Vô "está ali", sem piscar na cara do aluno */}
+            <span style={{ position: 'absolute', inset: -6, borderRadius: '50%', background: 'radial-gradient(circle, rgba(75,184,240,0.45) 0%, rgba(75,184,240,0) 70%)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
+            {/* anel dourado fino + superfície clara: destaca sem borda grossa */}
+            <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(150deg, #ffd98a, #f5a623)', boxShadow: '0 2px 6px rgba(11,23,41,0.10), 0 14px 32px rgba(11,23,41,0.20)' }} />
+            <span style={{ position: 'absolute', inset: 2.5, borderRadius: '50%', background: 'var(--color-background-primary)' }} />
+            <span style={{ position: 'relative', display: 'flex' }}><Mascote size={46} prof viva humor="feliz" /></span>
+            {/* pontinho verde: o professor está disponível agora */}
+            <span style={{ position: 'absolute', right: 2, bottom: 2, width: 14, height: 14, borderRadius: '50%', background: '#16a34a', border: '2.5px solid var(--color-background-primary)' }} />
           </button>
         </div>
       )}
