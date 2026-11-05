@@ -5,10 +5,14 @@ echo ============================================
 echo  Vonai - publicar as alteracoes (git push)
 echo ============================================
 echo.
+echo.
 git fetch origin
 git reset --soft origin/master
 git add -A
-git commit -m "Aviso do parcelamento com juros na Kiwify e evento de checkout abandonado"
+set "MSG="
+set /p MSG=Descreva o que mudou (Enter = "Atualizacao do app"): 
+if "%MSG%"=="" set "MSG=Atualizacao do app"
+git commit -m "%MSG%"
 git push origin HEAD:master
 echo.
 echo ============================================
