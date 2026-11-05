@@ -2800,6 +2800,29 @@ export default function AppPage() {
   const [homeGuiada, setHomeGuiada] = useState(true)
   // Folha "Mais para praticar" da home do Vô (05/11/2026)
   const [maisAberto, setMaisAberto] = useState(false)
+  // 05/11: quando o Vô termina de responder, ele comemora por 1,6s no cabeçalho.
+  const [voAcabouDeFalar, setVoAcabouDeFalar] = useState(false)
+  const pensavaRef = useRef(false)
+  useEffect(() => {
+    if (pensavaRef.current && !loadingChat) {
+      setVoAcabouDeFalar(true)
+      const id = setTimeout(() => setVoAcabouDeFalar(false), 1600)
+      pensavaRef.current = loadingChat
+      return () => clearTimeout(id)
+    }
+    pensavaRef.current = loadingChat
+  }, [loadingChat])
+  // 05/11: no chat do Vô, o fundo da página e a cor da barra do sistema ficam azul-noite,
+  // para as faixas de cima e de baixo do celular não aparecerem em outra cor.
+  useEffect(() => {
+    const cor = tab === 'ai' ? '#0b1f3f' : ''
+    try {
+      document.documentElement.style.backgroundColor = cor
+      document.body.style.backgroundColor = cor
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', cor || '#103d77')
+    } catch (e) {}
+  }, [tab])
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search).get('home')
@@ -5977,6 +6000,8 @@ export default function AppPage() {
         @keyframes su_risefade { 0% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
         @keyframes su_float { 0% { transform: translate(-50%, 0) scale(0.6); opacity: 0 } 25% { transform: translate(-50%, -20px) scale(1.15); opacity: 1 } 100% { transform: translate(-50%, -90px) scale(1); opacity: 0 } }
         @keyframes su_eq { 0%, 100% { transform: scaleY(0.3) } 50% { transform: scaleY(1) } }
+        @keyframes su_pensa { 0%, 100% { transform: rotate(-7deg) translateY(0) } 50% { transform: rotate(6deg) translateY(-2px) } }
+        @keyframes su_ouve { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.07) } }
       `}</style>
 
       {xpFloat > 0 && (
@@ -8531,7 +8556,10 @@ export default function AppPage() {
             <div onClick={() => falarIngles('Hi! Ready to practice your English with me?', 9100)} title="Toque para me ouvir" style={{ position: 'relative', width: 52, height: 52, flexShrink: 0, cursor: 'pointer' }}>
               <span aria-hidden style={{ position: 'absolute', inset: -4, borderRadius: '50%', border: '2px solid transparent', borderTopColor: '#FFD98A', borderRightColor: 'rgba(255,217,138,0.35)', animation: loadingChat ? 'su_girar 1s linear infinite' : 'su_girar 6s linear infinite', opacity: loadingChat ? 1 : 0.55 }} />
               <span aria-hidden style={{ position: 'absolute', inset: -10, borderRadius: '50%', background: 'rgba(255,217,138,0.16)', animation: 'su_halo 2.6s ease-in-out infinite' }} />
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'su_bob 2.6s ease-in-out infinite', overflow: 'hidden' }}>{professor.id === 'vo' ? <Mascote size={36} prof humor={loadingChat ? 'normal' : 'feliz'} /> : <AvatarProf id={professor.id} size={52} />}</div>
+              {/* 05/11: o Vô sai do círculo branco (que cortava o capelo) e reage ao que
+                  está acontecendo: pensa inclinando a cabeça, escuta com os olhos abertos
+                  pulsando, e comemora quando acabou de responder. */}
+              <div style={{ position: 'absolute', inset: -6, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: loadingChat ? 'su_pensa 1.4s ease-in-out infinite' : listening ? 'su_ouve 1.1s ease-in-out infinite' : 'su_bob 3s ease-in-out infinite' }}>{professor.id === 'vo' ? <Mascote key={voAcabouDeFalar ? 'c' : 'n'} size={56} prof viva humor={listening || loadingChat ? 'normal' : voAcabouDeFalar ? 'comemora' : 'feliz'} /> : <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', background: '#fff' }}><AvatarProf id={professor.id} size={52} /></div>}</div>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>{professor.id === 'vo' ? 'Vô, seu professor de IA' : professor.id === 'rafael' ? 'Rafael, seu professor de IA' : `${professor.nome}, sua professora de IA`}</div>
@@ -8599,7 +8627,7 @@ export default function AppPage() {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} data-msg style={{ display: 'flex', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
-                {m.role === 'ai' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', border: '1.5px solid rgba(47,210,122,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16,42,76,0.14)', overflow: 'hidden' }}>{professor.id === 'vo' ? <Mascote size={24} prof /> : <AvatarProf id={professor.id} size={32} />}</div>}
+                {m.role === 'ai' && <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.25))' }}>{professor.id === 'vo' ? <Mascote size={34} prof viva={i === chatMsgs.length - 1} humor={i === chatMsgs.length - 1 ? 'feliz' : 'normal'} /> : <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', background: '#fff' }}><AvatarProf id={professor.id} size={32} /></div>}</div>}
                 <div style={{ minWidth: 0 }}>
                   {/* Cartão de correção: o aluno vê o próprio erro virar acerto na hora.
                       É o momento em que a conversa deixa de ser papo e vira aula — e é o
@@ -8644,7 +8672,7 @@ export default function AppPage() {
             ))}
             {loadingChat && (
               <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', alignItems: 'flex-end', animation: 'su_msg 0.42s cubic-bezier(0.16,1,0.3,1) both' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', border: '1.5px solid rgba(47,210,122,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(16,42,76,0.14)' }}><Mascote size={24} prof /></div>
+                <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.25))', animation: 'su_pensa 1.4s ease-in-out infinite' }}><Mascote size={34} prof viva /></div>
                 <div style={{ padding: '13px 16px', borderRadius: '18px 18px 18px 4px', background: '#163f7a', border: 'none', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 3px 12px rgba(16,42,76,0.10)' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2fd27a', display: 'inline-block', animation: 'su_dot 1.2s infinite' }} />
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2fd27a', display: 'inline-block', animation: 'su_dot 1.2s infinite 0.2s' }} />
@@ -8753,7 +8781,9 @@ export default function AppPage() {
           CADA toque nela chamava encerrarTreino() — dava para perder a sessão guiada por
           acidente, encostando num ícone. Sessão guiada não compete com navegação. */}
       {!treinoAtivo && (
-      <div style={{ background: 'var(--color-background-primary)', borderTop: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', padding: '8px 6px calc(8px + max(0px, env(safe-area-inset-bottom) - 24px))', flexShrink: 0 }}>
+      /* 05/11: no chat do Vô a barra fica azul-noite, emendando no fundo da conversa.
+         A barra branca embaixo de uma tela escura cortava o app em dois. */
+      <div style={{ background: tab === 'ai' ? '#0b1f3f' : 'var(--color-background-primary)', borderTop: tab === 'ai' ? '1px solid rgba(255,255,255,0.08)' : '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', padding: '8px 6px calc(8px + max(0px, env(safe-area-inset-bottom) - 24px))', flexShrink: 0, transition: 'background 0.25s' }}>
         {/* Rótulos curtos: com 6 abas numa tela de 360px, "Listening"/"Dicionário"/
             "Professor" não cabem e a última saía cortada ("Pr..."). minWidth:0 deixa o
             flex encolher de verdade — sem isso o conteúdo trava a largura e estoura a
@@ -8769,12 +8799,12 @@ export default function AppPage() {
               {/* A aba do Vô mostra o PERSONAGEM, não um ícone de papagaio: ele é a
                   marca do app, e desenhado fica reconhecível já na barra. Quando está
                   ativo ele ganha vida (pisca, mexe a asa); parado fica quieto. */}
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t === 'ai' ? '1px 10px' : '4px 12px', borderRadius: 999, background: ativo ? 'rgba(46,114,214,0.13)' : 'transparent', transition: 'background 0.2s' }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t === 'ai' ? '1px 10px' : '4px 12px', borderRadius: 999, background: ativo ? (tab === 'ai' ? 'rgba(255,255,255,0.12)' : 'rgba(46,114,214,0.13)') : 'transparent', transition: 'background 0.2s' }}>
                 {t === 'ai'
-                  ? <span style={{ display: 'flex', filter: ativo ? 'none' : 'saturate(0.25) opacity(0.55)', transition: 'filter 0.2s' }}><Mascote size={28} prof viva={ativo} humor="feliz" /></span>
-                  : <span style={{ fontSize: 22, lineHeight: 1 }}><Ic e={icon} c={ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} sw={ativo ? 2.2 : 1.9} /></span>}
+                  ? <span style={{ display: 'flex', filter: ativo ? 'none' : 'saturate(0.25) opacity(0.55)', transition: 'filter 0.2s' }}><Mascote size={30} prof viva={ativo} humor="feliz" /></span>
+                  : <span style={{ fontSize: 22, lineHeight: 1 }}><Ic e={icon} c={tab === 'ai' ? 'rgba(220,234,252,0.62)' : ativo ? '#2e72d6' : 'var(--color-text-tertiary)'} sw={ativo ? 2.2 : 1.9} /></span>}
               </span>
-              <span style={{ fontSize: 11, color: ativo ? '#2e72d6' : 'var(--color-text-tertiary)', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
+              <span style={{ fontSize: 11, color: tab === 'ai' ? (ativo ? '#FFD98A' : 'rgba(220,234,252,0.62)') : ativo ? '#2e72d6' : 'var(--color-text-tertiary)', fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: 0.1 }}>{label}</span>
             </div>
           </button>
           )
