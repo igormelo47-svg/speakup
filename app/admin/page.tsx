@@ -176,6 +176,25 @@ export default function Admin() {
     ;(async () => { try { setPesq(await chamarPesquisa('ver')) } catch (e: any) { setPesqMsg(`❌ ${e?.message || 'erro'}`) } })()
   }, [estado, pesqSoAnuncio])
 
+  // Fila "Chamar no WhatsApp hoje" (/api/admin/whatsapp). O dono manda do próprio celular:
+  // o link wa.me abre o WhatsApp com a mensagem pronta; "Enviei" tira a pessoa da fila.
+  const [whats, setWhats] = useState<any>(null)
+  const [whatsErro, setWhatsErro] = useState('')
+  async function tokenAtual() { const { data } = await supabase.auth.getSession(); return data.session?.access_token || '' }
+  async function carregarWhats() {
+    try {
+      const r = await fetch('/api/admin/whatsapp', { headers: { Authorization: `Bearer ${await tokenAtual()}` } })
+      if (!r.ok) { setWhatsErro(`HTTP ${r.status}`); return }
+      setWhats(await r.json()); setWhatsErro('')
+    } catch (e: any) { setWhatsErro(String(e?.message || e)) }
+  }
+  async function marcarWhats(userId: string) {
+    setWhats((w: any) => w ? { ...w, fila: w.fila.filter((x: any) => x.user_id !== userId), total: Math.max(0, (w.total || 1) - 1) } : w)
+    try {
+      await fetch('/api/admin/whatsapp', { method: 'POST', headers: { Authorization: `Bearer ${await tokenAtual()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+    } catch {}
+  }
+
   async function carregarPendentes(token: string) {
     try {
       const r = await fetch('/api/admin/pendentes', { headers: { Authorization: `Bearer ${token}` } })
@@ -193,6 +212,7 @@ export default function Admin() {
       if (!r.ok) { setEstado('erro'); return }
       setDados(await r.json()); setEstado('ok')
       carregarPendentes(token)
+      carregarWhats()
       // Nunca derruba o painel: um erro aqui vira uma faixa dentro da própria seção.
       fetch('/api/admin/funil?dias=30', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json()).then(setFunilCompleto).catch(() => {})
@@ -669,6 +689,32 @@ export default function Admin() {
           </div>
           )
         })()}
+
+        {/* CHAMAR NO WHATSAPP HOJE — o canal que o brasileiro abre. */}
+        <div style={{ ...card, marginBottom: 16, borderColor: '#9FE3B8', background: '#F4FCF7' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <div style={{ fontWeight: 800 }}>Chamar no WhatsApp hoje 💬</div>
+            <button onClick={carregarWhats} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #D8E1EC', background: '#fff', color: '#102A4C', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Atualizar</button>
+          </div>
+          <div style={{ fontSize: 12.5, color: '#5B6B82', marginBottom: 12, lineHeight: 1.6 }}>
+            Quem deixou o número no app e não usou hoje. Toque em <strong>Abrir WhatsApp</strong> (a mensagem já vai escrita),
+            envie do seu celular e depois toque em <strong>Enviei</strong>. Cada pessoa volta à fila no máximo a cada 2 dias, até 3 vezes.
+          </div>
+          {whatsErro && <div style={{ fontSize: 13, color: '#B54A3A', marginBottom: 8 }}>❌ {whatsErro}</div>}
+          {whats && whats.total === 0 && (
+            <div style={{ fontSize: 13, color: '#5B6B82' }}>Ninguém na fila hoje. {whats.comNumero} {whats.comNumero === 1 ? 'aluno deixou' : 'alunos deixaram'} o WhatsApp até agora.</div>
+          )}
+          {(whats?.fila || []).map((x: any) => (
+            <div key={x.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1px solid #E3EFE7', borderRadius: 12, padding: '10px 12px', marginBottom: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#102A4C' }}>{x.nome || x.email}</div>
+                <div style={{ fontSize: 11.5, color: '#7C8AA0' }}>{x.licoes} {x.licoes === 1 ? 'lição' : 'lições'} · sem usar há {x.diasSemUsar} {x.diasSemUsar === 1 ? 'dia' : 'dias'}{x.chamadas ? ` · já chamado ${x.chamadas}x` : ''}</div>
+              </div>
+              <a href={x.link} target="_blank" rel="noreferrer" style={{ padding: '8px 12px', borderRadius: 9, background: '#16A34A', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}>Abrir WhatsApp</a>
+              <button onClick={() => marcarWhats(x.user_id)} style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid #D8E1EC', background: '#fff', color: '#102A4C', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Enviei</button>
+            </div>
+          ))}
+        </div>
 
         {/* PESQUISA DE UMA PERGUNTA — a única coisa no painel que produz informação nova.
             Todo o resto acima mede comportamento; isto pergunta o motivo. */}

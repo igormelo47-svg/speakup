@@ -48,6 +48,32 @@
   --vonai-glow: #4bb8f0;
   --vonai-amber: #ffb020;
   --vonai-amber-ink: #3b2500;
+
+  /* ===== Famílias de acento — estudo de cor em OKLCH (19/09/2026) =====
+     O problema não era o gosto de cada cor, era a falta de regra. Medido em OKLCH
+     (espaço perceptualmente uniforme), o conjunto anterior tinha 0,211 de amplitude
+     de LUMINOSIDADE entre os acentos — o âmbar #ef9f1c em L=0,764 contra o índigo em
+     L=0,553. Cores de luminosidades diferentes lado a lado é exatamente o que o olho
+     lê como "desarmônico". E o âmbar dava só 2,18:1 de contraste no branco: o texto
+     de 11,5px era ilegível.
+
+     Regra nova: TODOS os acentos na mesma luminosidade (L=0,56) e no mesmo croma
+     (C=0,129). Só o MATIZ muda. Amplitude de L caiu de 0,211 para 0,000.
+     O croma 0,129 é o teto comum: é o máximo que o matiz quente alcança nessa
+     luminosidade sem sair do sRGB (amarelo saturado só existe claro — forçá-lo para
+     baixo vira marrom, e é por isso que o quente aqui é bronze, não dourado).
+
+     Todos passam 4,5:1 no branco, que serve para as duas funções de uma vez:
+     o dado em texto sobre o card, e o ícone branco sobre o chip.
+       estudar 246°  4,60:1   |  falar  258°  4,69:1
+       testar  270°  4,78:1   |  ganhar  62°  4,82:1
+     O segundo tom de cada par é o mesmo matiz em L=0,44, só para o degradê do chip.
+     Vermelho e verde ficam fora daqui: no app inteiro só significam erro e acerto.
+     O --vonai-amber claro continua existindo, mas só em botão, com tinta escura. */
+  --vonai-t-blue: #217abb;   --vonai-t-blue-2: #00568d;
+  --vonai-t-sky: #4174bf;    --vonai-t-sky-2: #1e5098;
+  --vonai-t-indigo: #576ec0; --vonai-t-indigo-2: #384b99;
+  --vonai-t-bronze: #a96000; --vonai-t-bronze-2: #794300;
 }
 
 /* O app foi desenhado com tema claro; o modo escuro do SISTEMA continua forcado

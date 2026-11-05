@@ -112,6 +112,18 @@ function IcLabel({ label }: { label: string }) {
   </>
 }
 
+// Chip de ícone SÓLIDO (18/09/2026). O quadradinho pálido com o traço fino da cor
+// por cima somia no branco e o Emmanuel leu como "ícone de celular". Fundo cheio com
+// degradê na cor da seção, ícone branco de traço 2.2 e uma sombra da própria cor: o
+// ícone vira um objeto, não um rabisco. Usado na home (Seu dia, Missões, Explorar).
+function ChipIcone({ e, cor, cor2, box = 40, size = 21, radius = 13, style }: { e: string; cor: string; cor2?: string; box?: number; size?: number; radius?: number; style?: CSSProperties }) {
+  return (
+    <div style={{ width: box, height: box, borderRadius: radius, background: `linear-gradient(145deg, ${cor}, ${cor2 || cor + 'cc'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 10px ${cor}42`, ...style }}>
+      <Ic e={e} s={size} c="#fff" sw={2.2} />
+    </div>
+  )
+}
+
 // Ícone colorido dentro de um quadradinho arredondado com a cor do tema.
 // Em fundo claro o quadrado usa a cor a ~15% de opacidade; em fundo escuro
 // (cabeçalhos/cards coloridos) usa um fundo quase branco para o ícone se destacar.
@@ -2786,6 +2798,8 @@ export default function AppPage() {
   // Home guiada é o PADRÃO (aprovado 21/07). Quem quiser a antiga usa ?home=antiga
   // (fica salvo no aparelho). useState(true) evita piscar a home antiga na hidratação.
   const [homeGuiada, setHomeGuiada] = useState(true)
+  // Folha "Mais para praticar" da home do Vô (05/11/2026)
+  const [maisAberto, setMaisAberto] = useState(false)
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search).get('home')
@@ -5694,10 +5708,10 @@ export default function AppPage() {
     const lvlPct = lvlArr.length ? Math.round(lvlDone / lvlArr.length * 100) : 0
 
     const tarefas = [
-      { icon: '📖', cor: '#2e72d6', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
-      { icon: '🧠', cor: '#16a34a', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
-      { icon: '🎭', cor: '#1c55a3', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
-      { icon: '🔥', cor: '#e08a1e', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
+      { icon: '📖', cor: '#217abb', cor2: '#00568d', titulo: 'Lição de hoje', sub: proxL ? proxL.title : 'Revisar o nível', feito: licoesHoje > 0, acao: () => setTab('lessons') },
+      { icon: '🧠', cor: '#217abb', cor2: '#00568d', titulo: 'Vocabulário', sub: `${vocabRevisar} palavras`, feito: vocabFeitoHoje, acao: () => { setVocabModo('revisar'); setTab('vocab') } },
+      { icon: '🎭', cor: '#4174bf', cor2: '#1e5098', titulo: 'Simulador', sub: 'Falar com a IA', feito: simulacoesHoje > 0, acao: () => setTab('speak') },
+      { icon: '🔥', cor: '#a96000', cor2: '#794300', titulo: 'Desafio do dia', sub: '5 perguntas', feito: desafioFeito, acao: () => { setDesQ(0); setDesSel(-1); setDesAns(false); setDesAcertos(0); setDesResult(false); setTab('desafio') } },
     ]
     const feitos = tarefas.filter(t => t.feito).length
 
@@ -5706,215 +5720,228 @@ export default function AppPage() {
     const semXpAtual = Math.max(0, xp - semBaseRef.current)
     const diasSemana = Object.keys(hist).filter(d => Math.floor(new Date(d + 'T00:00:00').getTime() / (7 * 86400000)) === weekNow && (hist[d] || 0) > 0).length
     const missoesLista = [
-      { id: 'xp', e: '⚡', cor: '#e08a1e', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
-      { id: 'dias', e: '📅', cor: '#2e72d6', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
-      { id: 'streak', e: '🔥', cor: '#dc2626', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
+      { id: 'xp', e: '⚡', cor: '#4174bf', cor2: '#1e5098', nome: 'Ganhe 150 XP na semana', cur: Math.min(semXpAtual, 150), alvo: 150, reward: 40 },
+      { id: 'dias', e: '📅', cor: '#217abb', cor2: '#00568d', nome: 'Estude em 5 dias diferentes', cur: Math.min(diasSemana, 5), alvo: 5, reward: 60 },
+      { id: 'streak', e: '🔥', cor: '#a96000', cor2: '#794300', nome: 'Alcance 7 dias de sequência', cur: Math.min(streak, 7), alvo: 7, reward: 50 },
     ]
     const missoesAGanhar = missoesLista.filter(m => !claimed.includes(m.id)).reduce((t, m) => t + m.reward, 0)
 
-    // Atalhos: tudo que não é "agora". Ícone + rótulo, três por linha — o aluno varre
-    // com o olho em vez de ler doze subtítulos.
-    const atalhos: { e: string; cor: string; nome: string; acao: () => void; on?: boolean }[] = [
-      { e: '📖', cor: '#2e72d6', nome: 'Lições', acao: () => { setView('levels'); setTab('lessons') } },
-      { e: '🎭', cor: '#1c55a3', nome: 'Simulador', acao: () => setTab('speak') },
-      { e: '🎤', cor: '#2e72d6', nome: 'Pronúncia', acao: () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') } },
-      { e: '🎧', cor: '#1c55a3', nome: 'Ouvir', acao: () => setTab('listening') },
-      { e: '📚', cor: '#16a34a', nome: 'Vocabulário', acao: () => setTab('vocab') },
-      { e: '📖', cor: '#103d77', nome: 'Histórias', acao: () => { setHistSel(null); setTab('historias') } },
-      { e: '🇧🇷', cor: '#16a34a', nome: 'Caça-Erros', acao: () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} } },
-      { e: '📝', cor: '#b91c1c', nome: 'Prova', acao: () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') } },
-      { e: '📊', cor: '#1c55a3', nome: 'Teste de nível', acao: () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false); setTab('nivelamento') } },
-      { e: '📈', cor: '#16a34a', nome: 'Evolução', acao: () => setTab('evolucao') },
-      { e: '🎁', cor: '#e08a1e', nome: 'Convidar', acao: compartilharIndicacao },
-      ...(!isIOSNative && !lembretesAtivos ? [{ e: '🔔', cor: '#2e72d6', nome: 'Lembretes', acao: ativarLembretes }] : []),
+    // Atalhos: tudo que não é "agora". Cada quadrado mostra um DADO do aluno, não só
+    // o nome: "353 palavras", "Você é A2", "3/12 lidas". Sem isso a grade vira onze
+    // caixas brancas vazias — foi o que o Emmanuel viu como "app fraco".
+    // A última casa é dinâmica para a grade fechar sempre em 12 (4 linhas x 3), nunca
+    // com buraco: lembretes enquanto não estão ligados, depois a Loja.
+    // A ordem NÃO é arbitrária: cada linha da grade é uma família de cor, e a família
+    // diz o que a coisa faz. Linha 1 estudar (azul), 2 falar e ouvir (céu), 3 testar
+    // (índigo), 4 ganhar (âmbar). É isso que faz as doze cores parecerem um sistema
+    // em vez de doze escolhas soltas.
+    // Quatro famílias em OKLCH: mesma luminosidade (0,56) e mesmo croma (0,129), só o
+    // matiz muda — ver o estudo no globals.css. Todas com 4,6:1+ de contraste no branco.
+    const ESTUDAR = ['#217abb', '#00568d'], FALAR = ['#4174bf', '#1e5098'], TESTAR = ['#576ec0', '#384b99'], GANHAR = ['#a96000', '#794300']
+    const atalhos: { e: string; cor: string; cor2: string; nome: string; dado: string; acao: () => void }[] = [
+      { e: '📖', cor: ESTUDAR[0], cor2: ESTUDAR[1], nome: 'Lições', dado: `${lvlArr.length} no ${level}`, acao: () => { setView('levels'); setTab('lessons') } },
+      { e: '📚', cor: ESTUDAR[0], cor2: ESTUDAR[1], nome: 'Vocabulário', dado: `${vocab.length} palavras`, acao: () => setTab('vocab') },
+      { e: '📘', cor: ESTUDAR[0], cor2: ESTUDAR[1], nome: 'Histórias', dado: `${histDone.length}/${HISTORIAS.length} lidas`, acao: () => { setHistSel(null); setTab('historias') } },
+
+      { e: '🎭', cor: FALAR[0], cor2: FALAR[1], nome: 'Simulador', dado: `${scenarios.length} cenários`, acao: () => setTab('speak') },
+      { e: '🎤', cor: FALAR[0], cor2: FALAR[1], nome: 'Pronúncia', dado: 'Nota na hora', acao: () => { setPronCat(null); setPronIdx(0); setPronHeard(''); setPronScore(null); setPronTip(''); setTab('pronuncia') } },
+      { e: '🎧', cor: FALAR[0], cor2: FALAR[1], nome: 'Ouvir', dado: 'Áudio nativo', acao: () => setTab('listening') },
+
+      { e: 'SearchCheck', cor: TESTAR[0], cor2: TESTAR[1], nome: 'Caça-Erros', dado: '5 armadilhas', acao: () => { setErrQ(0); setErrSel(-1); setErrAns(false); setErrAcertos(0); setErrResult(false); setTab('errbr'); try { track('errosbr_aberto') } catch (e) {} } },
+      { e: '📝', cor: TESTAR[0], cor2: TESTAR[1], nome: 'Prova', dado: provaScoreSemana !== null ? `Nota ${provaScoreSemana}/20` : '20 questões', acao: () => { setProvaQ(0); setProvaSel(-1); setProvaAns(false); setProvaAcertos(0); setProvaResult(false); setProvaNivelEscolhido(false); setTab('prova') } },
+      { e: 'Gauge', cor: TESTAR[0], cor2: TESTAR[1], nome: 'Teste de nível', dado: `Você é ${level}`, acao: () => { setNivIdx(0); setNivScore([0,0,0,0,0,0]); setNivSel(-1); setNivAns(false); setNivResult(null); setNivEscolher(false); setTab('nivelamento') } },
+
+      { e: '📈', cor: GANHAR[0], cor2: GANHAR[1], nome: 'Evolução', dado: `${doneLessons} lições`, acao: () => setTab('evolucao') },
+      { e: '🎁', cor: GANHAR[0], cor2: GANHAR[1], nome: 'Convidar', dado: '+100 🪙', acao: compartilharIndicacao },
+      !isIOSNative && !lembretesAtivos
+        ? { e: '🔔', cor: GANHAR[0], cor2: GANHAR[1], nome: 'Lembretes', dado: 'Ative o aviso', acao: ativarLembretes }
+        : { e: 'ShieldCheck', cor: GANHAR[0], cor2: GANHAR[1], nome: 'Loja', dado: `${moedas} 🪙`, acao: () => setLojaModal(true) },
     ]
 
+    // ===== HOME DO VÔ — 05/11/2026 =====
+    // A home deixa de ser um painel de opções e vira o Vô. Ele ocupa a tela, já abre
+    // falando (msg, acima) e propõe o próximo passo. O aluno responde tocando numa
+    // resposta rápida, escrevendo ou apertando o microfone — e cai direto na conversa
+    // real (aba 'ai'). Todo o resto (seu dia, missões, atalhos, premium, tema, sair)
+    // foi para a folha "Mais para praticar", aberta pelo botão de quadradinhos.
+    // Motivo: 57% desistiam antes da 1ª lição sem saber por onde começar; a promessa
+    // do produto é "um professor que lembra de você", e era isso que tinha que aparecer.
+    const humorVo = isNovo ? 'acena' : treinouHoje ? 'comemora' : 'feliz'
+    const abrirChatCom = (texto: string, rotulo: string) => {
+      try { track('home_vo_resposta', { rotulo }) } catch (e) {}
+      setMaisAberto(false); setTab('ai')
+      setTimeout(() => sendChat(texto), 60)
+    }
+    const respostas: { rotulo: string; acao: () => void }[] = [
+      { rotulo: 'Conversar com o Vô', acao: () => { try { track('home_vo_resposta', { rotulo: 'conversar' }) } catch (e) {} ; setTab('ai') } },
+      temRevisao
+        ? { rotulo: errosQs.length > 0 ? 'Revisar meus erros' : 'Fazer a revisão', acao: () => abrirChatCom('Vamos revisar os erros que eu mais cometo. Me faça uma pergunta de cada vez e espere minha resposta.', 'revisar') }
+        : { rotulo: 'Me dá um desafio', acao: () => abrirChatCom('Me dá um desafio rápido de inglês do meu nível, uma pergunta só, e espera minha resposta.', 'desafio') },
+      { rotulo: 'Treinar pronúncia', acao: () => abrirChatCom('Me dá uma frase curta em inglês do meu nível pra eu treinar a pronúncia em voz alta.', 'pronuncia') },
+    ]
+    const enviarDaHome = () => {
+      const t = chatInput.trim()
+      if (!t) { setTab('ai'); return }
+      try { track('home_vo_escreveu') } catch (e) {}
+      setTab('ai')
+      setTimeout(() => sendChat(t), 60)
+    }
+    const falarDaHome = () => {
+      try { track('home_vo_mic') } catch (e) {}
+      setTab('ai')
+      setTimeout(() => micChat(), 120)
+    }
+
     return (
-      <div>
-        {/* ===== 1. CABEÇALHO ===== */}
-        <div style={{ background: 'linear-gradient(160deg, var(--vonai-navy-700) 0%, var(--vonai-navy-900) 78%)', padding: 'calc(env(safe-area-inset-top) + 14px) 16px 26px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', top: -140, right: -100, background: 'radial-gradient(circle, rgba(75,184,240,0.42) 0%, rgba(75,184,240,0) 68%)', animation: 'su_drift 14s ease-in-out infinite', pointerEvents: 'none' }} />
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, marginBottom: 18, position: 'relative' }}>
-            <span style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: -0.2 }}>Von<span style={{ color: 'var(--vonai-glow)' }}>ai</span></span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-              {streak > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#fff' }}>🔥 {streak}</div>}
-              <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,176,32,0.16)', border: '1px solid rgba(255,176,32,0.45)', borderRadius: 999, padding: '5px 11px', cursor: 'pointer' }}><span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 12.5, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
-              <button onClick={alternarTema} aria-label="Alternar modo escuro" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 999, width: 32, height: 32, color: '#e7f0fa', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{temaEscuro ? '☀️' : '🌙'}</button>
-              <button onClick={logout} aria-label="Sair" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 999, width: 32, height: 32, color: '#e7f0fa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}><Ic e="🚪" s={14} c="#e7f0fa" /></button>
-            </div>
+      <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', background: 'var(--color-background-tertiary)' }}>
+        {/* ===== TOPO enxuto: marca, sequência, moedas e o "Mais" ===== */}
+        <div style={{ background: 'linear-gradient(160deg, var(--vonai-navy-700) 0%, var(--vonai-navy-900) 78%)', padding: 'calc(env(safe-area-inset-top) + 12px) 16px 14px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+          <div style={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', top: -150, right: -90, background: 'radial-gradient(circle, rgba(75,184,240,0.40) 0%, rgba(75,184,240,0) 68%)', animation: 'su_drift 14s ease-in-out infinite', pointerEvents: 'none' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+            <span style={{ flex: 1, fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: -0.2 }}>Von<span style={{ color: 'var(--vonai-glow)' }}>ai</span> {pagante && <span style={{ fontSize: 11, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', padding: '2px 8px', borderRadius: 999, marginLeft: 4, verticalAlign: 'middle', fontWeight: 800 }}>PRO</span>}</span>
+            {streak > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#fff' }}>🔥 {streak}</div>}
+            <div onClick={() => setLojaModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,176,32,0.16)', border: '1px solid rgba(255,176,32,0.45)', borderRadius: 999, padding: '5px 11px', cursor: 'pointer' }}><span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 12.5, fontWeight: 700, color: '#FFD98A' }}>{moedas}</span></div>
+            <button onClick={() => { setMaisAberto(true); try { track('home_mais_aberto') } catch (e) {} }} aria-label="Mais para praticar: lições, simulador, vocabulário e mais" style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 14, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.10)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></svg>
+            </button>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, position: 'relative' }}>
-            <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ position: 'relative', width: 92, height: 92, flexShrink: 0, cursor: 'pointer', animation: 'su_bob 3.6s ease-in-out infinite' }}>
-              <div style={{ position: 'absolute', inset: -10, borderRadius: '50%', background: treinouHoje ? 'rgba(74,222,128,0.32)' : 'rgba(75,184,240,0.32)', filter: 'blur(6px)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative' }}><Mascote size={92} prof viva humor={isNovo ? 'acena' : treinouHoje ? 'comemora' : xpHoje === 0 && streak > 0 ? 'normal' : 'feliz'} /></div>
-            </div>
-            <div style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.72)' }}>{saudacao},</div>
-              <div style={{ fontSize: 25, fontWeight: 800, color: '#fff', letterSpacing: -0.4, lineHeight: 1.15, marginTop: 1 }}>{userName} {pagante && <span style={{ fontSize: 11, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', padding: '2px 8px', borderRadius: 999, marginLeft: 4, verticalAlign: 'middle', fontWeight: 800 }}>PRO</span>}</div>
-              {/* UMA barra de progresso. Antes eram quatro medidas competindo. */}
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.78)', marginBottom: 7 }}><span>Nível {level}</span><span>{lvlPct}%</span></div>
-                <div style={{ height: 7, borderRadius: 999, background: 'rgba(255,255,255,0.16)', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, var(--vonai-glow), #8FD9FF)', width: `${lvlPct}%`, transition: 'width 1.4s cubic-bezier(0.22,1,0.36,1)' }} /></div>
-              </div>
-            </div>
-          </div>
-          <div style={{ position: 'relative', marginTop: 16 }}>{barraAssinar()}</div>
         </div>
 
-        {/* ===== folha clara sobrepondo o cabeçalho ===== */}
-        <div style={{ padding: '22px 16px 10px', marginTop: -18, background: 'var(--color-background-tertiary)', borderTopLeftRadius: 26, borderTopRightRadius: 26, position: 'relative' }}>
+        {/* ===== O VÔ no centro ===== */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 18px 8px' }}>
+          <div onClick={() => falarPt(msg)} title="Toque para ouvir o Vô" style={{ position: 'relative', width: 150, height: 150, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'su_bob 3.6s ease-in-out infinite' }}>
+            <div style={{ position: 'absolute', inset: -6, borderRadius: '50%', background: treinouHoje ? 'radial-gradient(circle, rgba(74,222,128,0.30) 0%, rgba(74,222,128,0) 70%)' : 'radial-gradient(circle, rgba(75,184,240,0.30) 0%, rgba(75,184,240,0) 70%)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative' }}><Mascote size={140} prof viva humor={humorVo} /></div>
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginTop: 10 }}>{saudacao},</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.5, lineHeight: 1.1 }}>{userName}</div>
 
-          {/* ===== 2. O VÔ: o que fazer agora ===== */}
-          <div style={{ position: 'relative', background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '5px 16px 16px 16px', padding: '14px 16px', fontSize: 15, lineHeight: 1.5, color: 'var(--color-text-primary)', fontWeight: 500, animation: 'su_risefade 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
+          <div style={{ alignSelf: 'stretch', marginTop: 18, background: 'var(--color-background-primary)', border: '1px solid var(--color-border-tertiary)', borderRadius: '20px 20px 20px 6px', padding: '15px 17px', fontSize: 16, lineHeight: 1.5, color: 'var(--color-text-primary)', fontWeight: 500, boxShadow: '0 1px 2px rgba(11,23,41,0.05), 0 10px 30px rgba(11,23,41,0.08)', animation: 'su_risefade 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
             {msg}
             <span onClick={() => falarPt(msg)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#2e72d6', cursor: 'pointer', verticalAlign: 'middle' }}><Ic e="🔊" s={12} c="#2e72d6" /> ouvir</span>
           </div>
 
-          <div onClick={iniciarTreino} style={{ borderRadius: 20, padding: 20, marginTop: 16, background: 'linear-gradient(150deg, #2e72d6 0%, #1c55a3 100%)', color: '#fff', boxShadow: '0 12px 28px rgba(46,114,214,0.26)', position: 'relative', overflow: 'hidden', cursor: 'pointer', animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.08s both' }}>
-            <div style={{ position: 'absolute', width: 150, height: 150, borderRadius: '50%', bottom: -80, left: -40, background: 'radial-gradient(circle, rgba(255,255,255,0.2), rgba(255,255,255,0) 70%)', pointerEvents: 'none' }} />
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.82, position: 'relative' }}>{isNovo ? 'Seu primeiro treino' : treinouHoje ? 'Treino de hoje feito' : temRevisao ? 'Revisar antes de seguir' : 'Continuar de onde parou'}</div>
-            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.4, marginTop: 8, position: 'relative', lineHeight: 1.2 }}>{treinouHoje ? 'Bora a próxima?' : temRevisao ? (errosQs.length > 0 ? `${errosQs.length} ${errosQs.length === 1 ? 'erro seu' : 'erros seus'} esperando revanche` : 'Revisão pronta') : proxL ? proxL.title : 'Revisar o nível'}</div>
-            <div style={{ fontSize: 13, opacity: 0.86, marginTop: 3, position: 'relative' }}>{proxL ? `${proxL.q.length} exercícios · cerca de 5 min` : 'Cerca de 5 min'}</div>
-          </div>
-          <button onClick={iniciarTreino} style={{ width: '100%', border: 0, borderRadius: 15, padding: 16, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(255,176,32,0.36)', marginTop: 14, animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.16s both' }}>
-            Começar com o Vô <Ic e="→" s={18} c="var(--vonai-amber-ink)" />
+          {/* A resposta principal continua sendo o treino do dia (âmbar = ação). */}
+          <button onClick={iniciarTreino} style={{ alignSelf: 'stretch', border: 0, borderRadius: 16, padding: 16, marginTop: 14, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(255,176,32,0.36)', animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.08s both' }}>
+            {isNovo ? 'Bora começar!' : treinouHoje ? 'Bora a próxima' : temRevisao ? 'Bora revisar' : 'Bora, começa o treino'} <Ic e="→" s={18} c="var(--vonai-amber-ink)" />
           </button>
-
-          {/* ===== FALAR COM O VÔ — o carro-chefe do app =====
-              Conversar com o professor é o que o Vonai tem e o concorrente não copia,
-              mas estava escondido atrás do botão flutuante. Aqui ele tem peso próprio:
-              card claro com o personagem em tamanho de gente, "online" verde e um
-              botão azul cheio. O âmbar continua sendo a ação do dia (treino); este é a
-              porta aberta 24h — duas ações distintas, nenhuma competindo pela mesma cor. */}
-          <div onClick={() => setTab('ai')} style={{ marginTop: 14, background: 'var(--color-background-primary)', borderRadius: 20, padding: 18, cursor: 'pointer', boxShadow: '0 1px 2px rgba(11,23,41,0.05), 0 10px 30px rgba(11,23,41,0.08)', animation: 'su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) 0.24s both' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ position: 'relative', width: 62, height: 62, flexShrink: 0 }}>
-                <div style={{ position: 'absolute', inset: -4, borderRadius: '50%', background: 'radial-gradient(circle, rgba(75,184,240,0.30) 0%, rgba(75,184,240,0) 70%)', animation: 'su_halo 3.2s ease-in-out infinite', pointerEvents: 'none' }} />
-                <div style={{ position: 'relative' }}><Mascote size={62} prof viva humor="feliz" /></div>
-                <span style={{ position: 'absolute', right: 1, bottom: 1, width: 13, height: 13, borderRadius: '50%', background: '#16a34a', border: '2.5px solid var(--color-background-primary)' }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Falar com o Vô</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#16a34a1a', padding: '2px 8px', borderRadius: 999 }}>online</span>
-                </div>
-                <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 3, lineHeight: 1.4 }}>Seu professor particular, 24h. Pergunte qualquer coisa — em português mesmo.</div>
-              </div>
-            </div>
-            <button onClick={e => { e.stopPropagation(); setTab('ai') }} style={{ width: '100%', marginTop: 14, border: 0, borderRadius: 14, padding: 14, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15.5, background: '#2e72d6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 6px 18px rgba(46,114,214,0.30)' }}>
-              <Ic e="💬" s={17} c="#fff" /> Conversar agora
-            </button>
-          </div>
-
-          {/* ===== 3. SEU DIA =====
-              Estava sem graça de propósito errado: eu tinha tirado TODA superfície e
-              sobrou texto solto no cinza, com o círculo do check quase invisível.
-              Volta a ter uma casca branca (UMA por seção, não uma por item), anel de
-              progresso à esquerda do título, ícone colorido por tarefa e o check com
-              contraste de verdade. Feito = linha verde. */}
-          <div style={{ marginTop: 30, background: 'var(--color-background-primary)', borderRadius: 20, padding: '18px 16px 8px', boxShadow: '0 1px 2px rgba(11,23,41,0.04), 0 8px 24px rgba(11,23,41,0.06)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
-              {(() => {
-                const C = 132
-                const pct = feitos / tarefas.length
-                return (
-                  <div style={{ position: 'relative', width: 50, height: 50, flexShrink: 0 }}>
-                    <svg width="50" height="50" viewBox="0 0 50 50">
-                      <circle cx="25" cy="25" r="21" fill="none" stroke="var(--color-background-secondary)" strokeWidth="6" />
-                      <circle cx="25" cy="25" r="21" fill="none" stroke={feitos === tarefas.length ? '#16a34a' : '#2e72d6'} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 25 25)" style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
-                    </svg>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>{feitos}/{tarefas.length}</div>
-                  </div>
-                )
-              })()}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Seu dia</div>
-                <div style={{ fontSize: 13.5, color: feitos === tarefas.length ? '#16a34a' : 'var(--color-text-secondary)', marginTop: 2, fontWeight: feitos === tarefas.length ? 700 : 400 }}>{feitos === tarefas.length ? 'Tudo feito hoje 🎉' : xpHoje > 0 ? `${xpHoje} de ${metaDiaria} XP hoje` : `Meta de ${metaDiaria} XP — comece por uma`}</div>
-              </div>
-            </div>
-            {tarefas.map((t, i) => (
-              <div key={i} onClick={t.feito ? undefined : t.acao} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '12px 2px', borderTop: '1px solid var(--color-border-tertiary)', cursor: t.feito ? 'default' : 'pointer' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 13, background: t.feito ? '#16a34a14' : t.cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.25s' }}><Ic e={t.icon} s={20} sw={1.9} c={t.feito ? '#16a34a' : t.cor} /></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15.5, fontWeight: 700, color: t.feito ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)', textDecoration: t.feito ? 'line-through' : 'none', lineHeight: 1.3 }}>{t.titulo}</div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.sub}</div>
-                </div>
-                <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: t.feito ? '#16a34a' : 'var(--color-background-secondary)', border: t.feito ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.25s' }}>{t.feito ? <Ic e="✓" s={14} sw={3} c="#fff" /> : <Ic e="›" s={15} sw={2.4} c="var(--color-text-tertiary)" />}</div>
-              </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 12 }}>
+            {respostas.map((r, i) => (
+              <button key={r.rotulo} onClick={r.acao} style={{ minHeight: 44, border: '1.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', borderRadius: 999, padding: '10px 15px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', animation: `su_risefade 0.45s cubic-bezier(0.22,1,0.36,1) ${0.14 + i * 0.06}s both` }}>{r.rotulo}</button>
             ))}
           </div>
 
-          {/* ===== 4. MISSÕES DA SEMANA (mantidas a pedido do Emmanuel) =====
-              Os três ícones eram a MESMA caixinha azul pálida e a barra tinha 6px de
-              cinza: nada distinguia "ganhe XP" de "7 dias de sequência". Agora cada
-              missão tem a sua cor (dourado = XP, azul = dias, vermelho = fogo) e a
-              barra é da cor da missão. Prêmio resgatável vira pílula âmbar. */}
-          <div style={{ marginTop: 16, background: 'var(--color-background-primary)', borderRadius: 20, padding: '18px 16px 8px', boxShadow: '0 1px 2px rgba(11,23,41,0.04), 0 8px 24px rgba(11,23,41,0.06)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Missões da semana</div>
-              {missoesAGanhar > 0 && <span style={{ fontSize: 12.5, fontWeight: 800, color: '#e08a1e', background: '#f5a6231f', padding: '5px 11px', borderRadius: 999, whiteSpace: 'nowrap' }}>+{missoesAGanhar} 🪙</span>}
-            </div>
-            {missoesLista.map(m => {
-              const pct = Math.round(m.cur / m.alvo * 100)
-              const completa = m.cur >= m.alvo
-              const resgatada = claimed.includes(m.id)
-              return (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 2px', borderTop: '1px solid var(--color-border-tertiary)' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 13, background: resgatada ? '#16a34a14' : m.cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e={m.e} s={20} sw={1.9} c={resgatada ? '#16a34a' : m.cor} /></div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 7 }}>
-                      <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
-                      <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{m.cur}/{m.alvo}</span>
-                    </div>
-                    <div style={{ background: 'var(--color-background-secondary)', borderRadius: 999, height: 8, overflow: 'hidden' }}><div style={{ background: resgatada ? '#16a34a' : `linear-gradient(90deg, ${m.cor}aa, ${m.cor})`, height: '100%', width: `${pct}%`, borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} /></div>
-                  </div>
-                  {resgatada ? (
-                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="✓" s={14} sw={3} c="#fff" /></div>
-                  ) : completa ? (
-                    <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', border: 'none', borderRadius: 999, padding: '9px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(255,176,32,0.35)', animation: 'su_halo 2.4s ease-in-out infinite' }}>+{m.reward}</button>
-                  ) : (
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>+{m.reward} 🪙</div>
-                  )}
-                </div>
-              )
-            })}
+          {/* UMA barra de progresso, discreta, embaixo da conversa */}
+          <div style={{ alignSelf: 'stretch', marginTop: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: 6 }}><span>Nível {level}</span><span>{lvlPct}% · {feitos}/{tarefas.length} do dia</span></div>
+            <div style={{ height: 6, borderRadius: 999, background: 'var(--color-background-secondary)', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #2e72d6, var(--vonai-glow))', width: `${lvlPct}%`, transition: 'width 1.4s cubic-bezier(0.22,1,0.36,1)' }} /></div>
           </div>
-
-          {/* ===== 5. EXPLORAR: grid de atalhos, ícone + rótulo ===== */}
-          <SecTitulo sub="Tudo que o Vonai tem">Explorar</SecTitulo>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            {atalhos.map(a => (
-              <div key={a.nome} onClick={a.acao} style={{ background: 'var(--color-background-primary)', borderRadius: 16, padding: '16px 8px 13px', textAlign: 'center', cursor: 'pointer' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: a.cor + '1a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 9px' }}><Ic e={a.e} s={22} sw={1.9} c={a.cor} /></div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.25 }}>{a.nome}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Premium: uma linha, só para quem ainda não assina */}
-          {!isPremium && !BETA_GRATIS && (
-            <div onClick={() => irParaPlans('card_home')} style={{ marginTop: 26, background: 'var(--color-background-secondary)', borderRadius: 16, padding: '15px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
-              <div style={{ width: 42, height: 42, borderRadius: 13, background: '#f5a6231f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="⭐" s={21} sw={1.9} c="#e08a1e" /></div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>Vonai Premium</div>
-                <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>IA ilimitada · voz · plano personalizado</div>
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#e08a1e', whiteSpace: 'nowrap' }}>R$ 29,90 ›</span>
-            </div>
-          )}
-
-          {/* Rodapé em UMA linha. Antes ocupava quase meia tela de cinza vazio: botão de
-              feedback, fio, "excluir minha conta" e "Vonai" empilhados com 36px de
-              respiro. São links de manutenção — o aluno usa uma vez na vida.
-              "Excluir minha conta" continua alcançável (App Store 5.1.1(v)). */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20, paddingBottom: 2, fontSize: 11, color: 'var(--color-text-tertiary)' }}>
-            <span onClick={() => { setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ cursor: 'pointer' }}>Enviar feedback</span>
-            <span aria-hidden>·</span>
-            <span onClick={() => { setExcluirErro(''); setExcluirModal(true) }} style={{ cursor: 'pointer' }}>Excluir conta</span>
-          </div>
+          <div style={{ alignSelf: 'stretch', marginTop: 12 }}>{barraAssinar()}</div>
         </div>
+
+        {/* ===== FALAR / ESCREVER com o Vô ===== */}
+        <div style={{ flexShrink: 0, padding: '8px 16px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && enviarDaHome()} aria-label="Escrever para o Vô" placeholder="Escreva ou fale com o Vô…" style={{ flex: 1, minWidth: 0, height: 50, padding: '0 16px', border: '1px solid var(--color-border-tertiary)', borderRadius: 999, fontSize: 16, background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', fontFamily: 'inherit' }} />
+          <button onClick={chatInput.trim() ? enviarDaHome : falarDaHome} aria-label={chatInput.trim() ? 'Enviar para o Vô' : 'Falar com o Vô'} style={{ width: 60, height: 60, flexShrink: 0, borderRadius: '50%', border: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 22px rgba(255,176,32,0.45)', padding: 0 }}>
+            <Ic e={chatInput.trim() ? '→' : '🎤'} s={24} c="var(--vonai-amber-ink)" />
+          </button>
+        </div>
+
+        {/* ===== MAIS PARA PRATICAR (segundo plano) ===== */}
+        {maisAberto && (
+          <div onClick={() => setMaisAberto(false)} style={{ position: 'absolute', inset: 0, zIndex: 120, background: 'rgba(11,23,41,0.45)', display: 'flex', alignItems: 'flex-end', animation: 'su_fade 0.2s ease' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxHeight: '88%', overflowY: 'auto', background: 'var(--color-background-tertiary)', borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: '10px 16px calc(20px + env(safe-area-inset-bottom))', boxSizing: 'border-box', boxShadow: '0 -20px 60px rgba(11,23,41,0.2)', animation: 'su_slide 0.28s cubic-bezier(0.22,1,0.36,1)' }}>
+              <div style={{ width: 40, height: 5, borderRadius: 999, background: 'var(--color-border-tertiary)', margin: '0 auto 12px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ flex: 1, fontSize: 20, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Mais para praticar</div>
+                <button onClick={alternarTema} aria-label="Alternar modo escuro" style={{ width: 44, height: 44, border: 0, background: 'transparent', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{temaEscuro ? '☀️' : '🌙'}</button>
+                <button onClick={() => setMaisAberto(false)} aria-label="Fechar" style={{ width: 44, height: 44, border: 0, background: 'transparent', color: 'var(--color-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic e="✕" s={18} c="var(--color-text-secondary)" /></button>
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginBottom: 12 }}>O Vô também te sugere essas atividades na conversa, na hora certa.</div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {atalhos.map(a => (
+                  <div key={a.nome} onClick={() => { setMaisAberto(false); a.acao() }} style={{ position: 'relative', background: 'var(--color-background-primary)', borderRadius: 18, padding: '13px 12px 14px', cursor: 'pointer', overflow: 'hidden', boxShadow: '0 1px 2px rgba(11,23,41,0.04), 0 6px 18px rgba(11,23,41,0.05)' }}>
+                    <div style={{ position: 'absolute', width: 66, height: 66, borderRadius: '50%', top: -30, right: -22, background: `radial-gradient(circle, ${a.cor}1f 0%, ${a.cor}00 70%)`, pointerEvents: 'none' }} />
+                    <ChipIcone e={a.e} cor={a.cor} cor2={a.cor2} box={38} size={20} radius={12} style={{ position: 'relative', marginBottom: 10 }} />
+                    <div style={{ position: 'relative', fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.2, letterSpacing: -0.2, minHeight: 32 }}>{a.nome}</div>
+                    <div style={{ position: 'relative', fontSize: 11.5, fontWeight: 600, color: a.cor, marginTop: 3, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.dado}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* SEU DIA */}
+              <div style={{ marginTop: 16, background: 'var(--color-background-primary)', borderRadius: 20, padding: '16px 16px 6px', boxShadow: '0 1px 2px rgba(11,23,41,0.04), 0 8px 24px rgba(11,23,41,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Seu dia</div>
+                  <div style={{ fontSize: 13, color: feitos === tarefas.length ? '#16a34a' : 'var(--color-text-secondary)', fontWeight: 700 }}>{feitos}/{tarefas.length}{xpHoje > 0 ? ` · ${xpHoje}/${metaDiaria} XP` : ''}</div>
+                </div>
+                {tarefas.map((t, i) => (
+                  <div key={i} onClick={t.feito ? undefined : () => { setMaisAberto(false); t.acao() }} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 2px', borderTop: '1px solid var(--color-border-tertiary)', cursor: t.feito ? 'default' : 'pointer' }}>
+                    <ChipIcone e={t.icon} cor={t.feito ? '#16a34a' : t.cor} cor2={t.feito ? '#14532d' : t.cor2} box={38} size={19} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: t.feito ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)', textDecoration: t.feito ? 'line-through' : 'none', lineHeight: 1.3 }}>{t.titulo}</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.sub}</div>
+                    </div>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: t.feito ? '#16a34a' : 'var(--color-background-secondary)', border: t.feito ? 'none' : '2px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.feito ? <Ic e="✓" s={13} sw={3} c="#fff" /> : <Ic e="›" s={14} sw={2.4} c="var(--color-text-tertiary)" />}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* MISSÕES DA SEMANA */}
+              <div style={{ marginTop: 14, background: 'var(--color-background-primary)', borderRadius: 20, padding: '16px 16px 6px', boxShadow: '0 1px 2px rgba(11,23,41,0.04), 0 8px 24px rgba(11,23,41,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: -0.3 }}>Missões da semana</div>
+                  {missoesAGanhar > 0 && <span style={{ fontSize: 12.5, fontWeight: 800, color: '#e08a1e', background: '#f5a6231f', padding: '5px 11px', borderRadius: 999, whiteSpace: 'nowrap' }}>+{missoesAGanhar} 🪙</span>}
+                </div>
+                {missoesLista.map(m => {
+                  const pct = Math.round(m.cur / m.alvo * 100)
+                  const completa = m.cur >= m.alvo
+                  const resgatada = claimed.includes(m.id)
+                  return (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '12px 2px', borderTop: '1px solid var(--color-border-tertiary)' }}>
+                      <ChipIcone e={m.e} cor={resgatada ? '#16a34a' : m.cor} cor2={resgatada ? '#14532d' : m.cor2} box={38} size={19} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
+                          <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{m.cur}/{m.alvo}</span>
+                        </div>
+                        <div style={{ background: 'var(--color-background-secondary)', borderRadius: 999, height: 7, overflow: 'hidden' }}><div style={{ background: resgatada ? '#16a34a' : `linear-gradient(90deg, ${m.cor}, ${m.cor2})`, height: '100%', width: `${pct}%`, borderRadius: 999 }} /></div>
+                      </div>
+                      {resgatada ? (
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="✓" s={13} sw={3} c="#fff" /></div>
+                      ) : completa ? (
+                        <button onClick={() => claimMissao(m.id, m.reward)} style={{ flexShrink: 0, background: 'var(--vonai-amber)', color: 'var(--vonai-amber-ink)', border: 'none', borderRadius: 999, padding: '9px 14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>+{m.reward}</button>
+                      ) : (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>+{m.reward} 🪙</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {!isPremium && !BETA_GRATIS && (
+                <div onClick={() => { setMaisAberto(false); irParaPlans('card_home') }} style={{ marginTop: 14, background: 'var(--color-background-primary)', borderRadius: 16, padding: '15px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 13, background: '#f5a6231f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Ic e="⭐" s={21} sw={1.9} c="#e08a1e" /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>Vonai Premium</div>
+                    <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>IA ilimitada · voz · plano personalizado</div>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#e08a1e', whiteSpace: 'nowrap' }}>R$ 29,90 ›</span>
+                </div>
+              )}
+
+              {/* "Excluir conta" continua alcançável (App Store 5.1.1(v)). */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 18, fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+                <span onClick={() => { setMaisAberto(false); setFeedbackEnviado(false); setFeedbackModal(true) }} style={{ cursor: 'pointer' }}>Enviar feedback</span>
+                <span aria-hidden>·</span>
+                <span onClick={() => { setMaisAberto(false); setExcluirErro(''); setExcluirModal(true) }} style={{ cursor: 'pointer' }}>Excluir conta</span>
+                <span aria-hidden>·</span>
+                <span onClick={logout} style={{ cursor: 'pointer' }}>Sair</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -8689,7 +8716,7 @@ export default function AppPage() {
           navegador novo ficava sem o botão — foi assim que ele "sumiu" pro Emmanuel. */}
       {/* Na home o herói já é o Vô falando; o flutuante por cima dele fazia TRÊS
           araras na mesma tela (logo, herói, balão). Fora da home continua em todas. */}
-      {!mostrarOnboarding && tab !== 'ai' && (
+      {!mostrarOnboarding && tab !== 'ai' && tab !== 'home' && (
         /* O container é só posicionamento: pointerEvents none nele (e auto nos filhos
            clicáveis) evita que a área vazia/balão engula o toque do conteúdo embaixo. */
         <div style={{ position: 'absolute', right: 12, bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, pointerEvents: 'none' }}>
