@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { PAYWALL_DURO, GRATIS } from './plano'
 
 // Envio de e-mail transacional pelo Resend. Existe porque o push não cobre todo mundo:
 // no iPhone via App Store não há web push NENHUM, e no Android/web só recebe quem
@@ -136,7 +137,7 @@ export function emailTrialAcabando(nome: string): { titulo: string; corpo: strin
   return {
     titulo: 'Seu teste Premium acaba amanhã',
     corpo:
-      p(`${oi}seus ${TRIAL_DIAS} dias de Premium grátis terminam amanhã. Se você começou o teste pela App Store, a assinatura segue automaticamente (cancele nos Ajustes do iPhone se não quiser); se começou pelo site, o app vai pedir a assinatura — <strong>nada é cobrado sem você confirmar</strong>. Seu progresso, sua sequência e sua trilha ficam guardados.`) +
+      p(`${oi}seus ${TRIAL_DIAS} dias de Premium grátis terminam amanhã. Se você começou o teste pela App Store, a assinatura segue automaticamente (cancele nos Ajustes do iPhone se não quiser); se começou pelo site, ${PAYWALL_DURO ? 'o app vai pedir a assinatura' : `você passa para o plano grátis (${GRATIS.resumo})`} — <strong>nada é cobrado sem você confirmar</strong>. Seu progresso, sua sequência e sua trilha ficam guardados.`) +
       p('Para seguir no ritmo de agora, o Premium anual sai por <strong>R$289,80/ano — menos de R$0,79 por dia</strong>. Ou R$29,90 no mensal, cancele quando quiser.'),
     cta: 'Continuar no Premium',
     href: PLANOS,
@@ -148,6 +149,29 @@ export function emailTrialAcabando(nome: string): { titulo: string; corpo: strin
 // o segundo é o último empurrão com o preço por dia — e para por aí.
 export function emailPosTrial(nome: string, numero: 1 | 2): { titulo: string; corpo: string; cta: string; href: string } {
   const oi = nome ? `${nome}, ` : ''
+  // Sem a trava (PAYWALL_DURO = false) dizer "acesso pausado" seria mentira: a pessoa pode
+  // abrir o app e estudar. O e-mail passa a chamar de volta para a lição grátis de hoje,
+  // e o Premium entra como o que tira o limite — não como pedágio.
+  if (!PAYWALL_DURO) {
+    if (numero === 1) {
+      return {
+        titulo: 'Seu teste acabou — sua lição de hoje continua grátis',
+        corpo:
+          p(`${oi}seu período de teste terminou e <strong>nada foi cobrado</strong>. Você continua no plano grátis: ${GRATIS.resumo}. Seu progresso e sua sequência estão exatamente onde você parou.`) +
+          p('A lição de hoje leva 2 minutos. Se quiser tirar os limites, o Premium sai por <strong>menos de R$0,79 por dia</strong> no anual (R$289,80) ou R$29,90 no mensal, sem fidelidade.'),
+        cta: 'Fazer a lição de hoje',
+        href: `${BASE}/app`,
+      }
+    }
+    return {
+      titulo: 'Último recado: sem limites por menos de R$0,79/dia',
+      corpo:
+        p(`${oi}este é o último e-mail sobre assinatura, prometido. O plano grátis continua seu, sem prazo.`) +
+        p(`Se quiser professor sem limite de mensagens, lições sem limite e conversas à vontade, o Premium anual sai por <strong>R$289,80 (≈ R$0,79/dia)</strong> ou R$29,90/mês. Cancele quando quiser.`),
+      cta: 'Ver o Premium',
+      href: PLANOS,
+    }
+  }
   if (numero === 1) {
     return {
       titulo: 'Seu acesso ao Vonai está pausado — volte por R$0,79/dia',
@@ -165,6 +189,23 @@ export function emailPosTrial(nome: string, numero: 1 | 2): { titulo: string; co
       p(`Se quiser destravar o professor sem limite de mensagens, lições sem limite e voz neural o dia todo, o Premium anual sai por <strong>R$289,80 (≈ R$0,79/dia)</strong> ou R$29,90/mês.`),
     cta: 'Assinar o Premium',
     href: PLANOS,
+  }
+}
+
+// (b2) AVISO ÚNICO DO PLANO GRÁTIS (13/11/2026). Vai uma vez para cada conta que bateu na
+// trava do fim do teste e nunca assinou — gente que saiu achando que o app "acabou".
+// A notícia é concreta e é boa: o app destrancou. Sem desconto, sem urgência inventada.
+// Quem decide QUEM recebe e QUANTOS por rodada é /api/send-reminders (chave 'gratis_aviso').
+export function emailPlanoGratis(nome: string): { titulo: string; corpo: string; cta: string; href: string } {
+  const oi = nome ? `${nome}, ` : ''
+  return {
+    titulo: 'O Vonai destrancou: agora tem plano grátis',
+    corpo:
+      p(`${oi}quando seu teste acabou, o Vonai trancou e pediu assinatura. Isso mudou: agora existe um <strong>plano grátis, sem prazo</strong> — ${GRATIS.resumo}.`) +
+      p('Sua conta, seu nível e seu progresso continuam guardados. É só abrir e fazer a lição de hoje: <strong>2 minutos</strong>, falando inglês em voz alta com o professor corrigindo na hora.') +
+      p('Nada é cobrado. Se um dia quiser estudar sem limites, o Premium está lá — mas não é mais condição para entrar.'),
+    cta: 'Abrir o Vonai e fazer a lição de hoje',
+    href: `${BASE}/app`,
   }
 }
 

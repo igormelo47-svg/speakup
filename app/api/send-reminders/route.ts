@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
-import { enviarEmailLembrete, emailTrialAcabando, emailPosTrial, emailDia2, emailDia3 } from '../../../lib/email'
+import { enviarEmailLembrete, emailTrialAcabando, emailPosTrial, emailDia2, emailDia3, emailPlanoGratis } from '../../../lib/email'
+import { PAYWALL_DURO } from '../../../lib/plano'
 import { gravarEventoServidor, EV } from '../../../lib/funil'
 import { enviarWhatsapp, whatsappConfigurado } from '../../../lib/whatsapp'
 import { missaoPara } from '../../../lib/missao'
@@ -12,6 +13,12 @@ import { segredoConfere } from '../../../lib/segredo'
 const WINBACK_MAX_DIAS = 30
 // Espaçamento mínimo entre e-mails de winback (o push é mais barato e descartável).
 const WINBACK_INTERVALO_DIAS = 3
+
+// Aviso único "o Vonai destrancou" (ver emailPlanoGratis). Teto por rodada do cron: o plano
+// gratuito do Resend aceita 100 e-mails por dia e 2 por segundo, e os e-mails do ciclo de
+// vida (dia 2, fim de teste) têm prioridade sobre esta campanha. 20 por rodada, 2 rodadas
+// por dia = base inteira avisada em poucos dias, sem estourar a cota nem o tempo da função.
+const AVISO_GRATIS_POR_RODADA = 20
 
 const VAPID_PUBLIC = 'BGvDV8RzI74VwBSU6MSVcAgDJS3WF_zTGrpDW9cY26dyf85JAbJP0aRhJpU8BECmc3Z6yvHRHctbxxE0Bk-5cLo'
 
@@ -88,7 +95,7 @@ export async function GET(req: NextRequest) {
     const pagoAtivo = !!p.is_premium && (!p.premium_expira || new Date(p.premium_expira).getTime() > agora)
     const texp = trialDe.get(userId) ? new Date(trialDe.get(userId)).getTime() : 0
     if (!pagoAtivo && texp > agora && texp - agora <= 24 * 3600000) {
-      return { title: 'Seu acesso Premium grátis acaba hoje ⏰', body: `${oi}continue de onde parou por R$29,90/mês — seu progresso fica guardado.` }
+      return { title: 'Seu acesso Premium grátis acaba hoje ⏰', body: PAYWALL_DURO ? `${oi}continue de onde parou por R$29,90/mês — seu progresso fica guardado.` : `${oi}siga sem limites por R$29,90/mês — ou continue no plano grátis. Seu progresso fica guardado.` }
     }
 
     if (estudouHoje.has(userId)) return null
@@ -294,6 +301,33 @@ export async function GET(req: NextRequest) {
         await mandar(p, 'pos_trial_2', emailPosTrial(nome, 2))
         continue
       }
+    }
+  }
+
+  // AVISO ÚNICO DO PLANO GRÁTIS — para quem bateu na trava do fim do teste e não assinou.
+  // Só existe com PAYWALL_DURO = false (senão o e-mail prometeria o que o app não faz).
+  // Uma vez por conta (chave 'gratis_aviso'), no máximo AVISO_GRATIS_POR_RODADA por rodada,
+  // e nunca no mesmo dia de outro e-mail. Precisa da coluna emails_enviados para não
+  // repetir: sem ela a campanha NÃO roda — mandar duas vezes o mesmo aviso é pior que não mandar.
+  // Conta com teste vencido há menos de 10 dias fica de fora: ela ainda está na sequência
+  // pos_trial_1/pos_trial_2, que já conta a mesma novidade.
+  contagem.gratis_aviso = 0
+  if (!PAYWALL_DURO && temColunaEmails) {
+    let nestaRodada = 0
+    for (const p of prog || []) {
+      if (nestaRodada >= AVISO_GRATIS_POR_RODADA) break
+      if (!podeReceber(p)) continue
+      if (jaMandou(p, 'gratis_aviso')) continue
+      const pagoAtivo = !!p.is_premium && (!p.premium_expira || new Date(p.premium_expira).getTime() > agora)
+      if (pagoAtivo) continue
+      const texp = trialDe.get(p.user_id) ? new Date(trialDe.get(p.user_id)).getTime() : 0
+      if (!texp || agora - texp < 10 * DIA) continue
+      if (estudouHoje.has(p.user_id)) continue
+      const ev = p.emails_enviados
+      if (ev && typeof ev === 'object' && Object.values(ev).includes(hoje)) continue
+      const nome = String(p.nome || '').split(' ')[0]
+      nestaRodada++
+      await mandar(p, 'gratis_aviso', emailPlanoGratis(nome))
     }
   }
 

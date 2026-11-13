@@ -16,6 +16,7 @@ import { PRECO } from '../_marketing/ui'
 // de tráfego). Ver lib/funil.ts para o porquê.
 import { funil, EV } from '../../lib/funil'
 import { variante, assinaturaVariantes } from '../../lib/experimento'
+import { PAYWALL_DURO, GRATIS } from '../../lib/plano'
 import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import {
@@ -842,9 +843,9 @@ const KIWIFY_ANUAL = 'https://pay.kiwify.com.br/1c7zem8'
 // true  = beta grátis (todos Premium, sem paywall)
 // false = cobrança ligada (free tem limites, quem paga vira Premium via Kiwify) — estado atual
 const BETA_GRATIS = false
-// Trial Premium: TRIAL_DIAS dias como Premium completo; depois o app TRANCA na tela de
-// assinatura (paywall duro) — decisão do dono em 19/08/2026. O freemium de 7 dias
-// (18/08) ficou no histórico do git, caso um dia volte.
+// Trial Premium: TRIAL_DIAS dias como Premium completo. O que acontece depois é decidido
+// por PAYWALL_DURO (lib/plano.ts): `true` tranca na tela de assinatura (regra de 19/08);
+// `false` (desde 13/11/2026) mostra a oferta 1x por dia e deixa seguir no plano grátis.
 const TRIAL_DIAS = PRECO.diasGratis
 const TRIAL_MS = TRIAL_DIAS * 24 * 60 * 60 * 1000
 // De onde o aluno chegou na aba de planos (medição paywall_visto no dataLayer).
@@ -2680,6 +2681,19 @@ export default function AppPage() {
   const [isPremium, setIsPremium] = useState(BETA_GRATIS)
   // Fim do trial (timestamp) para a faixa de upsell que aparece DURANTE o teste.
   const [trialExpira, setTrialExpira] = useState<number | null>(null)
+  // Paywall do fim do teste já dispensado HOJE ("Continuar no plano grátis"). Guardado por
+  // dia: amanhã a oferta aparece de novo na abertura, uma vez, e some com um toque.
+  // Só tem efeito com PAYWALL_DURO = false (lib/plano.ts).
+  const PAYWALL_DISP_KEY = 'speakup_paywall_dispensado'
+  const diaDeHojeLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+  const [paywallDispensado, setPaywallDispensado] = useState(false)
+  useEffect(() => {
+    try { if (localStorage.getItem(PAYWALL_DISP_KEY) === diaDeHojeLocal()) setPaywallDispensado(true) } catch (e) {}
+  }, [])
+  const seguirNoGratis = () => {
+    try { localStorage.setItem(PAYWALL_DISP_KEY, diaDeHojeLocal()) } catch (e) {}
+    setPaywallDispensado(true)
+  }
   // App iOS (Capacitor): compra via Apple; sem mencionar pagamento externo (regra 3.1.1)
   const [isIOSNative, setIsIOSNative] = useState(false)
   useEffect(() => { if ((window as any).Capacitor?.isNativePlatform?.()) setIsIOSNative(true) }, [])
@@ -5335,17 +5349,18 @@ export default function AppPage() {
     )
   }
 
-  // 🔒 PAYWALL DURO: acabou o trial de TRIAL_DIAS dias e não é Premium -> tranca o app na
-  // tela de assinatura até assinar (isPremium já cobre trial ativo e pagante). Não há
-  // plano grátis: o progresso fica guardado e volta inteiro quando ele assina.
-  if (xpHydrated && !isPremium) {
+  // 🔒 PAYWALL DO FIM DO TESTE: acabou o trial de TRIAL_DIAS dias e não é Premium.
+  // PAYWALL_DURO = true  -> tranca o app aqui até assinar.
+  // PAYWALL_DURO = false -> esta tela aparece 1x por dia; "Continuar no plano grátis" a
+  // fecha e o aluno segue com os limites do grátis (LIMITE_DIA_LICOES, PROF_LIMIT, FREE_LIMIT).
+  if (xpHydrated && !isPremium && (PAYWALL_DURO || !paywallDispensado)) {
     return (
       <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--color-background-tertiary)' }}>
         <div style={{ width: '100%', maxWidth: 430, fontFamily: 'inherit', background: 'var(--color-background-tertiary)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <div style={{ background: 'linear-gradient(150deg, #103d77, #2e72d6)', padding: '44px 20px 30px', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IcBadge e="⭐" color={gold} onDark box={58} size={30} /></div>
             <div style={{ fontSize: 23, fontWeight: 800, color: '#fff' }}>Seu teste grátis terminou</div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>Assine o <b>Vonai Premium</b> para continuar de onde parou — seu progresso está guardado.</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 8, lineHeight: 1.5 }}>{PAYWALL_DURO ? <>Assine o <b>Vonai Premium</b> para continuar de onde parou — seu progresso está guardado.</> : <>Continue sem limites com o <b>Vonai Premium</b> — ou siga no plano grátis. Seu progresso está guardado.</>}</div>
           </div>
           <div style={{ padding: 18, flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Aversão à perda: a decisão de assinar é tomada olhando para o que JÁ é do aluno,
@@ -5403,8 +5418,18 @@ export default function AppPage() {
                 mais; só faz a pessoa fechar o app sem saber se pode voltar. */}
             <div style={{ background: '#f2f5f8', borderRadius: 12, padding: '12px 14px', marginBottom: 14, fontSize: 12.5, color: '#5c6b7a', lineHeight: 1.55 }}>
               <b style={{ color: '#16212c' }}>E se eu não assinar agora?</b><br />
-              Sua conta continua sua e todo o progresso fica guardado — XP, sequência e lições feitas. As lições e o professor ficam trancados até você assinar, e voltam exatamente de onde pararam quando você voltar.
+              {PAYWALL_DURO
+                ? 'Sua conta continua sua e todo o progresso fica guardado — XP, sequência e lições feitas. As lições e o professor ficam trancados até você assinar, e voltam exatamente de onde pararam quando você voltar.'
+                : `Você continua estudando no plano grátis: ${GRATIS.resumo}. Nada é cobrado e seu progresso segue guardado — o Premium tira os limites quando você quiser.`}
             </div>
+            {!PAYWALL_DURO && (
+              <button
+                onClick={() => { ev(EV.PAYWALL_FECHADO, { gatilho: 'fim_trial', destino: 'gratis' }); seguirNoGratis() }}
+                style={{ width: '100%', padding: 13, background: '#ffffff', color: blue, border: `1px solid ${blue}`, borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Continuar no plano grátis
+              </button>
+            )}
             <div style={{ fontSize: 12, color: '#5c6b7a', textAlign: 'center', lineHeight: 1.5, marginTop: 12 }}>{isIOSNative ? 'Pagamento seguro pela App Store · Cancele quando quiser · sem fidelidade' : PRECO.cartaoNaEntrada ? 'Pagamento seguro via Stripe · Cartão de crédito · Cancele em 1 toque, sem fidelidade' : 'Pagamento seguro via Kiwify · Pix, cartão ou boleto · Cancele quando quiser · sem fidelidade'}</div>
             {/* O aviso do e-mail só existe porque o webhook da Kiwify casa o pagamento pelo
                 e-mail do checkout. No Stripe a sessão já nasce com o user_id, então o aviso
@@ -5675,9 +5700,10 @@ export default function AppPage() {
       ? Math.max(1, Math.ceil((trialExpira - Date.now()) / 3600000))
       : 0
     const urgente = restam > 0 && restam <= 24
-    // Honesto sobre o que acontece no fim: sem assinatura o app tranca (progresso guardado).
+    // Honesto sobre o que acontece no fim: com PAYWALL_DURO o app tranca; sem ele, o aluno
+    // cai no plano grátis (com limites por dia). O progresso fica guardado nos dois casos.
     const linha2 = restam > 0
-      ? (urgente ? 'Seu teste acaba hoje — assine para não perder o acesso' : `Teste Premium · ${Math.ceil(restam / 24)} dias`)
+      ? (urgente ? (PAYWALL_DURO ? 'Seu teste acaba hoje — assine para não perder o acesso' : 'Seu teste acaba hoje — assine para seguir sem limites') : `Teste Premium · ${Math.ceil(restam / 24)} dias`)
       : 'Todas as lições, professor de IA e conversas sem limite'
     return (
       <div
